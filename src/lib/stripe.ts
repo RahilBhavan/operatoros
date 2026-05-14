@@ -44,6 +44,7 @@ export const PLANS = {
       "Document storage (10 GB)",
       "Shareable compliance link",
       "PDF audit export",
+      "AI compliance insights",
       "Priority support",
     ],
   },
@@ -57,6 +58,19 @@ export const PLANS = {
       "API access",
       "Custom reminders",
       "Dedicated support",
+    ],
+  },
+  accountant_pro: {
+    name: "Accountant Pro",
+    amount: 499,
+    features: [
+      "Manage up to 200 client portfolios",
+      "White-labeled compliance reports",
+      "Bulk client onboarding",
+      "Accountant action portal (add notes, flag items)",
+      "Priority API access",
+      "Dedicated account manager",
+      "Volume discount pricing for clients",
     ],
   },
 } as const;
