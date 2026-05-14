@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { Shield, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Shield } from "lucide-react";
 
 export default async function SharePage({
   params,

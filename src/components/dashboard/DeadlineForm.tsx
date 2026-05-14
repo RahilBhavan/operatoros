@@ -56,55 +56,59 @@ export default function DeadlineForm({ businessId, existing }: Props) {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    if (isEdit && existing) {
-      const { error: err } = await supabase
-        .from("deadlines")
-        .update({
-          name: name.trim(),
-          description: description.trim() || null,
-          deadline_type: deadlineType,
-          governing_agency: governingAgency.trim() || null,
-          frequency,
-          due_date: dueDate,
-          status,
-        })
-        .eq("id", existing.id);
+      if (isEdit && existing) {
+        const { error: err } = await supabase
+          .from("deadlines")
+          .update({
+            name: name.trim(),
+            description: description.trim() || null,
+            deadline_type: deadlineType,
+            governing_agency: governingAgency.trim() || null,
+            frequency,
+            due_date: dueDate,
+            status,
+          })
+          .eq("id", existing.id);
 
-      if (err) {
-        setError("Failed to update deadline. Please try again.");
-        setLoading(false);
-        return;
+        if (err) {
+          setError("Failed to update deadline. Please try again.");
+          return;
+        }
+
+        router.push(`/deadlines/${existing.id}`);
+        router.refresh();
+      } else {
+        const { data, error: err } = await supabase
+          .from("deadlines")
+          .insert({
+            business_id: businessId,
+            name: name.trim(),
+            description: description.trim() || null,
+            deadline_type: deadlineType,
+            governing_agency: governingAgency.trim() || null,
+            frequency,
+            due_date: dueDate,
+            status: "upcoming",
+            source: "user_manual",
+          })
+          .select("id")
+          .single();
+
+        if (err || !data) {
+          setError("Failed to save deadline. Please try again.");
+          return;
+        }
+
+        router.push(`/deadlines/${data.id}`);
+        router.refresh();
       }
-
-      router.push(`/deadlines/${existing.id}`);
-      router.refresh();
-    } else {
-      const { data, error: err } = await supabase
-        .from("deadlines")
-        .insert({
-          business_id: businessId,
-          name: name.trim(),
-          description: description.trim() || null,
-          deadline_type: deadlineType,
-          governing_agency: governingAgency.trim() || null,
-          frequency,
-          due_date: dueDate,
-          status: "upcoming",
-          source: "user_manual",
-        })
-        .select("id")
-        .single();
-
-      if (err || !data) {
-        setError("Failed to save deadline. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      router.push(`/deadlines/${data.id}`);
-      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 

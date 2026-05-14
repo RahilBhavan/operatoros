@@ -71,7 +71,7 @@ export async function sendReminderEmail(params: ReminderEmailParams) {
 
         <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 16px; margin: 0;">
           You're receiving this because you have an account on OperatorOS.
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings" style="color: #94a3b8;">Manage notifications</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/billing" style="color: #94a3b8;">Manage subscription</a>
         </p>
       </div>
     `,
