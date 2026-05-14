@@ -61,7 +61,8 @@ export default async function DeadlinesPage({
     .eq("business_id", business.id)
     .order("due_date", { ascending: true });
 
-  if (params.status) {
+  const VALID_STATUSES: Deadline["status"][] = ["overdue", "in_progress", "upcoming", "compliant"];
+  if (params.status && VALID_STATUSES.includes(params.status as Deadline["status"])) {
     query = query.eq("status", params.status as Deadline["status"]);
   }
   if (params.type) {

@@ -97,47 +97,57 @@ export default function OnboardingPage() {
     setSaving(true);
     setError("");
 
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      router.push("/sign-in");
-      return;
-    }
+      if (!user) {
+        router.push("/sign-in");
+        return;
+      }
 
-    const { data: business, error: bizErr } = await supabase
-      .from("businesses")
-      .insert({
-        owner_id: user.id,
-        name: data.businessName.trim(),
-        industry_sic_code: data.industry ?? undefined,
-        entity_type: data.entityType ?? undefined,
-        employee_count: employeeRangeToCount(data.employeeRange),
-        hires_contractors: data.hiresContractors ?? false,
-        onboarding_complete: true,
-      })
-      .select("id")
-      .single();
+      const { data: business, error: bizErr } = await supabase
+        .from("businesses")
+        .insert({
+          owner_id: user.id,
+          name: data.businessName.trim(),
+          industry_sic_code: data.industry ?? undefined,
+          entity_type: data.entityType ?? undefined,
+          employee_count: employeeRangeToCount(data.employeeRange),
+          hires_contractors: data.hiresContractors ?? false,
+          onboarding_complete: true,
+        })
+        .select("id")
+        .single();
 
-    if (bizErr || !business) {
-      setError("Failed to save your business. Please try again.");
+      if (bizErr || !business) {
+        setError("Failed to save your business. Please try again.");
+        return;
+      }
+
+      // Create the primary location
+      const { error: locErr } = await supabase.from("locations").insert({
+        business_id: business.id,
+        state: data.state,
+      });
+
+      if (locErr) {
+        setError("Failed to save location. Please try again.");
+        return;
+      }
+
+      // Seed starter deadlines based on industry/entity type
+      await seedStarterDeadlines(supabase, business.id, data);
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    // Create the primary location
-    await supabase.from("locations").insert({
-      business_id: business.id,
-      state: data.state,
-    });
-
-    // Seed starter deadlines based on industry/entity type
-    await seedStarterDeadlines(supabase, business.id, data);
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

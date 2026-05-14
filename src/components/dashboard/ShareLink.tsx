@@ -11,21 +11,35 @@ export default function ShareLink({ canShare }: Props) {
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleGenerate() {
     setLoading(true);
-    const res = await fetch("/api/share", { method: "POST" });
-    const data = await res.json();
-    setLoading(false);
-
-    if (data.url) setShareUrl(data.url);
+    setError("");
+    try {
+      const res = await fetch("/api/share", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        setShareUrl(data.url);
+      } else {
+        setError(data.error ?? "Failed to generate link.");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleCopy() {
     if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard permission denied — silently ignore, URL is visible in input
+    }
   }
 
   if (!canShare) {
@@ -39,6 +53,7 @@ export default function ShareLink({ canShare }: Props) {
 
   if (shareUrl) {
     return (
+      <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <input
           value={shareUrl}
@@ -57,17 +72,21 @@ export default function ShareLink({ canShare }: Props) {
           {copied ? "Copied!" : "Copy"}
         </button>
       </div>
+      </div>
     );
   }
 
   return (
-    <button
-      onClick={handleGenerate}
-      disabled={loading}
-      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
-    >
-      <Link2 className="w-4 h-4" />
-      {loading ? "Generating…" : "Generate shareable link"}
-    </button>
+    <div className="flex flex-col items-start gap-1">
+      <button
+        onClick={handleGenerate}
+        disabled={loading}
+        className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+      >
+        <Link2 className="w-4 h-4" />
+        {loading ? "Generating…" : "Generate shareable link"}
+      </button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, PLANS, type PlanTier } from "@/lib/stripe";
+import { getStripe, getPriceId, PLANS, type PlanTier } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -43,16 +43,18 @@ export async function POST(req: NextRequest) {
       .eq("id", business.id);
   }
 
-  const selectedPlan = PLANS[plan as PlanTier];
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
 
   const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],
-    line_items: [{ price: selectedPlan.priceId, quantity: 1 }],
-    success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/billing`,
+    line_items: [{ price: getPriceId(plan as PlanTier), quantity: 1 }],
+    success_url: `${appUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/billing`,
     subscription_data: {
       metadata: { business_id: business.id, plan },
       trial_period_days: 14,

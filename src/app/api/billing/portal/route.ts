@@ -25,11 +25,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
 
   const session = await getStripe().billingPortal.sessions.create({
     customer: business.stripe_customer_id,
-    return_url: `${origin}/billing`,
+    return_url: `${appUrl}/billing`,
   });
 
   return NextResponse.json({ url: session.url });

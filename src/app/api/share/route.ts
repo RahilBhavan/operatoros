@@ -55,6 +55,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const url = `${req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL}/share/${token.token}`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL}/share/${token.token}`;
   return NextResponse.json({ url, expires_at: token.expires_at });
 }

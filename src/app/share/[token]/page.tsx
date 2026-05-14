@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import { Shield, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 export default async function SharePage({
@@ -8,7 +9,10 @@ export default async function SharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const supabase = createAdminClient();
+  const supabase = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   // Validate token
   const { data: shareToken } = await supabase

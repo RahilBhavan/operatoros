@@ -4,9 +4,7 @@ let _stripe: Stripe | null = null;
 
 export function getStripe(): Stripe {
   if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error("STRIPE_SECRET_KEY is not set");
-    }
+    if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY is not set");
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: "2026-04-22.dahlia",
     });
@@ -14,10 +12,21 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
+export function getPriceId(tier: PlanTier): string {
+  const key =
+    tier === "starter"
+      ? "STRIPE_STARTER_PRICE_ID"
+      : tier === "growth"
+        ? "STRIPE_GROWTH_PRICE_ID"
+        : "STRIPE_SCALE_PRICE_ID";
+  const id = process.env[key];
+  if (!id) throw new Error(`${key} is not set`);
+  return id;
+}
+
 export const PLANS = {
   starter: {
     name: "Starter",
-    priceId: process.env.STRIPE_STARTER_PRICE_ID!,
     amount: 29,
     features: [
       "Up to 25 deadlines",
@@ -28,7 +37,6 @@ export const PLANS = {
   },
   growth: {
     name: "Growth",
-    priceId: process.env.STRIPE_GROWTH_PRICE_ID!,
     amount: 79,
     features: [
       "Unlimited deadlines",
@@ -41,7 +49,6 @@ export const PLANS = {
   },
   scale: {
     name: "Scale",
-    priceId: process.env.STRIPE_SCALE_PRICE_ID!,
     amount: 149,
     features: [
       "Everything in Growth",

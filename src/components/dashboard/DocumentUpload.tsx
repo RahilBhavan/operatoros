@@ -93,11 +93,23 @@ export default function DocumentUpload({
   }
 
   async function handleDelete(doc: Document) {
-    const supabase = createClient();
-    await supabase.storage.from("documents").remove([doc.file_path]);
-    await supabase.from("documents").delete().eq("id", doc.id);
-    setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
-    router.refresh();
+    setError("");
+    try {
+      const supabase = createClient();
+      const { error: storageErr } = await supabase.storage
+        .from("documents")
+        .remove([doc.file_path]);
+      if (storageErr) throw storageErr;
+      const { error: dbErr } = await supabase
+        .from("documents")
+        .delete()
+        .eq("id", doc.id);
+      if (dbErr) throw dbErr;
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      router.refresh();
+    } catch {
+      setError("Failed to delete document. Please try again.");
+    }
   }
 
   async function getDownloadUrl(doc: Document): Promise<string> {
