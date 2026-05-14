@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getStripe, PLANS, type PlanTier } from "@/lib/stripe";
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { plan } = await req.json();
+
+  if (!plan || !(plan in PLANS)) {
+    return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+  }
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, stripe_customer_id, plan_tier")
+    .eq("owner_id", user.id)
+    .single();
+
+  if (!business) {
+    return NextResponse.json({ error: "Business not found" }, { status: 404 });
+  }
+
+  let customerId = business.stripe_customer_id;
+
+  if (!customerId) {
+    const customer = await getStripe().customers.create({
+      email: user.email,
+      metadata: { business_id: business.id, user_id: user.id },
+    });
+    customerId = customer.id;
+
+    await supabase
+      .from("businesses")
+      .update({ stripe_customer_id: customerId })
+      .eq("id", business.id);
+  }
+
+  const selectedPlan = PLANS[plan as PlanTier];
+  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL;
+
+  const session = await getStripe().checkout.sessions.create({
+    customer: customerId,
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [{ price: selectedPlan.priceId, quantity: 1 }],
+    success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/billing`,
+    subscription_data: {
+      metadata: { business_id: business.id, plan },
+      trial_period_days: 14,
+    },
+    metadata: { business_id: business.id, plan },
+  });
+
+  return NextResponse.json({ url: session.url });
+}
