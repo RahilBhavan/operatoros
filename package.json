@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --local > src/types/supabase.ts"
+    "db:types": "supabase gen types typescript --local > src/types/supabase.ts",
+    "security:deps": "bun audit",
+    "security:sast": "semgrep scan --config p/typescript --config p/javascript --config p/sql --error",
+    "security:db-lint": "supabase db lint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

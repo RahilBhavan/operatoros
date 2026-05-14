@@ -457,7 +457,7 @@ function StepContractors({
   );
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Deadline seeding ───────────────────────────────────────────────────────
 
 type SupabaseClient = ReturnType<typeof createClient>;
 

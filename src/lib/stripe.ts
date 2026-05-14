@@ -76,3 +76,46 @@ export const PLANS = {
 } as const;
 
 export type PlanTier = keyof typeof PLANS;
+
+
+/**
+ * Stripe webhook helpers: never trust `metadata.business_id` unless it matches
+ * the row keyed by `stripe_customer_id` from the Stripe object.
+ */
+export function stripeCustomerIdToString(
+  customer: string | { id?: string } | null | undefined
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  if (typeof customer === "object" && customer.id) return customer.id;
+  return null;
+}
+
+/** Business id to mutate, or null when metadata must not be applied. */
+export function resolveTrustedBusinessId(args: {
+  stripeCustomerId: string | null;
+  businessFromCustomer: { id: string } | null | undefined;
+  metadataBusinessId: string | null | undefined;
+}): string | null {
+  if (!args.stripeCustomerId) return null;
+  const row = args.businessFromCustomer;
+  if (!row?.id) return null;
+  if (!args.metadataBusinessId || args.metadataBusinessId !== row.id) {
+    return null;
+  }
+  return row.id;
+}
+
+/** Subscription lifecycle events: prefer metadata match when present; otherwise trust customer→business row. */
+export function resolveSubscriptionBusinessId(args: {
+  stripeCustomerId: string | null;
+  businessFromCustomer: { id: string } | null | undefined;
+  metadataBusinessId: string | null | undefined;
+}): string | null {
+  if (!args.stripeCustomerId || !args.businessFromCustomer?.id) return null;
+  if (!args.metadataBusinessId) return args.businessFromCustomer.id;
+  return args.metadataBusinessId === args.businessFromCustomer.id
+    ? args.businessFromCustomer.id
+    : null;
+}
+

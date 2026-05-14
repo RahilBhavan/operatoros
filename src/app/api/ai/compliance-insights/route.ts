@@ -1,37 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60 * 60 * 1000;
-
-// Untyped client used only for the RPC not yet in generated types
-function createRawAdminClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
-
-async function checkRateLimit(userId: string): Promise<boolean> {
-  const admin = createRawAdminClient();
-  const { data, error } = await admin.rpc("check_and_increment_rate_limit", {
-    p_user_id: userId,
-    p_rate_limit: RATE_LIMIT,
-    p_window_ms: RATE_WINDOW_MS,
-  });
-  if (error) {
-    // On RPC failure, fail open rather than block all users
-    console.error("[rate-limit] RPC error:", error.message);
-    return true;
-  }
-  return data === true;
-}
 
 const INSIGHTS_PROMPT = (context: string) => `You are a compliance advisor for small businesses. Analyze the business context below and return 2-3 proactive compliance insights about commonly missed deadlines or renewal obligations.
 
@@ -82,7 +56,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!(await checkRateLimit(user.id))) {
+  // Atomic rate limit using the signed-in user's JWT (no service role in this route).
+  const { data: allowed, error: rateError } = await supabase.rpc(
+    "try_consume_ai_rate_limit",
+    { p_max: RATE_LIMIT, p_window: "1 hour" }
+  );
+
+  if (rateError || allowed !== true) {
     return NextResponse.json(
       { error: "Rate limit reached — try again in an hour." },
       { status: 429 }

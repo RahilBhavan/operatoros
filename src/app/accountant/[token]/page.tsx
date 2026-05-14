@@ -1,17 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-
-function createRawAdmin() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
-}
 import { Shield, Users } from "lucide-react";
 import { computeAutoStatus, computeComplianceScore } from "@/lib/deadline-utils";
+import { loadAccountantPortalByToken } from "@/lib/security/accountant-by-token";
 import type { Database } from "@/types/supabase";
 import DeadlineNote from "./DeadlineNote";
 
@@ -31,53 +22,14 @@ export default async function AccountantPortalPage({
 }) {
   const { token } = await params;
 
-  const supabase = createAdminClient();
-  const rawAdmin = createRawAdmin();
+  const payload = await loadAccountantPortalByToken(token);
+  if (!payload) notFound();
 
-  const { data: connection } = await supabase
-    .from("accountant_connections")
-    .select("id, business_id, accountant_email, accountant_name, created_at")
-    .eq("token", token)
-    .single();
+  const { connection, business, deadlines: allDeadlines, portfolio, noteByDeadlineId } =
+    payload;
 
-  if (!connection) notFound();
+  const notesByDeadline = new Map<string, string>(Object.entries(noteByDeadlineId));
 
-  // Record access + fetch business + deadlines + sibling connections + notes in parallel
-  const [, { data: business }, { data: deadlines }, { data: otherConnections }, { data: notes }] =
-    await Promise.all([
-      supabase
-        .from("accountant_connections")
-        .update({ last_accessed_at: new Date().toISOString() })
-        .eq("id", connection.id),
-      supabase
-        .from("businesses")
-        .select("id, name, industry_sic_code, entity_type, employee_count")
-        .eq("id", connection.business_id)
-        .single(),
-      supabase
-        .from("deadlines")
-        .select("*")
-        .eq("business_id", connection.business_id)
-        .order("due_date", { ascending: true }),
-      supabase
-        .from("accountant_connections")
-        .select("token, business_id, businesses!inner(name)")
-        .eq("accountant_email", connection.accountant_email)
-        .neq("id", connection.id)
-        .order("created_at", { ascending: true }),
-      rawAdmin
-        .from("accountant_deadline_notes")
-        .select("deadline_id, note")
-        .eq("accountant_token", token),
-    ]);
-
-  const notesByDeadline = new Map(
-    (notes ?? []).map((n) => [n.deadline_id, n.note])
-  );
-
-  if (!business) notFound();
-
-  const allDeadlines = deadlines ?? [];
   const score = computeComplianceScore(allDeadlines, computeAutoStatus);
 
   const overdue = allDeadlines.filter((d) => computeAutoStatus(d) === "overdue");
@@ -87,10 +39,6 @@ export default async function AccountantPortalPage({
 
   const scoreColor =
     score >= 80 ? "text-green-600" : score >= 60 ? "text-yellow-600" : "text-red-600";
-
-  // Portfolio: other businesses this accountant has access to
-  type OtherConn = { token: string; business_id: string; businesses: { name: string } | { name: string }[] };
-  const portfolio = (otherConnections ?? []) as OtherConn[];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -120,20 +68,15 @@ export default async function AccountantPortalPage({
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {portfolio.map((c) => {
-                const name = Array.isArray(c.businesses)
-                  ? c.businesses[0]?.name
-                  : c.businesses?.name;
-                return (
+              {portfolio.map((c) => (
                   <Link
                     key={c.token}
                     href={`/accountant/${c.token}`}
                     className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg font-medium text-slate-600 transition-colors"
                   >
-                    {name ?? "Unknown"}
+                    {c.business_name}
                   </Link>
-                );
-              })}
+                ))}
             </div>
           </div>
         )}

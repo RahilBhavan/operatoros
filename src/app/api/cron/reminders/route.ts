@@ -26,6 +26,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // On Vercel, cron invocations use a dedicated user-agent (do not rely on this alone).
+  if (process.env.VERCEL === "1") {
+    const ua = req.headers.get("user-agent") ?? "";
+    if (!ua.includes("vercel-cron")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   const supabase = createAdminClient();
   const now = new Date();
 
