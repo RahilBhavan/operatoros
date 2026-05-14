@@ -78,6 +78,12 @@ export default function ProactiveInsights() {
       )}
 
       {insights.length > 0 && (
+        <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
+          AI-generated suggestions — always verify with your accountant or the relevant agency before acting.
+        </p>
+      )}
+
+      {insights.length > 0 && (
         <div className="mt-3 flex flex-col gap-2">
           {insights.map((insight, i) => {
             const config = URGENCY_CONFIG[insight.urgency] ?? URGENCY_CONFIG.low;

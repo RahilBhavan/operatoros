@@ -103,15 +103,51 @@ describe("computeComplianceScore", () => {
     expect(computeComplianceScore(deadlines)).toBe(0);
   });
 
-  it("calculates mixed score correctly", () => {
+  it("upcoming is NOT equivalent to compliant — all-upcoming scores 50", () => {
+    // This tests the critical fix: upcoming ≠ compliant.
+    // All upcoming → 5pts each / 10pts max each = 50%
     const deadlines: DeadlineLike[] = [
-      { due_date: isoDate(-5), status: "compliant" }, // compliant
-      { due_date: isoDate(60), status: "upcoming" },  // upcoming (good)
-      { due_date: isoDate(-1), status: "overdue" },   // overdue (bad)
-      { due_date: isoDate(10), status: "in_progress" }, // in_progress (bad)
+      { due_date: isoDate(60), status: "upcoming" },
+      { due_date: isoDate(90), status: "upcoming" },
     ];
-    // (1 compliant + 1 upcoming) / 4 = 50%
     expect(computeComplianceScore(deadlines)).toBe(50);
+  });
+
+  it("compliant scores higher than upcoming for identical set", () => {
+    const allCompliant: DeadlineLike[] = [
+      { due_date: isoDate(-5), status: "compliant" },
+      { due_date: isoDate(-10), status: "compliant" },
+    ];
+    const allUpcoming: DeadlineLike[] = [
+      { due_date: isoDate(60), status: "upcoming" },
+      { due_date: isoDate(90), status: "upcoming" },
+    ];
+    expect(computeComplianceScore(allCompliant)).toBeGreaterThan(
+      computeComplianceScore(allUpcoming)
+    );
+  });
+
+  it("one overdue item heavily penalizes an otherwise clean calendar", () => {
+    const deadlines: DeadlineLike[] = [
+      { due_date: isoDate(-5), status: "compliant" },
+      { due_date: isoDate(-10), status: "compliant" },
+      { due_date: isoDate(-15), status: "compliant" },
+      { due_date: isoDate(-3), status: "overdue" }, // one failure
+    ];
+    // (30 - 20) / 40 = 10/40 = 25
+    expect(computeComplianceScore(deadlines)).toBe(25);
+  });
+
+  it("mixed statuses score correctly with new weights", () => {
+    const deadlines: DeadlineLike[] = [
+      { due_date: isoDate(-5), status: "compliant" },  // +10
+      { due_date: isoDate(60), status: "upcoming" },   // +5
+      { due_date: isoDate(-1), status: "overdue" },    // -20
+      { due_date: isoDate(10), status: "in_progress" }, // 0
+    ];
+    // actual: 10 + 5 - 20 + 0 = -5, max = 40
+    // score: max(0, -5/40 * 100) = 0
+    expect(computeComplianceScore(deadlines)).toBe(0);
   });
 
   it("uses custom getStatus function when provided", () => {

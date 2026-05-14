@@ -34,14 +34,26 @@ export function computeAutoStatus(deadline: DeadlineLike): DeadlineStatus {
   return "upcoming";
 }
 
+// Weights: compliant=10 (proven), upcoming=5 (tracked, unproven), in_progress=0 (due soon),
+// overdue=-20 (failed). Max = total * 10. Overdue collapses the score severely.
+const STATUS_WEIGHTS: Record<DeadlineStatus, number> = {
+  compliant: 10,
+  upcoming: 5,
+  in_progress: 0,
+  overdue: -20,
+};
+
 export function computeComplianceScore(
   deadlines: DeadlineLike[],
   getStatus: (d: DeadlineLike) => DeadlineStatus = computeAutoStatus
 ): number {
   if (deadlines.length === 0) return 100;
-  const compliant = deadlines.filter((d) => getStatus(d) === "compliant").length;
-  const upcoming = deadlines.filter((d) => getStatus(d) === "upcoming").length;
-  return Math.round(((compliant + upcoming) / deadlines.length) * 100);
+  const maxScore = deadlines.length * 10;
+  const actualScore = deadlines.reduce(
+    (sum, d) => sum + STATUS_WEIGHTS[getStatus(d)],
+    0
+  );
+  return Math.max(0, Math.min(100, Math.round((actualScore / maxScore) * 100)));
 }
 
 export function escapeHtml(s: string): string {

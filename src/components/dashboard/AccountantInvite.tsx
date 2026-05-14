@@ -25,8 +25,12 @@ export default function AccountantInvite({ canInvite }: Props) {
             Growth+
           </span>
         </div>
+        <p className="text-xs text-slate-400 mb-2">
+          Give your accountant or CPA a live, read-only view of your compliance calendar — no login required.
+        </p>
         <p className="text-xs text-slate-400">
-          Share a live compliance dashboard with your accountant or CPA. Upgrade to Growth to enable.
+          CPAs managing multiple clients can see all their clients&apos; compliance scores in one portfolio view.{" "}
+          <a href="/billing" className="text-blue-600 hover:underline">Upgrade to Growth</a> to enable.
         </p>
       </div>
     );
@@ -132,7 +136,7 @@ export default function AccountantInvite({ canInvite }: Props) {
             <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
           <p className="text-xs text-slate-400">
-            Your accountant gets a read-only view of your compliance calendar. No login required.
+            Your accountant gets a read-only view of your compliance calendar — no login required. CPAs managing multiple clients can see all their clients in one portfolio view.
           </p>
         </form>
       )}

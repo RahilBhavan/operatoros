@@ -5,7 +5,24 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const INSIGHTS_PROMPT = (context: string) => `You are a compliance advisor for small businesses. Analyze the business context below and return 2-3 proactive compliance insights they may not be aware of.
+// In-memory rate limit: 5 requests per user per hour
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(userId);
+  if (!entry || now >= entry.resetAt) {
+    rateMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count += 1;
+  return true;
+}
+
+const INSIGHTS_PROMPT = (context: string) => `You are a compliance advisor for small businesses. Analyze the business context below and return 2-3 proactive compliance insights about commonly missed deadlines or renewal obligations.
 
 Business context:
 ${context}
@@ -14,12 +31,12 @@ Return ONLY a JSON array of insight objects in this exact format:
 [
   {
     "title": "Short insight title (max 8 words)",
-    "body": "One sentence explaining the risk or action needed.",
+    "body": "One sentence explaining the risk or action needed. End with: Verify exact requirements with your accountant or the relevant agency.",
     "urgency": "high" | "medium" | "low"
   }
 ]
 
-Focus on: upcoming regulatory changes, commonly missed deadlines for this entity type and industry, tax filing thresholds, license renewal patterns. Be specific to the entity type and state if known. Do not repeat deadlines already tracked. Return only the JSON array, no other text.`;
+Focus on: commonly missed recurring deadlines for this entity type and industry, federal/state tax filing thresholds, license renewal patterns, OSHA obligations. Be specific to entity type and state if known. Do not repeat deadlines already tracked. Return only the JSON array, no other text.`;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -29,6 +46,13 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!checkRateLimit(user.id)) {
+    return NextResponse.json(
+      { error: "Rate limit reached — try again in an hour." },
+      { status: 429 }
+    );
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
