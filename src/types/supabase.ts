@@ -367,11 +367,54 @@ export type Database = {
           }
         ];
       };
+      accountant_deadline_notes: {
+        Row: {
+          id: string;
+          deadline_id: string;
+          accountant_token: string;
+          note: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          deadline_id: string;
+          accountant_token: string;
+          note: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          deadline_id?: string;
+          accountant_token?: string;
+          note?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "accountant_deadline_notes_deadline_id_fkey";
+            columns: ["deadline_id"];
+            isOneToOne: false;
+            referencedRelation: "deadlines";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      check_and_increment_rate_limit: {
+        Args: {
+          p_user_id: string;
+          p_rate_limit: number;
+          p_window_ms: number;
+        };
+        Returns: boolean;
+      };
       try_consume_ai_rate_limit: {
         Args: { p_max: number; p_window: string };
         Returns: boolean;

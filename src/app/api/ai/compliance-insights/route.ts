@@ -47,13 +47,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Business not found" }, { status: 404 });
   }
 
-  const { data: deadlines } = await supabase
-    .from("deadlines")
-    .select("name, due_date, status, governing_agency, deadline_type")
-    .eq("business_id", business.id)
-    .order("due_date", { ascending: true })
-    .limit(20);
+  // AI insights are a Growth/Scale feature
+  const tier = business.plan_tier as string | null;
+  if (tier !== "growth" && tier !== "scale") {
+    return NextResponse.json(
+      { error: "AI insights require a Growth or Scale plan.", upgradeRequired: true },
+      { status: 403 }
+    );
+  }
 
+  // Atomic rate limit using the signed-in user's JWT (no service role in this route).
   const { data: allowed, error: rateError } = await supabase.rpc(
     "try_consume_ai_rate_limit",
     { p_max: RATE_LIMIT, p_window: "1 hour" }
@@ -66,6 +69,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { data: deadlines } = await supabase
+    .from("deadlines")
+    .select("name, due_date, status, governing_agency, deadline_type")
+    .eq("business_id", business.id)
+    .order("due_date", { ascending: true })
+    .limit(20);
+
   const context = [
     `Entity type: ${business.entity_type ?? "unknown"}`,
     `Industry SIC: ${business.industry_sic_code ?? "unknown"}`,
@@ -75,24 +85,32 @@ export async function POST(req: NextRequest) {
       .join("; ") || "none"}`,
   ].join("\n");
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    messages: [{ role: "user", content: INSIGHTS_PROMPT(context) }],
-  });
-
-  const rawText =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
-
-  let insights: Array<{ title: string; body: string; urgency: string }> = [];
   try {
-    const match = rawText.match(/\[[\s\S]*\]/);
-    if (match) insights = JSON.parse(match[0]);
-  } catch {
-    // Return empty array on parse failure rather than 500
-  }
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  return NextResponse.json({ insights });
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      messages: [{ role: "user", content: INSIGHTS_PROMPT(context) }],
+    });
+
+    const rawText =
+      response.content[0].type === "text" ? response.content[0].text : "[]";
+
+    let insights: Array<{ title: string; body: string; urgency: string }> = [];
+    try {
+      const match = rawText.match(/\[[\s\S]*\]/);
+      if (match) insights = JSON.parse(match[0]);
+    } catch {
+      // Return empty insights on parse failure rather than 500
+    }
+
+    return NextResponse.json({ insights });
+  } catch (err) {
+    console.error("[ai-insights] Anthropic API error:", err);
+    return NextResponse.json(
+      { error: "AI service temporarily unavailable. Please try again." },
+      { status: 502 }
+    );
+  }
 }

@@ -26,6 +26,8 @@ export type AccountantPortalPayload = {
   };
   deadlines: Deadline[];
   portfolio: AccountantPortfolioLink[];
+  /** Notes keyed by deadline id for this magic-link token */
+  noteByDeadlineId: Record<string, string>;
 };
 
 /**
@@ -44,29 +46,38 @@ export async function loadAccountantPortalByToken(
 
   if (!connection) return null;
 
-  const [, { data: business }, { data: deadlines }, { data: otherRows }] =
-    await Promise.all([
-      supabase
-        .from("accountant_connections")
-        .update({ last_accessed_at: new Date().toISOString() })
-        .eq("id", connection.id),
-      supabase
-        .from("businesses")
-        .select("id, name, industry_sic_code, entity_type, employee_count")
-        .eq("id", connection.business_id)
-        .maybeSingle(),
-      supabase
-        .from("deadlines")
-        .select("*")
-        .eq("business_id", connection.business_id)
-        .order("due_date", { ascending: true }),
-      supabase
-        .from("accountant_connections")
-        .select("token, business_id, businesses!inner(name)")
-        .eq("accountant_email", connection.accountant_email)
-        .neq("id", connection.id)
-        .order("created_at", { ascending: true }),
-    ]);
+  const [
+    ,
+    { data: business },
+    { data: deadlines },
+    { data: otherRows },
+    { data: noteRows },
+  ] = await Promise.all([
+    supabase
+      .from("accountant_connections")
+      .update({ last_accessed_at: new Date().toISOString() })
+      .eq("id", connection.id),
+    supabase
+      .from("businesses")
+      .select("id, name, industry_sic_code, entity_type, employee_count")
+      .eq("id", connection.business_id)
+      .maybeSingle(),
+    supabase
+      .from("deadlines")
+      .select("*")
+      .eq("business_id", connection.business_id)
+      .order("due_date", { ascending: true }),
+    supabase
+      .from("accountant_connections")
+      .select("token, business_id, businesses!inner(name)")
+      .eq("accountant_email", connection.accountant_email)
+      .neq("id", connection.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("accountant_deadline_notes")
+      .select("deadline_id, note")
+      .eq("accountant_token", rawToken),
+  ]);
 
   if (!business) return null;
 
@@ -89,10 +100,16 @@ export async function loadAccountantPortalByToken(
     }
   );
 
+  const noteByDeadlineId: Record<string, string> = {};
+  for (const row of noteRows ?? []) {
+    if (row.deadline_id && row.note) noteByDeadlineId[row.deadline_id] = row.note;
+  }
+
   return {
     connection,
     business,
     deadlines: deadlines ?? [],
     portfolio,
+    noteByDeadlineId,
   };
 }

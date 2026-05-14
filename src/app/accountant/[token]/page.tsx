@@ -4,6 +4,7 @@ import { Shield, Users } from "lucide-react";
 import { computeAutoStatus, computeComplianceScore } from "@/lib/deadline-utils";
 import { loadAccountantPortalByToken } from "@/lib/security/accountant-by-token";
 import type { Database } from "@/types/supabase";
+import DeadlineNote from "./DeadlineNote";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
 
@@ -24,7 +25,10 @@ export default async function AccountantPortalPage({
   const payload = await loadAccountantPortalByToken(token);
   if (!payload) notFound();
 
-  const { connection, business, deadlines: allDeadlines, portfolio } = payload;
+  const { connection, business, deadlines: allDeadlines, portfolio, noteByDeadlineId } =
+    payload;
+
+  const notesByDeadline = new Map<string, string>(Object.entries(noteByDeadlineId));
 
   const score = computeComplianceScore(allDeadlines, computeAutoStatus);
 
@@ -125,22 +129,27 @@ export default async function AccountantPortalPage({
         ) : (
           <div className="flex flex-col gap-6">
             {overdue.length > 0 && (
-              <DeadlineGroup title="Overdue — Action Required" deadlines={overdue} statusKey="overdue" />
+              <DeadlineGroup title="Overdue — Action Required" deadlines={overdue} statusKey="overdue" token={token} notesByDeadline={notesByDeadline} />
             )}
             {inProgress.length > 0 && (
-              <DeadlineGroup title="Due Within 30 Days" deadlines={inProgress} statusKey="in_progress" />
+              <DeadlineGroup title="Due Within 30 Days" deadlines={inProgress} statusKey="in_progress" token={token} notesByDeadline={notesByDeadline} />
             )}
             {upcoming.length > 0 && (
-              <DeadlineGroup title="Upcoming" deadlines={upcoming} statusKey="upcoming" />
+              <DeadlineGroup title="Upcoming" deadlines={upcoming} statusKey="upcoming" token={token} notesByDeadline={notesByDeadline} />
             )}
             {compliant.length > 0 && (
-              <DeadlineGroup title="Compliant" deadlines={compliant} statusKey="compliant" />
+              <DeadlineGroup title="Compliant" deadlines={compliant} statusKey="compliant" token={token} notesByDeadline={notesByDeadline} />
             )}
           </div>
         )}
 
         <p className="text-xs text-slate-400 text-center mt-8">
-          Powered by <strong>OperatorOS</strong> · Data updates in real time · Read-only access
+          Powered by <strong>OperatorOS</strong> · Data updates in real time · Notes are private to this accountant view
+        </p>
+        <p className="text-xs text-slate-300 text-center mt-2 max-w-2xl mx-auto">
+          Compliance calendar data is auto-generated based on business profile and is provided for reference only.
+          Always verify filing requirements with the relevant agency or a licensed professional before relying on any deadline.
+          OperatorOS does not provide legal, tax, or accounting advice.
         </p>
       </main>
     </div>
@@ -151,10 +160,14 @@ function DeadlineGroup({
   title,
   deadlines,
   statusKey,
+  token,
+  notesByDeadline,
 }: {
   title: string;
   deadlines: Deadline[];
   statusKey: keyof typeof STATUS_CONFIG;
+  token: string;
+  notesByDeadline: Map<string, string>;
 }) {
   const config = STATUS_CONFIG[statusKey];
 
@@ -167,24 +180,31 @@ function DeadlineGroup({
         {deadlines.map((d) => (
           <div
             key={d.id}
-            className={`flex items-center justify-between p-4 rounded-xl border ${config.border} ${config.bg}`}
+            className={`p-4 rounded-xl border ${config.border} ${config.bg}`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${config.dot}`} />
-              <div className="min-w-0">
-                <div className={`font-medium ${config.color} truncate`}>{d.name}</div>
-                {d.governing_agency && (
-                  <div className="text-xs text-slate-500 mt-0.5">{d.governing_agency}</div>
-                )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${config.dot}`} />
+                <div className="min-w-0">
+                  <div className={`font-medium ${config.color} truncate`}>{d.name}</div>
+                  {d.governing_agency && (
+                    <div className="text-xs text-slate-500 mt-0.5">{d.governing_agency}</div>
+                  )}
+                </div>
+              </div>
+              <div className={`text-sm font-semibold ${config.color} shrink-0 ml-4`}>
+                {new Date(d.due_date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </div>
             </div>
-            <div className={`text-sm font-semibold ${config.color} shrink-0 ml-4`}>
-              {new Date(d.due_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </div>
+            <DeadlineNote
+              deadlineId={d.id}
+              token={token}
+              existingNote={notesByDeadline.get(d.id) ?? null}
+            />
           </div>
         ))}
       </div>
