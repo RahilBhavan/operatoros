@@ -61,7 +61,7 @@ src/
 
 | Plan | Price | Deadlines | Users | Accountant Portal |
 |------|-------|-----------|-------|-------------------|
-| Starter | $29/mo | 25 | 1 | — |
+| Starter | $29/mo | 50 | 1 | — |
 | Growth | $79/mo | 100 | 3 | ✓ |
 | Scale | $149/mo | Unlimited | 10 | ✓ |
 

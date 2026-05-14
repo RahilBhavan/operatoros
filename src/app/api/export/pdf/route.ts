@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { escapeHtml } from "@/lib/deadline-utils";
+import { escapeHtml, computeComplianceScore, type DeadlineStatus } from "@/lib/deadline-utils";
 
 // Returns HTML that the browser can print as PDF
 // (server-rendered, no heavy PDF library needed for MVP)
@@ -60,16 +60,12 @@ export async function GET(req: NextRequest) {
     return { ...d, computed: status, days };
   });
 
-  const compliant = rows.filter((d) => d.computed === "compliant").length;
   const overdue = rows.filter((d) => d.computed === "overdue").length;
-  const score =
-    rows.length === 0
-      ? 100
-      : Math.round(
-          ((compliant + rows.filter((d) => d.computed === "upcoming").length) /
-            rows.length) *
-            100
-        );
+  const compliant = rows.filter((d) => d.computed === "compliant").length;
+  const score = computeComplianceScore(
+    rows.map((r) => ({ due_date: r.due_date, status: r.computed as DeadlineStatus })),
+    (d) => d.status
+  );
 
   const statusColor: Record<string, string> = {
     compliant: "#16a34a",

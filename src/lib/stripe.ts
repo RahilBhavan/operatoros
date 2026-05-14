@@ -29,7 +29,7 @@ export const PLANS = {
     name: "Starter",
     amount: 29,
     features: [
-      "Up to 25 deadlines",
+      "Up to 50 deadlines",
       "Email reminders",
       "Document storage (1 GB)",
       "Basic dashboard",

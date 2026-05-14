@@ -1,24 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// In-memory rate limit: 5 requests per user per hour
-const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(userId);
-  if (!entry || now >= entry.resetAt) {
-    rateMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+async function checkRateLimit(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const windowStart = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
+
+  const { data } = await supabase
+    .from("ai_rate_limits")
+    .select("request_count, window_start")
+    .eq("user_id", userId)
+    .single();
+
+  if (!data || data.window_start < windowStart) {
+    await supabase.from("ai_rate_limits").upsert({
+      user_id: userId,
+      request_count: 1,
+      window_start: new Date().toISOString(),
+    });
     return true;
   }
-  if (entry.count >= RATE_LIMIT) return false;
-  entry.count += 1;
+
+  if (data.request_count >= RATE_LIMIT) return false;
+
+  await supabase
+    .from("ai_rate_limits")
+    .update({ request_count: data.request_count + 1 })
+    .eq("user_id", userId);
   return true;
 }
 
@@ -48,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!checkRateLimit(user.id)) {
+  if (!(await checkRateLimit(supabase, user.id))) {
     return NextResponse.json(
       { error: "Rate limit reached — try again in an hour." },
       { status: 429 }
