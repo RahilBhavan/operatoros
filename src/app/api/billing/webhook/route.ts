@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
+import {
+  getStripe,
+  resolveSubscriptionBusinessId,
+  resolveTrustedBusinessId,
+  stripeCustomerIdToString,
+} from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 import type { Database } from "@/types/supabase";
@@ -39,9 +44,25 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode !== "subscription") break;
 
-      const businessId = session.metadata?.business_id;
+      const metadataBusinessId = session.metadata?.business_id ?? null;
       const plan = session.metadata?.plan;
-      if (!businessId || !plan) break;
+      if (!plan) break;
+
+      const customerId = stripeCustomerIdToString(session.customer);
+      if (!customerId) break;
+
+      const { data: businessRow } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+
+      const trustedId = resolveTrustedBusinessId({
+        stripeCustomerId: customerId,
+        businessFromCustomer: businessRow,
+        metadataBusinessId,
+      });
+      if (!trustedId) break;
 
       const subscription = await getStripe().subscriptions.retrieve(
         session.subscription as string
@@ -57,15 +78,28 @@ export async function POST(req: NextRequest) {
             ? new Date(subscription.trial_end * 1000).toISOString()
             : null,
         })
-        .eq("id", businessId);
+        .eq("id", trustedId);
 
       break;
     }
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const businessId = sub.metadata?.business_id;
-      if (!businessId) break;
+      const customerId = stripeCustomerIdToString(sub.customer);
+      if (!customerId) break;
+
+      const { data: businessRow } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+
+      const trustedId = resolveSubscriptionBusinessId({
+        stripeCustomerId: customerId,
+        businessFromCustomer: businessRow,
+        metadataBusinessId: sub.metadata?.business_id ?? null,
+      });
+      if (!trustedId) break;
 
       const plan = sub.metadata?.plan as PlanTier | undefined;
 
@@ -78,15 +112,28 @@ export async function POST(req: NextRequest) {
         update.trial_ends_at = new Date(sub.trial_end * 1000).toISOString();
       }
 
-      await supabase.from("businesses").update(update).eq("id", businessId);
+      await supabase.from("businesses").update(update).eq("id", trustedId);
 
       break;
     }
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const businessId = sub.metadata?.business_id;
-      if (!businessId) break;
+      const customerId = stripeCustomerIdToString(sub.customer);
+      if (!customerId) break;
+
+      const { data: businessRow } = await supabase
+        .from("businesses")
+        .select("id")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+
+      const trustedId = resolveSubscriptionBusinessId({
+        stripeCustomerId: customerId,
+        businessFromCustomer: businessRow,
+        metadataBusinessId: sub.metadata?.business_id ?? null,
+      });
+      if (!trustedId) break;
 
       await supabase
         .from("businesses")
@@ -95,14 +142,17 @@ export async function POST(req: NextRequest) {
           plan_tier: "free",
           stripe_subscription_id: null,
         })
-        .eq("id", businessId);
+        .eq("id", trustedId);
 
       break;
     }
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const customerId = invoice.customer as string;
+      const customerId = stripeCustomerIdToString(
+        invoice.customer as string | { id?: string } | null
+      );
+      if (!customerId) break;
 
       await supabase
         .from("businesses")

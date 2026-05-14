@@ -372,7 +372,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      try_consume_ai_rate_limit: {
+        Args: { p_max: number; p_window: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

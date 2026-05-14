@@ -1,40 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60 * 60 * 1000;
-
-async function checkRateLimit(supabase: SupabaseClient, userId: string): Promise<boolean> {
-  const windowStart = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
-
-  const { data } = await supabase
-    .from("ai_rate_limits")
-    .select("request_count, window_start")
-    .eq("user_id", userId)
-    .single();
-
-  if (!data || data.window_start < windowStart) {
-    await supabase.from("ai_rate_limits").upsert({
-      user_id: userId,
-      request_count: 1,
-      window_start: new Date().toISOString(),
-    });
-    return true;
-  }
-
-  if (data.request_count >= RATE_LIMIT) return false;
-
-  await supabase
-    .from("ai_rate_limits")
-    .update({ request_count: data.request_count + 1 })
-    .eq("user_id", userId);
-  return true;
-}
 
 const INSIGHTS_PROMPT = (context: string) => `You are a compliance advisor for small businesses. Analyze the business context below and return 2-3 proactive compliance insights about commonly missed deadlines or renewal obligations.
 
@@ -62,13 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!(await checkRateLimit(supabase, user.id))) {
-    return NextResponse.json(
-      { error: "Rate limit reached — try again in an hour." },
-      { status: 429 }
-    );
-  }
-
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 503 });
   }
@@ -89,6 +53,18 @@ export async function POST(req: NextRequest) {
     .eq("business_id", business.id)
     .order("due_date", { ascending: true })
     .limit(20);
+
+  const { data: allowed, error: rateError } = await supabase.rpc(
+    "try_consume_ai_rate_limit",
+    { p_max: RATE_LIMIT, p_window: "1 hour" }
+  );
+
+  if (rateError || allowed !== true) {
+    return NextResponse.json(
+      { error: "Rate limit reached — try again in an hour." },
+      { status: 429 }
+    );
+  }
 
   const context = [
     `Entity type: ${business.entity_type ?? "unknown"}`,

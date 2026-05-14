@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/supabase";
 import { Shield } from "lucide-react";
+import { loadShareViewByToken } from "@/lib/security/share-by-token";
 
 export default async function SharePage({
   params,
@@ -9,35 +8,10 @@ export default async function SharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const data = await loadShareViewByToken(token);
+  if (!data) notFound();
 
-  // Validate token
-  const { data: shareToken } = await supabase
-    .from("share_tokens")
-    .select("business_id, expires_at")
-    .eq("token", token)
-    .gt("expires_at", new Date().toISOString())
-    .single();
-
-  if (!shareToken) notFound();
-
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id, name")
-    .eq("id", shareToken.business_id)
-    .single();
-
-  if (!business) notFound();
-
-  const { data: deadlines } = await supabase
-    .from("deadlines")
-    .select("id, name, deadline_type, due_date, status, governing_agency")
-    .eq("business_id", business.id)
-    .order("due_date", { ascending: true });
-
+  const { business, deadlines, expires_at: expiresAt } = data;
   const now = new Date();
 
   function effectiveStatus(deadline: {
@@ -54,7 +28,7 @@ export default async function SharePage({
     return "upcoming";
   }
 
-  const rows = (deadlines ?? []).map((d) => ({
+  const rows = deadlines.map((d) => ({
     ...d,
     computed: effectiveStatus(d),
   }));
@@ -88,7 +62,6 @@ export default async function SharePage({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -97,7 +70,7 @@ export default async function SharePage({
           </div>
           <span className="text-xs text-slate-400">
             Read-only · Expires{" "}
-            {new Date(shareToken.expires_at).toLocaleDateString("en-US", {
+            {new Date(expiresAt).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",
@@ -112,7 +85,6 @@ export default async function SharePage({
           <p className="text-slate-500 mt-1">Compliance Overview</p>
         </div>
 
-        {/* Score cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 text-center">
             <p className="text-3xl font-extrabold text-slate-900">{score}%</p>
@@ -134,7 +106,6 @@ export default async function SharePage({
           </div>
         </div>
 
-        {/* Deadline table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100">
             <h2 className="font-semibold text-slate-900">
