@@ -12,6 +12,13 @@ import {
 } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import ShareLink from "@/components/dashboard/ShareLink";
+import AccountantInvite from "@/components/dashboard/AccountantInvite";
+import ComplianceScoreChart from "@/components/dashboard/ComplianceScoreChart";
+import {
+  formatDueDate,
+  computeAutoStatus,
+  computeComplianceScore,
+} from "@/lib/deadline-utils";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
 
@@ -50,34 +57,6 @@ const STATUS_CONFIG = {
   },
 };
 
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr);
-  due.setHours(0, 0, 0, 0);
-  return Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function formatDueDate(dateStr: string): string {
-  const days = daysUntil(dateStr);
-  if (days < 0) return `${Math.abs(days)} days overdue`;
-  if (days === 0) return "Due today";
-  if (days <= 30) return `Due in ${days} days`;
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function autoStatus(d: Deadline): Deadline["status"] {
-  const days = daysUntil(d.due_date);
-  if (d.status === "compliant") return "compliant";
-  if (days < 0) return "overdue";
-  if (days <= 30) return "in_progress";
-  return "upcoming";
-}
-
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -94,25 +73,36 @@ export default async function DashboardPage() {
 
   if (!business) redirect("/onboarding");
 
-  const { data: allDeadlines } = await supabase
-    .from("deadlines")
-    .select("*")
-    .eq("business_id", business.id)
-    .order("due_date", { ascending: true });
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const [{ data: allDeadlines }, { data: scoreHistory }] = await Promise.all([
+    supabase
+      .from("deadlines")
+      .select("*")
+      .eq("business_id", business.id)
+      .order("due_date", { ascending: true }),
+    supabase
+      .from("compliance_score_history")
+      .select("score, recorded_at")
+      .eq("business_id", business.id)
+      .gte("recorded_at", ninetyDaysAgo.toISOString())
+      .order("recorded_at", { ascending: true }),
+  ]);
 
   const deadlines = allDeadlines ?? [];
+  const history = scoreHistory ?? [];
 
-  const overdue = deadlines.filter((d) => autoStatus(d) === "overdue");
-  const inProgress = deadlines.filter((d) => autoStatus(d) === "in_progress");
-  const upcoming = deadlines.filter((d) => autoStatus(d) === "upcoming");
+  const overdue = deadlines.filter((d) => computeAutoStatus(d) === "overdue");
+  const inProgress = deadlines.filter((d) => computeAutoStatus(d) === "in_progress");
+  const upcoming = deadlines.filter((d) => computeAutoStatus(d) === "upcoming");
   const compliant = deadlines.filter((d) => d.status === "compliant");
 
-  const complianceScore =
-    deadlines.length === 0
-      ? 100
-      : Math.round(
-          ((compliant.length + upcoming.length) / deadlines.length) * 100
-        );
+  const complianceScore = computeComplianceScore(deadlines, computeAutoStatus);
+  const isPremium =
+    (business.billing_status === "active" ||
+      business.billing_status === "trialing") &&
+    (business.plan_tier === "growth" || business.plan_tier === "scale");
 
   return (
     <div>
@@ -141,19 +131,14 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Share link */}
-      <div className="mb-8">
-        <ShareLink
-          canShare={
-            (business.billing_status === "active" ||
-              business.billing_status === "trialing") &&
-            (business.plan_tier === "growth" || business.plan_tier === "scale")
-          }
-        />
+      {/* Share + accountant tools */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-8">
+        <ShareLink canShare={isPremium} />
+        <AccountantInvite canInvite={isPremium} />
       </div>
 
       {/* Score + stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:col-span-2 lg:col-span-1">
           <p className="text-sm text-slate-500 mb-1">Compliance Score</p>
           <div
@@ -193,6 +178,11 @@ export default async function DashboardPage() {
             <div className={`text-4xl font-extrabold ${color}`}>{count}</div>
           </div>
         ))}
+      </div>
+
+      {/* Score trend chart */}
+      <div className="mb-8">
+        <ComplianceScoreChart history={history} currentScore={complianceScore} />
       </div>
 
       {/* Deadline groups */}

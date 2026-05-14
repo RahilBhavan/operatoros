@@ -89,6 +89,12 @@ export default function DocumentUpload({
     setUploading(false);
 
     if (inputRef.current) inputRef.current.value = "";
+
+    // Trigger AI expiry extraction in the background — no await, non-blocking
+    fetch(`/api/documents/${doc.id}/extract-expiry`, { method: "POST" }).then(
+      (res) => res.ok && router.refresh()
+    );
+
     router.refresh();
   }
 

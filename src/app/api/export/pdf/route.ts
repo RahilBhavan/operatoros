@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { escapeHtml } from "@/lib/deadline-utils";
 
 // Returns HTML that the browser can print as PDF
 // (server-rendered, no heavy PDF library needed for MVP)
@@ -187,10 +188,3 @@ export async function GET(req: NextRequest) {
   });
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}

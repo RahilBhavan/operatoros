@@ -10,6 +10,8 @@ import type {
   EmployeeRange,
   OnboardingData,
 } from "@/types/onboarding";
+import { formatIsoDate } from "@/lib/deadline-utils";
+import { employeeRangeToCount, requiresOshaLog } from "@/lib/onboarding-utils";
 
 const INDUSTRIES: { value: Industry; label: string }[] = [
   { value: "restaurant", label: "Restaurant / Food Service" },
@@ -457,17 +459,6 @@ function StepContractors({
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function employeeRangeToCount(range: EmployeeRange | null): number | null {
-  const map: Record<EmployeeRange, number> = {
-    "1": 1,
-    "2-5": 3,
-    "6-15": 10,
-    "16-30": 20,
-    "31-50": 40,
-  };
-  return range ? map[range] : null;
-}
-
 type SupabaseClient = ReturnType<typeof createClient>;
 
 async function seedStarterDeadlines(
@@ -499,7 +490,7 @@ async function seedStarterDeadlines(
       deadline_type: "entity_filing",
       governing_agency: `${data.state} Secretary of State`,
       frequency: "annual",
-      due_date: formatDate(nextYear),
+      due_date: formatIsoDate(nextYear),
       source: "discovery_agent",
     });
   }
@@ -514,7 +505,7 @@ async function seedStarterDeadlines(
     deadline_type: "business_license",
     governing_agency: "City / County Business Office",
     frequency: "annual",
-    due_date: formatDate(licenseDate),
+    due_date: formatIsoDate(licenseDate),
     source: "discovery_agent",
   });
 
@@ -529,7 +520,7 @@ async function seedStarterDeadlines(
       deadline_type: "business_license",
       governing_agency: "County Health Department",
       frequency: "annual",
-      due_date: formatDate(healthDate),
+      due_date: formatIsoDate(healthDate),
       source: "discovery_agent",
     });
     deadlines.push({
@@ -539,7 +530,7 @@ async function seedStarterDeadlines(
       deadline_type: "employee_cert",
       governing_agency: "State Health Department",
       frequency: "biennial",
-      due_date: formatDate(nextYear),
+      due_date: formatIsoDate(nextYear),
       source: "discovery_agent",
     });
   }
@@ -553,7 +544,7 @@ async function seedStarterDeadlines(
       deadline_type: "business_license",
       governing_agency: `${data.state} Contractors Licensing Board`,
       frequency: "biennial",
-      due_date: formatDate(nextYear),
+      due_date: formatIsoDate(nextYear),
       source: "discovery_agent",
     });
     if (data.hiresContractors) {
@@ -564,7 +555,7 @@ async function seedStarterDeadlines(
         deadline_type: "coi",
         governing_agency: "Insurance Provider",
         frequency: "annual",
-        due_date: formatDate(nextYear),
+        due_date: formatIsoDate(nextYear),
         source: "discovery_agent",
       });
     }
@@ -579,16 +570,13 @@ async function seedStarterDeadlines(
       deadline_type: "employee_cert",
       governing_agency: `${data.state} Professional Licensing Board`,
       frequency: "biennial",
-      due_date: formatDate(nextYear),
+      due_date: formatIsoDate(nextYear),
       source: "discovery_agent",
     });
   }
 
   // Businesses with 6+ employees: OSHA 300 Log
-  if (
-    data.employeeRange &&
-    ["6-15", "16-30", "31-50"].includes(data.employeeRange)
-  ) {
+  if (requiresOshaLog(data.employeeRange)) {
     const oshaDate = new Date(today.getFullYear() + 1, 1, 1); // Feb 1 next year
     deadlines.push({
       business_id: businessId,
@@ -597,7 +585,7 @@ async function seedStarterDeadlines(
       deadline_type: "equipment_inspection",
       governing_agency: "OSHA (Federal / State)",
       frequency: "annual",
-      due_date: formatDate(oshaDate),
+      due_date: formatIsoDate(oshaDate),
       source: "discovery_agent",
     });
   }
@@ -607,6 +595,3 @@ async function seedStarterDeadlines(
   }
 }
 
-function formatDate(d: Date): string {
-  return d.toISOString().split("T")[0];
-}

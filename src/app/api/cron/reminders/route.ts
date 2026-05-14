@@ -16,7 +16,6 @@ const REMINDER_WINDOWS = [
 type ReminderType = (typeof REMINDER_WINDOWS)[number]["type"];
 
 export async function GET(req: NextRequest) {
-  // Vercel Cron authentication
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
@@ -29,76 +28,108 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const now = new Date();
 
+  // Build the set of target dates for all reminder windows
+  const targetDates = REMINDER_WINDOWS.map(({ days, type }) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + days);
+    return { type, dateStr: d.toISOString().split("T")[0] };
+  });
+
+  const dateStrings = targetDates.map((t) => t.dateStr);
+
+  // Batch-fetch all upcoming deadlines across all windows in one query
+  const { data: deadlines } = await supabase
+    .from("deadlines")
+    .select(
+      `id, name, due_date, business_id,
+       businesses!inner (
+         id, name, owner_id, billing_status, plan_tier
+       )`
+    )
+    .in("due_date", dateStrings)
+    .neq("status", "compliant");
+
+  if (!deadlines?.length) {
+    return NextResponse.json({ processed: 0, errors: 0, timestamp: now.toISOString() });
+  }
+
+  // Batch-fetch all already-sent reminder_log entries for these deadlines
+  const deadlineIds = deadlines.map((d) => d.id);
+  const { data: sentLogs } = await supabase
+    .from("reminder_log")
+    .select("deadline_id, reminder_type")
+    .in("deadline_id", deadlineIds)
+    .eq("status", "sent");
+
+  const sentSet = new Set(
+    (sentLogs ?? []).map((r) => `${r.deadline_id}:${r.reminder_type}`)
+  );
+
+  // Batch-fetch all owner emails
+  const ownerIds = [...new Set(deadlines.map((d) => {
+    const biz = Array.isArray(d.businesses) ? d.businesses[0] : d.businesses;
+    return biz?.owner_id;
+  }).filter(Boolean) as string[])];
+
+  const emailMap = new Map<string, string>();
+  await Promise.all(
+    ownerIds.map(async (ownerId) => {
+      const { data } = await supabase.auth.admin.getUserById(ownerId);
+      if (data?.user?.email) emailMap.set(ownerId, data.user.email);
+    })
+  );
+
   let processed = 0;
   let errors = 0;
 
-  for (const { days, type } of REMINDER_WINDOWS) {
-    const targetDate = new Date(now);
-    targetDate.setDate(targetDate.getDate() + days);
-    const dateStr = targetDate.toISOString().split("T")[0];
+  // Build pending reminders
+  const toInsert: Array<{
+    deadline_id: string;
+    business_id: string;
+    reminder_type: ReminderType;
+    recipient_email: string;
+    status: "sent" | "failed";
+  }> = [];
 
-    // Get deadlines due on target date that haven't been reminded yet
-    const { data: deadlines } = await supabase
-      .from("deadlines")
-      .select(
-        `
-        id,
-        name,
-        due_date,
-        business_id,
-        businesses!inner (
-          id,
-          name,
-          owner_id,
-          billing_status,
-          plan_tier
-        )
-      `
-      )
-      .eq("due_date", dateStr)
-      .neq("status", "compliant");
+  for (const { type, dateStr, days } of targetDates.map((t, i) => ({
+    ...t,
+    days: REMINDER_WINDOWS[i].days,
+  }))) {
+    const windowDeadlines = deadlines.filter((d) => d.due_date === dateStr);
+    if (!windowDeadlines.length) continue;
 
-    if (!deadlines?.length) continue;
+    const isPremiumReminder = type === "7_day" || type === "1_day";
 
-    for (const deadline of deadlines) {
+    for (const deadline of windowDeadlines) {
       const business = Array.isArray(deadline.businesses)
         ? deadline.businesses[0]
         : deadline.businesses;
 
       if (!business) continue;
 
-      // Only send reminders to active/trialing accounts
       const isEligible =
         business.billing_status === "active" ||
         business.billing_status === "trialing";
+      if (!isEligible) continue;
 
-      // 7-day and 1-day reminders only for growth/scale plans
-      const isPremiumReminder = type === "7_day" || type === "1_day";
       const hasPremiumPlan =
         business.plan_tier === "growth" || business.plan_tier === "scale";
-
-      if (!isEligible) continue;
       if (isPremiumReminder && !hasPremiumPlan) continue;
 
-      // Check if this reminder was already sent
-      const { data: existing } = await supabase
-        .from("reminder_log")
-        .select("id")
-        .eq("deadline_id", deadline.id)
-        .eq("reminder_type", type)
-        .single();
+      if (sentSet.has(`${deadline.id}:${type}`)) continue;
 
-      if (existing) continue;
-
-      // Get user email
-      const { data: userData } = await supabase.auth.admin.getUserById(
-        business.owner_id
-      );
-
-      const email = userData?.user?.email;
+      const email = emailMap.get(business.owner_id);
       if (!email) continue;
 
       try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+        const trackingParams = new URLSearchParams({
+          utm_source: "reminder",
+          utm_medium: "email",
+          utm_campaign: type,
+        });
+        const deadlineUrl = `${appUrl}/deadlines/${deadline.id}?${trackingParams}`;
+
         await sendReminderEmail({
           to: email,
           businessName: business.name,
@@ -109,22 +140,101 @@ export async function GET(req: NextRequest) {
             day: "numeric",
             year: "numeric",
           }),
-          deadlineUrl: `${process.env.NEXT_PUBLIC_APP_URL}/deadlines/${deadline.id}`,
+          deadlineUrl,
         });
 
-        await supabase.from("reminder_log").insert({
+        toInsert.push({
           deadline_id: deadline.id,
           business_id: deadline.business_id,
           reminder_type: type as ReminderType,
           recipient_email: email,
+          status: "sent",
         });
 
         processed++;
       } catch {
+        toInsert.push({
+          deadline_id: deadline.id,
+          business_id: deadline.business_id,
+          reminder_type: type as ReminderType,
+          recipient_email: emailMap.get(business.owner_id) ?? "",
+          status: "failed",
+        });
         errors++;
       }
     }
   }
 
+  // Batch-insert all reminder log entries
+  if (toInsert.length > 0) {
+    await supabase.from("reminder_log").insert(toInsert);
+  }
+
+  // Snapshot compliance scores for all active businesses
+  await snapshotComplianceScores(supabase);
+
   return NextResponse.json({ processed, errors, timestamp: now.toISOString() });
+}
+
+async function snapshotComplianceScores(
+  supabase: ReturnType<typeof createAdminClient>
+) {
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data: businesses } = await supabase
+    .from("businesses")
+    .select("id")
+    .in("billing_status", ["active", "trialing"]);
+
+  if (!businesses?.length) return;
+
+  // Only snapshot once per day
+  const { data: existing } = await supabase
+    .from("compliance_score_history")
+    .select("business_id")
+    .gte("recorded_at", `${today}T00:00:00Z`)
+    .lte("recorded_at", `${today}T23:59:59Z`);
+
+  const alreadySnapshotted = new Set((existing ?? []).map((e) => e.business_id));
+
+  const snapshots: Array<{ business_id: string; score: number }> = [];
+
+  for (const biz of businesses) {
+    if (alreadySnapshotted.has(biz.id)) continue;
+
+    const { data: deadlines } = await supabase
+      .from("deadlines")
+      .select("status, due_date")
+      .eq("business_id", biz.id);
+
+    if (!deadlines?.length) continue;
+
+    const now = new Date();
+    let score = 100;
+    const total = deadlines.length;
+
+    for (const d of deadlines) {
+      const due = new Date(d.due_date);
+      const daysUntilDue = Math.ceil(
+        (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (d.status === "compliant") continue;
+      if (daysUntilDue < 0) {
+        score -= Math.round(40 / total);
+      } else if (daysUntilDue <= 7) {
+        score -= Math.round(20 / total);
+      } else if (daysUntilDue <= 30) {
+        score -= Math.round(10 / total);
+      } else {
+        score -= Math.round(5 / total);
+      }
+    }
+
+    snapshots.push({ business_id: biz.id, score: Math.max(0, score) });
+  }
+
+  if (snapshots.length > 0) {
+    await supabase.from("compliance_score_history").insert(snapshots);
+  }
 }

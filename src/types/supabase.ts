@@ -232,6 +232,9 @@ export type Database = {
           reminder_type: "90_day" | "60_day" | "30_day" | "7_day" | "1_day";
           sent_at: string;
           recipient_email: string;
+          status: "sent" | "failed";
+          opened_at: string | null;
+          clicked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -240,6 +243,9 @@ export type Database = {
           reminder_type: "90_day" | "60_day" | "30_day" | "7_day" | "1_day";
           sent_at?: string;
           recipient_email: string;
+          status?: "sent" | "failed";
+          opened_at?: string | null;
+          clicked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -248,6 +254,9 @@ export type Database = {
           reminder_type?: "90_day" | "60_day" | "30_day" | "7_day" | "1_day";
           sent_at?: string;
           recipient_email?: string;
+          status?: "sent" | "failed";
+          opened_at?: string | null;
+          clicked_at?: string | null;
         };
         Relationships: [
           {
@@ -284,6 +293,73 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "share_tokens_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      compliance_score_history: {
+        Row: {
+          id: string;
+          business_id: string;
+          score: number;
+          recorded_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          score: number;
+          recorded_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          score?: number;
+          recorded_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "compliance_score_history_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      accountant_connections: {
+        Row: {
+          id: string;
+          business_id: string;
+          accountant_email: string;
+          accountant_name: string | null;
+          token: string;
+          created_at: string;
+          last_accessed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          accountant_email: string;
+          accountant_name?: string | null;
+          token?: string;
+          created_at?: string;
+          last_accessed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          accountant_email?: string;
+          accountant_name?: string | null;
+          token?: string;
+          created_at?: string;
+          last_accessed_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "accountant_connections_business_id_fkey";
             columns: ["business_id"];
             isOneToOne: false;
             referencedRelation: "businesses";
