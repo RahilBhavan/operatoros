@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Shield, CheckCircle, AlertTriangle, Clock, Calendar } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Clock, Calendar, Users } from "lucide-react";
 import { computeAutoStatus, computeComplianceScore } from "@/lib/deadline-utils";
 import type { Database } from "@/types/supabase";
 
@@ -30,25 +31,32 @@ export default async function AccountantPortalPage({
 
   if (!connection) notFound();
 
-  // Record access
-  await supabase
-    .from("accountant_connections")
-    .update({ last_accessed_at: new Date().toISOString() })
-    .eq("id", connection.id);
-
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id, name, industry_sic_code, entity_type, employee_count")
-    .eq("id", connection.business_id)
-    .single();
+  // Record access + fetch business + deadlines + sibling connections in parallel
+  const [, { data: business }, { data: deadlines }, { data: otherConnections }] =
+    await Promise.all([
+      supabase
+        .from("accountant_connections")
+        .update({ last_accessed_at: new Date().toISOString() })
+        .eq("id", connection.id),
+      supabase
+        .from("businesses")
+        .select("id, name, industry_sic_code, entity_type, employee_count")
+        .eq("id", connection.business_id)
+        .single(),
+      supabase
+        .from("deadlines")
+        .select("*")
+        .eq("business_id", connection.business_id)
+        .order("due_date", { ascending: true }),
+      supabase
+        .from("accountant_connections")
+        .select("token, business_id, businesses!inner(name)")
+        .eq("accountant_email", connection.accountant_email)
+        .neq("id", connection.id)
+        .order("created_at", { ascending: true }),
+    ]);
 
   if (!business) notFound();
-
-  const { data: deadlines } = await supabase
-    .from("deadlines")
-    .select("*")
-    .eq("business_id", connection.business_id)
-    .order("due_date", { ascending: true });
 
   const allDeadlines = deadlines ?? [];
   const score = computeComplianceScore(allDeadlines, computeAutoStatus);
@@ -60,6 +68,10 @@ export default async function AccountantPortalPage({
 
   const scoreColor =
     score >= 80 ? "text-green-600" : score >= 60 ? "text-yellow-600" : "text-red-600";
+
+  // Portfolio: other businesses this accountant has access to
+  type OtherConn = { token: string; business_id: string; businesses: { name: string } | { name: string }[] };
+  const portfolio = (otherConnections ?? []) as OtherConn[];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -79,6 +91,34 @@ export default async function AccountantPortalPage({
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Portfolio sidebar strip — shown when accountant has multiple clients */}
+        {portfolio.length > 0 && (
+          <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-semibold text-slate-700">
+                Your other clients on OperatorOS ({portfolio.length})
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {portfolio.map((c) => {
+                const name = Array.isArray(c.businesses)
+                  ? c.businesses[0]?.name
+                  : c.businesses?.name;
+                return (
+                  <Link
+                    key={c.token}
+                    href={`/accountant/${c.token}`}
+                    className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg font-medium text-slate-600 transition-colors"
+                  >
+                    {name ?? "Unknown"}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Business info */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">{business.name}</h1>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReminderEmail } from "@/lib/email";
+import { computeComplianceScore, computeAutoStatus } from "@/lib/deadline-utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -181,57 +182,51 @@ async function snapshotComplianceScores(
 ) {
   const today = new Date().toISOString().split("T")[0];
 
-  const { data: businesses } = await supabase
-    .from("businesses")
-    .select("id")
-    .in("billing_status", ["active", "trialing"]);
+  const [{ data: businesses }, { data: existing }] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("id")
+      .in("billing_status", ["active", "trialing"]),
+    supabase
+      .from("compliance_score_history")
+      .select("business_id")
+      .gte("recorded_at", `${today}T00:00:00Z`)
+      .lte("recorded_at", `${today}T23:59:59Z`),
+  ]);
 
   if (!businesses?.length) return;
 
-  // Only snapshot once per day
-  const { data: existing } = await supabase
-    .from("compliance_score_history")
-    .select("business_id")
-    .gte("recorded_at", `${today}T00:00:00Z`)
-    .lte("recorded_at", `${today}T23:59:59Z`);
-
   const alreadySnapshotted = new Set((existing ?? []).map((e) => e.business_id));
+  const pending = businesses.filter((b) => !alreadySnapshotted.has(b.id));
+  if (!pending.length) return;
+
+  // Batch fetch all deadlines for all pending businesses in one query
+  const pendingIds = pending.map((b) => b.id);
+  const { data: allDeadlines } = await supabase
+    .from("deadlines")
+    .select("business_id, status, due_date")
+    .in("business_id", pendingIds);
+
+  if (!allDeadlines?.length) return;
+
+  // Group deadlines by business in memory
+  const byBusiness = new Map<string, typeof allDeadlines>();
+  for (const d of allDeadlines) {
+    const arr = byBusiness.get(d.business_id) ?? [];
+    arr.push(d);
+    byBusiness.set(d.business_id, arr);
+  }
 
   const snapshots: Array<{ business_id: string; score: number }> = [];
 
-  for (const biz of businesses) {
-    if (alreadySnapshotted.has(biz.id)) continue;
-
-    const { data: deadlines } = await supabase
-      .from("deadlines")
-      .select("status, due_date")
-      .eq("business_id", biz.id);
-
+  for (const biz of pending) {
+    const deadlines = byBusiness.get(biz.id);
     if (!deadlines?.length) continue;
-
-    const now = new Date();
-    let score = 100;
-    const total = deadlines.length;
-
-    for (const d of deadlines) {
-      const due = new Date(d.due_date);
-      const daysUntilDue = Math.ceil(
-        (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      if (d.status === "compliant") continue;
-      if (daysUntilDue < 0) {
-        score -= Math.round(40 / total);
-      } else if (daysUntilDue <= 7) {
-        score -= Math.round(20 / total);
-      } else if (daysUntilDue <= 30) {
-        score -= Math.round(10 / total);
-      } else {
-        score -= Math.round(5 / total);
-      }
-    }
-
-    snapshots.push({ business_id: biz.id, score: Math.max(0, score) });
+    // Use the same formula as the dashboard for consistency
+    snapshots.push({
+      business_id: biz.id,
+      score: computeComplianceScore(deadlines, computeAutoStatus),
+    });
   }
 
   if (snapshots.length > 0) {

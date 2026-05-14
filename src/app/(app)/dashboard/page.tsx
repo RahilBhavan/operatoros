@@ -14,6 +14,7 @@ import type { Database } from "@/types/supabase";
 import ShareLink from "@/components/dashboard/ShareLink";
 import AccountantInvite from "@/components/dashboard/AccountantInvite";
 import ComplianceScoreChart from "@/components/dashboard/ComplianceScoreChart";
+import ProactiveInsights from "@/components/dashboard/ProactiveInsights";
 import {
   formatDueDate,
   computeAutoStatus,
@@ -180,9 +181,10 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Score trend chart */}
-      <div className="mb-8">
+      {/* Score trend + AI insights */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-8">
         <ComplianceScoreChart history={history} currentScore={complianceScore} />
+        <ProactiveInsights />
       </div>
 
       {/* Deadline groups */}
