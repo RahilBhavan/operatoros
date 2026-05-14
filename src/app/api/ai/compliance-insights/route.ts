@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -9,31 +9,28 @@ export const maxDuration = 30;
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
 
-async function checkRateLimit(supabase: SupabaseClient, userId: string): Promise<boolean> {
-  const windowStart = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
+// Untyped client used only for the RPC not yet in generated types
+function createRawAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
-  const { data } = await supabase
-    .from("ai_rate_limits")
-    .select("request_count, window_start")
-    .eq("user_id", userId)
-    .single();
-
-  if (!data || data.window_start < windowStart) {
-    await supabase.from("ai_rate_limits").upsert({
-      user_id: userId,
-      request_count: 1,
-      window_start: new Date().toISOString(),
-    });
+async function checkRateLimit(userId: string): Promise<boolean> {
+  const admin = createRawAdminClient();
+  const { data, error } = await admin.rpc("check_and_increment_rate_limit", {
+    p_user_id: userId,
+    p_rate_limit: RATE_LIMIT,
+    p_window_ms: RATE_WINDOW_MS,
+  });
+  if (error) {
+    // On RPC failure, fail open rather than block all users
+    console.error("[rate-limit] RPC error:", error.message);
     return true;
   }
-
-  if (data.request_count >= RATE_LIMIT) return false;
-
-  await supabase
-    .from("ai_rate_limits")
-    .update({ request_count: data.request_count + 1 })
-    .eq("user_id", userId);
-  return true;
+  return data === true;
 }
 
 const INSIGHTS_PROMPT = (context: string) => `You are a compliance advisor for small businesses. Analyze the business context below and return 2-3 proactive compliance insights about commonly missed deadlines or renewal obligations.
@@ -62,13 +59,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!(await checkRateLimit(supabase, user.id))) {
-    return NextResponse.json(
-      { error: "Rate limit reached — try again in an hour." },
-      { status: 429 }
-    );
-  }
-
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 503 });
   }
@@ -81,6 +71,22 @@ export async function POST(req: NextRequest) {
 
   if (!business) {
     return NextResponse.json({ error: "Business not found" }, { status: 404 });
+  }
+
+  // AI insights are a Growth/Scale feature
+  const tier = business.plan_tier as string | null;
+  if (tier !== "growth" && tier !== "scale") {
+    return NextResponse.json(
+      { error: "AI insights require a Growth or Scale plan.", upgradeRequired: true },
+      { status: 403 }
+    );
+  }
+
+  if (!(await checkRateLimit(user.id))) {
+    return NextResponse.json(
+      { error: "Rate limit reached — try again in an hour." },
+      { status: 429 }
+    );
   }
 
   const { data: deadlines } = await supabase
@@ -99,24 +105,32 @@ export async function POST(req: NextRequest) {
       .join("; ") || "none"}`,
   ].join("\n");
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    messages: [{ role: "user", content: INSIGHTS_PROMPT(context) }],
-  });
-
-  const rawText =
-    response.content[0].type === "text" ? response.content[0].text : "[]";
-
-  let insights: Array<{ title: string; body: string; urgency: string }> = [];
   try {
-    const match = rawText.match(/\[[\s\S]*\]/);
-    if (match) insights = JSON.parse(match[0]);
-  } catch {
-    // Return empty array on parse failure rather than 500
-  }
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  return NextResponse.json({ insights });
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      messages: [{ role: "user", content: INSIGHTS_PROMPT(context) }],
+    });
+
+    const rawText =
+      response.content[0].type === "text" ? response.content[0].text : "[]";
+
+    let insights: Array<{ title: string; body: string; urgency: string }> = [];
+    try {
+      const match = rawText.match(/\[[\s\S]*\]/);
+      if (match) insights = JSON.parse(match[0]);
+    } catch {
+      // Return empty insights on parse failure rather than 500
+    }
+
+    return NextResponse.json({ insights });
+  } catch (err) {
+    console.error("[ai-insights] Anthropic API error:", err);
+    return NextResponse.json(
+      { error: "AI service temporarily unavailable. Please try again." },
+      { status: 502 }
+    );
+  }
 }
