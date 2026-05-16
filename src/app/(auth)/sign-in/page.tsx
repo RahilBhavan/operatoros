@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { checkAuthRateLimit } from "@/lib/security/auth-rate-limit";
 import {
   Destination,
   Body,
@@ -12,6 +13,9 @@ import {
   Index,
   Button,
 } from "@/components/doctrine";
+
+const RATE_LIMITED_MESSAGE =
+  "Too many attempts. Wait 15 minutes before trying again, or reset your password.";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -25,6 +29,14 @@ export default function SignInPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    const gate = await checkAuthRateLimit("signin", email);
+    if (!gate.allowed) {
+      setError(RATE_LIMITED_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim(),

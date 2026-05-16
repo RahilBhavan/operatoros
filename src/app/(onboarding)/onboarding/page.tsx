@@ -3,15 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import type {
   Industry,
   EntityType,
   EmployeeRange,
   OnboardingData,
 } from "@/types/onboarding";
-import { employeeRangeToCount } from "@/lib/onboarding-utils";
-import { buildStarterDeadlines } from "@/lib/seed-deadlines";
 import {
   Destination,
   H2,
@@ -21,6 +18,7 @@ import {
   Index,
   Button,
 } from "@/components/doctrine";
+import { completeOnboarding } from "./actions";
 
 const INDUSTRIES: { value: Industry; label: string }[] = [
   { value: "restaurant", label: "Restaurant / Food Service" },
@@ -111,47 +109,15 @@ export default function OnboardingPage() {
     setError("");
 
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push("/sign-in");
+      const result = await completeOnboarding(data);
+      if (!result.ok) {
+        if (result.error === "Not signed in.") {
+          router.push("/sign-in");
+          return;
+        }
+        setError(result.error);
         return;
       }
-
-      const { data: business, error: bizErr } = await supabase
-        .from("businesses")
-        .insert({
-          owner_id: user.id,
-          name: data.businessName.trim(),
-          industry_slug: data.industry ?? undefined,
-          entity_type: data.entityType ?? undefined,
-          employee_count: employeeRangeToCount(data.employeeRange),
-          hires_contractors: data.hiresContractors ?? false,
-          onboarding_complete: true,
-        })
-        .select("id")
-        .single();
-
-      if (bizErr || !business) {
-        setError("Failed to save your business. Please try again.");
-        return;
-      }
-
-      const { error: locErr } = await supabase.from("locations").insert({
-        business_id: business.id,
-        state: data.state,
-      });
-
-      if (locErr) {
-        setError("Failed to save location. Please try again.");
-        return;
-      }
-
-      await seedStarterDeadlines(supabase, business.id, data);
-
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -467,17 +433,3 @@ function StepContractors({
   );
 }
 
-// ─── Deadline seeding ────────────────────────────────────────────────
-
-type SupabaseClient = ReturnType<typeof createClient>;
-
-async function seedStarterDeadlines(
-  supabase: SupabaseClient,
-  businessId: string,
-  data: OnboardingData
-) {
-  const deadlines = buildStarterDeadlines(data, businessId);
-  if (deadlines.length > 0) {
-    await supabase.from("deadlines").insert(deadlines);
-  }
-}

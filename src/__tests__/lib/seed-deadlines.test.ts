@@ -401,6 +401,119 @@ describe("50-state fallback rule table", () => {
   });
 });
 
+// ─── PR1: rule_id / occurrence_key emission + idempotency ─────────────────
+describe("rule_id + occurrence_key emission (PR1 idempotency tuple)", () => {
+  const data: OnboardingData = {
+    businessName: "Idem Test",
+    state: "CA",
+    entityType: "llc",
+    industry: "restaurant",
+    employeeRange: "6-15",
+    hiresContractors: false,
+  };
+
+  it("every seeded deadline has rule_id, rule_version, occurrence_key", () => {
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    expect(ds.length).toBeGreaterThan(0);
+    for (const d of ds) {
+      expect(d.rule_id).toBeTruthy();
+      expect(d.rule_id.length).toBeGreaterThan(0);
+      expect(typeof d.rule_version).toBe("number");
+      expect(d.rule_version).toBeGreaterThanOrEqual(1);
+      expect(d.occurrence_key).toBeTruthy();
+      expect(d.occurrence_key.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("rule_ids are stable graph keys (federal-*, state-*, industry-*, universal-*)", () => {
+    // Workstream A replaced the temporary `legacy.*` prefix scheme with the
+    // declarative rule graph in regulatory-graph.ts. Every emitted deadline
+    // now carries the canonical rule_key slug from its source rule.
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    const prefixes = /^(federal|state|industry|universal)-/;
+    for (const d of ds) {
+      expect(d.rule_id).toMatch(prefixes);
+    }
+  });
+
+  it("same input + same reference date yields identical rule_id/occurrence_key tuples", () => {
+    const a = buildStarterDeadlines(data, BIZ, REF);
+    const b = buildStarterDeadlines(data, BIZ, REF);
+    expect(a.length).toBe(b.length);
+    const keyOf = (x: { rule_id: string; occurrence_key: string }) =>
+      `${x.rule_id}|${x.occurrence_key}`;
+    const keysA = a.map(keyOf).sort();
+    const keysB = b.map(keyOf).sort();
+    expect(keysA).toEqual(keysB);
+  });
+
+  it("(business_id, rule_id, occurrence_key) tuples are unique within one run", () => {
+    // The partial unique index on deadlines enforces this exact tuple. If
+    // the seed engine ever emits two rows with the same tuple, the second
+    // INSERT inside the RPC will be silently dropped — which would be a
+    // correctness bug. Tests catch the duplicates before they hit Postgres.
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    const seen = new Set<string>();
+    for (const d of ds) {
+      const key = `${d.business_id}|${d.rule_id}|${d.occurrence_key}`;
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  it("quarterly 941 filings get distinct occurrence_keys (Q1/Q2 of same year)", () => {
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    const filings = ds.filter(
+      (d) => d.name === "Quarterly Payroll Tax Filing (Form 941)"
+    );
+    expect(filings.length).toBe(2);
+    const keys = new Set(filings.map((f) => f.occurrence_key));
+    expect(keys.size).toBe(filings.length);
+    for (const k of keys) {
+      expect(k).toMatch(/^\d{4}-Q[1-4]$/);
+    }
+  });
+
+  it("annual deadlines use a year-only occurrence_key", () => {
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    const annual = ds.find(
+      (d) => d.name === "California Minimum Franchise Tax ($800)"
+    )!;
+    expect(annual.occurrence_key).toMatch(/^\d{4}$/);
+  });
+
+  it("monthly sales tax uses YYYY-MM occurrence_key", () => {
+    const ds = buildStarterDeadlines(data, BIZ, REF);
+    const monthly = ds.find((d) => d.frequency === "monthly");
+    if (monthly) {
+      expect(monthly.occurrence_key).toMatch(/^\d{4}-\d{2}$/);
+    }
+  });
+
+  it("idempotency holds across varied combos", () => {
+    const combos: Partial<OnboardingData>[] = [
+      { state: "TX", entityType: "s_corp", industry: "construction", employeeRange: "2-5", hiresContractors: true },
+      { state: "NY", entityType: "sole_proprietor", industry: "healthcare", employeeRange: "1" },
+      { state: "FL", entityType: "c_corp", industry: "retail", employeeRange: "1" },
+      { state: "DE", entityType: "llc", industry: "other", employeeRange: "1" },
+      { state: "MO", entityType: "llc", industry: "other", employeeRange: "1" },
+    ];
+    for (const combo of combos) {
+      const a = build(combo);
+      const b = build(combo);
+      const keyOf = (x: { rule_id: string; occurrence_key: string }) =>
+        `${x.rule_id}|${x.occurrence_key}`;
+      expect(a.map(keyOf).sort()).toEqual(b.map(keyOf).sort());
+      const seen = new Set<string>();
+      for (const d of a) {
+        const tup = `${d.rule_id}|${d.occurrence_key}`;
+        expect(seen.has(tup)).toBe(false);
+        seen.add(tup);
+      }
+    }
+  });
+});
+
 // ─── Cross-cutting: all due dates are valid future dates ──────────────────────
 describe("due date validity", () => {
   const combos: OnboardingData[] = [
