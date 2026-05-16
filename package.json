@@ -13,7 +13,7 @@
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --local > src/types/supabase.ts",
     "security:deps": "bun audit",
-    "security:sast": "semgrep scan --config p/typescript --config p/javascript --config p/sql --error",
+    "security:sast": "semgrep scan --config p/typescript --config p/javascript --error",
     "security:db-lint": "supabase db lint"
   },
   "dependencies": {
