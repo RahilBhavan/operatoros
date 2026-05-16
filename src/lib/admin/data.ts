@@ -436,3 +436,230 @@ export async function loadRegulatoryRuleStats(): Promise<RegulatoryRuleStats> {
     missing_states,
   };
 }
+
+// ─── Rule corrections (Workstream B) ─────────────────────────────────────────
+
+export type CorrectionStatus = "pending" | "accepted" | "rejected" | "superseded";
+
+export type CorrectionRow = {
+  id: string;
+  rule_id: string;
+  proposed_by_connection_id: string | null;
+  proposed_by_user_id: string | null;
+  proposed_by_kind: "accountant" | "admin" | "business_member";
+  proposed_changes: Record<string, unknown>;
+  rationale: string;
+  citation_url: string | null;
+  status: CorrectionStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  resulting_rule_id: string | null;
+  created_at: string;
+};
+
+export type CorrectionQueueRow = CorrectionRow & {
+  rule_name: string;
+  rule_key: string;
+  rule_severity: RegulatoryRuleRow["severity_tier"];
+  rule_jurisdiction_code: string;
+  rule_jurisdiction_type: RegulatoryRuleRow["jurisdiction_type"];
+  proposer_email: string | null; // accountant connection email when available
+};
+
+const CORRECTION_COLS =
+  "id, rule_id, proposed_by_connection_id, proposed_by_user_id, " +
+  "proposed_by_kind, proposed_changes, rationale, citation_url, status, " +
+  "reviewed_by, reviewed_at, review_note, resulting_rule_id, created_at";
+
+// Loads pending corrections sorted by rule severity DESC then created_at DESC,
+// joined to the rule + accountant connection so the queue UI can render
+// without N+1 queries.
+export async function loadCorrectionQueue(filter?: {
+  status?: CorrectionStatus;
+}): Promise<CorrectionQueueRow[]> {
+  const supabase = createAdminClient();
+  const status = filter?.status ?? "pending";
+
+  const corrQ = supabase
+    .from("rule_corrections" as never) as unknown as {
+    select: (cols: string) => {
+      eq: (col: string, val: string) => {
+        order: (col: string, opts: { ascending: boolean }) => Promise<{
+          data: CorrectionRow[] | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+  const { data: corrections } = await corrQ
+    .select(CORRECTION_COLS)
+    .eq("status", status)
+    .order("created_at", { ascending: false });
+
+  const rows = corrections ?? [];
+  if (rows.length === 0) return [];
+
+  const ruleIds = [...new Set(rows.map((r) => r.rule_id))];
+  const connectionIds = [
+    ...new Set(rows.map((r) => r.proposed_by_connection_id).filter((x): x is string => !!x)),
+  ];
+
+  const rulesRead = supabase.from("regulatory_rules" as never) as unknown as {
+    select: (cols: string) => {
+      in: (col: string, vals: string[]) => Promise<{
+        data: Array<Pick<
+          RegulatoryRuleRow,
+          "id" | "name" | "rule_key" | "severity_tier" | "jurisdiction_code" | "jurisdiction_type"
+        >> | null;
+      }>;
+    };
+  };
+  const [{ data: rules }, connsResult] = await Promise.all([
+    rulesRead
+      .select("id, name, rule_key, severity_tier, jurisdiction_code, jurisdiction_type")
+      .in("id", ruleIds),
+    connectionIds.length
+      ? supabase
+          .from("accountant_connections")
+          .select("id, accountant_email")
+          .in("id", connectionIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; accountant_email: string }> }),
+  ]);
+  const conns =
+    "data" in connsResult ? connsResult.data : ([] as Array<{ id: string; accountant_email: string }>);
+
+  const ruleById = new Map((rules ?? []).map((r) => [r.id, r]));
+  const emailByConn = new Map(
+    (conns ?? []).map((c) => [c.id, c.accountant_email])
+  );
+
+  const SEVERITY_ORDER: Record<RegulatoryRuleRow["severity_tier"], number> = {
+    critical: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+    info: 4,
+  };
+
+  return rows
+    .map((c) => {
+      const rule = ruleById.get(c.rule_id);
+      return {
+        ...c,
+        rule_name: rule?.name ?? "(unknown rule)",
+        rule_key: rule?.rule_key ?? "",
+        rule_severity: rule?.severity_tier ?? "info",
+        rule_jurisdiction_code: rule?.jurisdiction_code ?? "",
+        rule_jurisdiction_type: rule?.jurisdiction_type ?? "federal",
+        proposer_email:
+          c.proposed_by_connection_id != null
+            ? emailByConn.get(c.proposed_by_connection_id) ?? null
+            : null,
+      } satisfies CorrectionQueueRow;
+    })
+    .sort((a, b) => {
+      const sevDiff = SEVERITY_ORDER[a.rule_severity] - SEVERITY_ORDER[b.rule_severity];
+      if (sevDiff !== 0) return sevDiff;
+      return b.created_at.localeCompare(a.created_at);
+    });
+}
+
+export async function loadCorrection(id: string): Promise<CorrectionQueueRow | null> {
+  const supabase = createAdminClient();
+  const single = supabase.from("rule_corrections" as never) as unknown as {
+    select: (cols: string) => {
+      eq: (col: string, val: string) => { maybeSingle: () => Promise<{ data: CorrectionRow | null }> };
+    };
+  };
+  const { data: correction } = await single.select(CORRECTION_COLS).eq("id", id).maybeSingle();
+  if (!correction) return null;
+
+  const ruleRead = supabase.from("regulatory_rules" as never) as unknown as {
+    select: (cols: string) => {
+      eq: (col: string, val: string) => {
+        maybeSingle: () => Promise<{
+          data: Pick<
+            RegulatoryRuleRow,
+            "id" | "name" | "rule_key" | "severity_tier" | "jurisdiction_code" | "jurisdiction_type"
+          > | null;
+        }>;
+      };
+    };
+  };
+  const { data: rule } = await ruleRead
+    .select("id, name, rule_key, severity_tier, jurisdiction_code, jurisdiction_type")
+    .eq("id", correction.rule_id)
+    .maybeSingle();
+
+  let proposerEmail: string | null = null;
+  if (correction.proposed_by_connection_id) {
+    const { data: conn } = await supabase
+      .from("accountant_connections")
+      .select("accountant_email")
+      .eq("id", correction.proposed_by_connection_id)
+      .maybeSingle();
+    proposerEmail = conn?.accountant_email ?? null;
+  }
+
+  return {
+    ...correction,
+    rule_name: rule?.name ?? "(unknown rule)",
+    rule_key: rule?.rule_key ?? "",
+    rule_severity: rule?.severity_tier ?? "info",
+    rule_jurisdiction_code: rule?.jurisdiction_code ?? "",
+    rule_jurisdiction_type: rule?.jurisdiction_type ?? "federal",
+    proposer_email: proposerEmail,
+  };
+}
+
+export type CorrectionStats = {
+  pending: number;
+  accepted: number;
+  rejected: number;
+};
+
+export async function loadCorrectionStats(): Promise<CorrectionStats> {
+  const supabase = createAdminClient();
+  // One count per status. head:true makes Supabase return only the count.
+  const counts = await Promise.all(
+    (["pending", "accepted", "rejected"] as const).map(async (s) => {
+      const q = supabase.from("rule_corrections" as never) as unknown as {
+        select: (cols: string, opts: { count: "exact"; head: true }) => {
+          eq: (col: string, val: string) => Promise<{ count: number | null }>;
+        };
+      };
+      const { count } = await q.select("id", { count: "exact", head: true }).eq("status", s);
+      return [s, count ?? 0] as const;
+    })
+  );
+  const map = Object.fromEntries(counts) as Record<"pending" | "accepted" | "rejected", number>;
+  return { pending: map.pending, accepted: map.accepted, rejected: map.rejected };
+}
+
+export type RuleConfidenceRow = {
+  rule_id: string;
+  confidence_tier: "low" | "unverified" | "stale" | "community_validated" | "baseline";
+  accepted_corrections: number;
+  pending_corrections: number;
+  rejected_corrections: number;
+  last_verified_at: string | null;
+};
+
+export async function loadRuleConfidence(ruleIds: string[]): Promise<Map<string, RuleConfidenceRow>> {
+  if (ruleIds.length === 0) return new Map();
+  const supabase = createAdminClient();
+  const q = supabase.from("rule_confidence" as never) as unknown as {
+    select: (cols: string) => {
+      in: (col: string, vals: string[]) => Promise<{ data: RuleConfidenceRow[] | null }>;
+    };
+  };
+  const { data } = await q
+    .select(
+      "rule_id, confidence_tier, accepted_corrections, pending_corrections, rejected_corrections, last_verified_at"
+    )
+    .in("rule_id", ruleIds);
+  const map = new Map<string, RuleConfidenceRow>();
+  for (const r of data ?? []) map.set(r.rule_id, r);
+  return map;
+}

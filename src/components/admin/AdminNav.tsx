@@ -10,8 +10,9 @@ const ITEMS = [
   { href: "/admin/businesses", label: "BUSINESSES", code: "B" },
   { href: "/admin/waitlist", label: "WAITLIST", code: "C" },
   { href: "/admin/rules", label: "RULES", code: "D" },
-  { href: "/admin/audit", label: "AUDIT", code: "E" },
-  { href: "/admin/invites", label: "INVITES", code: "F" },
+  { href: "/admin/corrections", label: "CORRECTIONS", code: "E" },
+  { href: "/admin/audit", label: "AUDIT", code: "F" },
+  { href: "/admin/invites", label: "INVITES", code: "G" },
 ];
 
 export default function AdminNav({
