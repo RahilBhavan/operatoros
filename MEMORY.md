@@ -4,6 +4,38 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-15 — Workstream A · Regulatory Rule Graph (closes §3-A in WORLD_CLASS roadmap)
+
+What: Shipped the moat-foundation workstream end-to-end. Hardcoded `buildStarterDeadlines()` (838 LOC) replaced with a declarative rule graph: typed `RuleDef` / `DueDateRule` / `AppliesWhen` shapes in `src/lib/regulatory-graph.ts`, 91 canonical rows seeded into `regulatory_rules` via `20260516000005`, snapshot equivalence guard, per-kind evaluator unit spec, admin list with 50-state coverage gaps, admin detail with verify + edit-creates-new-version flow, backfill migration mapping pre-existing deadlines to rule_keys where the (name, agency, frequency, severity) match is unambiguous. All four acceptance checks in `docs/roadmap/WORLD_CLASS.md` §3-A now hold.
+
+Why: The 10-GP feature-moat consensus loop flagged this as the long pole — "what stops a competitor with a weekend and Claude" needed a real data substrate. The roadmap broke A into substrate-first, with B (corrections loop) and C (peer benchmarks) gated on it. Without A the rest of the moat-rubric workstreams have nothing to compound against.
+
+Shipped (in branch `workstream/a-regulatory-graph` → merged to `main`):
+- 7 new migrations: `20260516000001_deadline_rule_metadata` (rule_id/version/occurrence_key + partial unique index for idempotent re-seeding), `_002_complete_onboarding_rpc` (transactional 3-write collapse), `_003_auth_rate_limit` (generic key throttle RPC), `_004_regulatory_rules` (canonical table + provenance + lookup/stale/unverified partial indices + RLS via `is_platform_admin()`), `_005_regulatory_rules_seed` (91 rows, generated from TS source of truth, `WRITE_SEED=1 npm test` regenerates), `_006_regulatory_rule_versioning` (`version_regulatory_rule(p_id, p_changes)` SECURITY DEFINER RPC — forks v+1, points superseded_by, writes admin_edit provenance, stamps last_verified), `_007_deadlines_rule_id_backfill` (idempotent CTE-based match on (name, agency, frequency, severity)).
+- Runtime: `src/lib/regulatory-graph.ts` (~1,360 LOC), `src/lib/seed-deadlines.ts` collapses to a 70-LOC delegating wrapper preserving the legacy `buildStarterDeadlines(data, businessId, referenceDate)` signature. Onboarding now writes through `complete_onboarding` RPC via `src/app/(onboarding)/onboarding/actions.ts`. Auth pages gated through `checkAuthRateLimit("signin"|"signup", email)` (5/15min per (ip,email)).
+- Admin: `/admin/rules` (list with jurisdiction + verification filters, federal/state/local + verified/stale/unverified + coverage-gap KPIs, missing-states banner, superseded rows filtered out), `/admin/rules/[id]` (detail with Verify button + editable form). `POST /api/admin/rules/[id]/edit` validates field-by-field, calls the versioning RPC, writes `platform.rule_versioned` audit. `POST /api/admin/rules/[id]/verify` stamps `last_verified_at` + writes `platform.rule_verified`.
+- Tests (174 → 195 passing across 14 files): per-kind `evaluateDueDate` spec covering all 7 kinds + edge cases (`regulatory-graph-evaluator.test.ts`), seed/migration drift guard (`regulatory-graph-seed.test.ts`), snapshot equivalence with the old engine across 6 combos (`seed-deadlines-snapshot.test.ts`), 8 new idempotency-tuple assertions appended to the existing seed spec.
+
+The acceptance criteria from `docs/roadmap/WORLD_CLASS.md` §3-A as shipped:
+- LEGACY_RULES → `regulatory_rules` with `source_kind='seed'`: ✓
+- Snapshot equivalence vs. the old builder: ✓
+- `/admin/rules` shows 50-state coverage gaps: ✓
+- `/admin/rules/[id]` versioning round-trips (edit creates v+1, supersedes prior, lookup returns only head): ✓
+- Per-kind `due_date_rule` evaluator spec: ✓
+- Backfill existing deadlines.rule_id where match is unambiguous: ✓
+
+Rejected / deferred (still in scope for follow-on workstreams, not blocking ship of A):
+- Re-pointing the runtime seed engine to read from `regulatory_rules` at request time. Today the in-memory mirror in `regulatory-graph.ts` is the runtime; admin edits update DB rows and flow into the corrections loop's confidence tiers (Workstream B) but don't change new-business seeding until that switch lands. The comment at `regulatory-graph.ts:13-17` calls this out as a deliberate, surfaced tradeoff.
+- State-templated deadline backfill (`*` rules where name contains `${state}`) — needs to join through `locations` to know the state. Tens of pre-existing rows at most in dev; deferred.
+- Scraping agency websites to populate the missing-state rules — the roadmap names this as Workstream A.2 / future. Today, 5 states have explicit rule sets (CA/TX/NY/DE/FL) and 46 ride a templated `state-fallback-*` rule; corrections loop (Workstream B) is the intended fill-in mechanism.
+
+Quirks committed knowingly:
+- `quarterly_941` evaluator silently drops the Jan 31 quarter-end when starting mid-year because the legacy cycle array lists Jan 31 last in the year-N iteration (logically out of order). Preserved byte-for-byte; pinned by an explicit assertion in `regulatory-graph-evaluator.test.ts`.
+
+Verification at merge: tsc clean · vitest 195/195 · eslint 0 errors (13 pre-existing unused-imports warnings, all from main) · `npx next build` succeeds with new routes `/admin/rules`, `/admin/rules/[id]`, `/api/admin/rules/[id]/edit`, `/api/admin/rules/[id]/verify`.
+
+---
+
 ## 2026-05-15 — VC consensus loop: 10 GPs → website valid to launch
 
 What: Ran a 3-round multi-agent review loop simulating 10 named VC GPs (Andreessen, Gurley, Doerr, Khosla, Wilson, Moritz, Thiel, Hoffman, Meeker, Leone) evaluating the website. Round 1: 10 NO. Round 2 (tightened rubric to website-validity, not investment thesis): 8 YES / 2 NO. Round 3 (re-poll on Andreessen + Khosla after targeted README + dashboard tier-copy fixes): 10 YES. Full critiques + verdicts in `docs/vc-review/round-1.md`, `round-2.md`, `round-3.md`, with `CONSENSUS.md` as the final artifact.

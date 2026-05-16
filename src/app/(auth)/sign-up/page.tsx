@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { checkAuthRateLimit } from "@/lib/security/auth-rate-limit";
 import {
   Destination,
   H2,
@@ -13,6 +14,9 @@ import {
   Index,
   Button,
 } from "@/components/doctrine";
+
+const RATE_LIMITED_MESSAGE =
+  "Too many sign-up attempts. Wait 15 minutes before trying again.";
 
 function SignUpInner() {
   const searchParams = useSearchParams();
@@ -39,6 +43,13 @@ function SignUpInner() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      setLoading(false);
+      return;
+    }
+
+    const gate = await checkAuthRateLimit("signup", email);
+    if (!gate.allowed) {
+      setError(RATE_LIMITED_MESSAGE);
       setLoading(false);
       return;
     }
