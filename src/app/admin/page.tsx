@@ -4,16 +4,18 @@ import {
   loadKpis,
   loadBusinessSummaries,
   loadAuditStream,
+  loadNetworkDensity,
 } from "@/lib/admin/data";
 import { Body, Caption, Display, H1, Index, Utility } from "@/components/doctrine";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
-  const [kpis, recentBiz, recentEvents] = await Promise.all([
+  const [kpis, recentBiz, recentEvents, network] = await Promise.all([
     loadKpis(),
     loadBusinessSummaries().then((rows) => rows.slice(0, 5)),
     loadAuditStream(10),
+    loadNetworkDensity(),
   ]);
 
   // "Acquisition mix" = share of all top-of-funnel that converted to a
@@ -111,7 +113,7 @@ export default async function AdminOverviewPage() {
         </div>
       </section>
 
-      <section className="grid lg:grid-cols-2 gap-4 mb-8">
+      <section className="grid lg:grid-cols-3 gap-4 mb-8">
         <CardPanel title="PLAN DISTRIBUTION">
           {Object.entries(kpis.by_plan).length === 0 ? (
             <Caption className="!opacity-60">No businesses yet.</Caption>
@@ -154,6 +156,52 @@ export default async function AdminOverviewPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </CardPanel>
+
+        <CardPanel title="NETWORK DENSITY · COHORTS ≥ 10">
+          {network.cohorts_at_threshold === 0 ? (
+            <Caption className="!opacity-60">
+              No (industry × state) cohort has yet crossed the 10-business
+              k-anonymity threshold. Peer benchmarks are dark on the dashboard
+              until then.
+            </Caption>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3 border-2 border-[var(--color-ground)]">
+                <div className="px-4 py-3 border-r-2 border-[var(--color-ground)]">
+                  <Utility className="opacity-60 mb-1 !text-[12px]">
+                    COHORTS
+                  </Utility>
+                  <Index className="!text-[19px]">
+                    {network.cohorts_at_threshold}
+                  </Index>
+                </div>
+                <div className="px-4 py-3">
+                  <Utility className="opacity-60 mb-1 !text-[12px]">
+                    BUSINESSES COVERED
+                  </Utility>
+                  <Index className="!text-[19px]">
+                    {network.businesses_covered.toLocaleString("en-US")}
+                  </Index>
+                </div>
+              </div>
+              <ul className="flex flex-col divide-y divide-[var(--color-ground)]">
+                {network.top_cohorts.map((c) => (
+                  <li
+                    key={`${c.industry_slug}-${c.state_code}`}
+                    className="flex items-center justify-between py-2 gap-3"
+                  >
+                    <Body className="!font-bold !text-[15px] truncate">
+                      {c.state_code} · {c.industry_slug}
+                    </Body>
+                    <Index className="!text-[15px] w-10 text-right">
+                      {c.cohort_size}
+                    </Index>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </CardPanel>
       </section>

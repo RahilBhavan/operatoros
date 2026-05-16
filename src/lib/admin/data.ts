@@ -436,3 +436,49 @@ export async function loadRegulatoryRuleStats(): Promise<RegulatoryRuleStats> {
     missing_states,
   };
 }
+
+// ─── Peer benchmarks (Workstream C) ──────────────────────────────────────────
+
+export type NetworkDensity = {
+  cohorts_at_threshold: number;
+  businesses_covered: number;
+  newest_cohort_at: string | null;
+  top_cohorts: Array<{
+    industry_slug: string;
+    state_code: string;
+    cohort_size: number;
+  }>;
+};
+
+/**
+ * Reads the public.industry_benchmarks materialized view to surface how
+ * dense the per-(industry × state) cohort coverage is. Only cohorts that
+ * have crossed the k-anonymity threshold (>=10 businesses) appear in the
+ * view at all, so these numbers track real network growth.
+ */
+export async function loadNetworkDensity(): Promise<NetworkDensity> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("industry_benchmarks")
+    .select("industry_slug, state_code, cohort_size, last_captured_at")
+    .order("cohort_size", { ascending: false });
+
+  const rows = data ?? [];
+  const businessesCovered = rows.reduce((sum, r) => sum + r.cohort_size, 0);
+  const newestCohortAt = rows.reduce<string | null>((acc, r) => {
+    if (!r.last_captured_at) return acc;
+    if (!acc || r.last_captured_at > acc) return r.last_captured_at;
+    return acc;
+  }, null);
+
+  return {
+    cohorts_at_threshold: rows.length,
+    businesses_covered: businessesCovered,
+    newest_cohort_at: newestCohortAt,
+    top_cohorts: rows.slice(0, 5).map((r) => ({
+      industry_slug: r.industry_slug,
+      state_code: r.state_code,
+      cohort_size: r.cohort_size,
+    })),
+  };
+}

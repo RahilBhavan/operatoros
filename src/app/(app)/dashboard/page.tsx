@@ -6,6 +6,8 @@ import ShareLink from "@/components/dashboard/ShareLink";
 import AccountantInvite from "@/components/dashboard/AccountantInvite";
 import ComplianceScoreChart from "@/components/dashboard/ComplianceScoreChart";
 import ProactiveInsights from "@/components/dashboard/ProactiveInsights";
+import PeerBenchmarkBar from "@/components/dashboard/PeerBenchmarkBar";
+import { getPeerContext } from "@/lib/benchmarks";
 import {
   formatDueDate,
   computeAutoStatus,
@@ -79,6 +81,7 @@ export default async function DashboardPage() {
   const complianceScore = computeRiskWeightedScore(deadlines);
   const exposureCents = computeExposureCents(deadlines);
   const actions = topActions(deadlines, 3);
+  const peer = await getPeerContext(supabase, business.id, complianceScore);
   const isPremium =
     (business.billing_status === "active" ||
       business.billing_status === "trialing") &&
@@ -195,9 +198,14 @@ export default async function DashboardPage() {
       )}
 
       {/* Score chart + insights */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-10">
+      <div className="grid sm:grid-cols-2 gap-4 mb-4">
         <ComplianceScoreChart history={history} currentScore={complianceScore} />
         <ProactiveInsights />
+      </div>
+
+      {/* Peer benchmark — industry × state cohort */}
+      <div className="mb-10">
+        <PeerBenchmarkBar peer={peer} />
       </div>
 
       {/* Deadline groups */}
