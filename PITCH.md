@@ -3,6 +3,9 @@
 **The Compliance Operating System for Small Business.**
 The way QuickBooks owns accounting, OperatorOS owns regulatory life.
 
+<!-- Last reviewed: 2026-05-16 — owner: rbhavanzim@gmail.com -->
+<!-- Update triggers: pricing in src/lib/stripe.ts · build status in MEMORY.md · roadmap shift in docs/roadmap/WORLD_CLASS.md -->
+
 ---
 
 ## Slide 1 — Cover
@@ -80,9 +83,11 @@ A working application, today, in this repo (`/src/app/`):
 | **Accountant Portal** | Magic-link access for a CPA to see *every* client's score, deadlines, and document status in one view — no login friction |
 | **Share Links** | Read-only public URL for auditors, GCs, insurance carriers — proof of compliance in 1 click |
 | **Reminders** | Resend-powered email cadence at T-30 / T-7 / T-1 / overdue, via a daily Vercel cron |
-| **Billing** | Stripe four-tier (Starter $29 / Growth $79 / Scale $149 / Accountant Pro $499) |
+| **Billing** | Stripe two-tier (Business $79/mo · Accountant $299/mo) — 14-day free trial both |
+| **Regulatory Rule Graph** | Versioned, citation-backed rule substrate in Postgres (91 seeded rules, admin verify + edit-creates-new-version flow). The moat foundation: a hardcoded competitor cannot match this in a weekend. |
+| **Platform Admin Console** | KPIs, businesses, waitlist invites, cross-tenant audit stream, plan-tier overrides — staff control plane for the founder |
 
-**Built. Tested. Deployable.** Tech stack: Next.js 16 (App Router), Supabase Postgres with RLS, Anthropic Claude, Stripe, Resend, Vercel. Security baseline shipped (RLS-enforced multi-tenant, CSP, Stripe customer binding, RLS-protected storage, anon role revoked from sensitive routes).
+**Built. Tested. Deployable.** Tech stack: Next.js 16 (App Router), Supabase Postgres with RLS, Anthropic Claude, Stripe, Resend, Vercel. 27 migrations · 195 passing tests · RLS on every tenant table · Stripe customer binding · CSP · RLS-protected storage · anon role revoked from sensitive routes · Semgrep + CodeQL + dep-audit in CI.
 
 ---
 
@@ -116,11 +121,11 @@ The compliance score is the load-bearing primitive. It penalizes overdue items h
 
 A SaaS sale to a single SMB costs $300–$800 in CAC. A SaaS sale to a single *accountant* who then onboards their book costs the same $300–$800 — and yields **40+ paying customers**.
 
-The Accountant Pro tier ($499/mo) is priced to be **trivially profitable for the accountant** (one client paying $79/mo Growth covers ~16% of the seat cost; the rest is pure leverage) and is the only place in the market where a CPA can get a real portfolio compliance view at sub-$1,000.
+The Accountant tier ($299/mo) is priced to be **trivially profitable for the accountant** (4 of their clients on Business at $79/mo cover the seat cost; the rest of the book is pure leverage) and is the only place in the market where a CPA can get a real portfolio compliance view at sub-$1,000.
 
 **This is not "we'll do channel sales later."** The product is *built* around the accountant: magic-link portal, white-label, bulk onboarding, portfolio scoring. It's the only feature surface no competitor has shipped.
 
-Effective CAC per end-customer at scale: **$15–$40**. Effective LTV at Growth-tier ARPU and 3% monthly churn: **$2,400+**.
+Effective CAC per end-customer at scale: **$15–$40**. Effective LTV at Business-tier ARPU ($79/mo) and 3% monthly churn: **~$2,600**.
 
 ---
 
@@ -128,13 +133,11 @@ Effective CAC per end-customer at scale: **$15–$40**. Effective LTV at Growth-
 
 | Tier | Price | Target | What they get |
 |---|---|---|---|
-| Starter | $29/mo | Solo, sub-10 employee | 50 deadlines, 1 user |
-| **Growth** | $79/mo | **The core SMB ICP** | Unlimited, 3 users, accountant view |
-| Scale | $149/mo | 20–50 employee, multi-state | Unlimited, 10 users, **AI insights** |
-| **Accountant Pro** | **$499/mo** | **The wedge** | Unlimited clients, white-label, bulk onboarding |
+| **Business** | **$79/mo** | **The core SMB ICP** | Unlimited deadlines, 5 team members, 10 GB documents, email + SMS reminders, AI insights, shareable audit link, PDF export, read-only accountant invite |
+| **Accountant** | **$299/mo** | **The wedge** | Up to 200 client portfolios, bulk onboarding, white-labeled reports, per-client compliance score dashboard, action portal (notes/flags), priority API |
 
-**Blended ARPU target (Y2):** $96/mo per end-business.
-**Gross margin:** 82% (Supabase + Claude tokens + Stripe fees are the only variable costs; Claude usage capped to Scale tier).
+**Blended ARPU target (Y2):** $96/mo per end-business (Business + a small share of accountant-rebilled clients).
+**Gross margin:** 82% — Supabase + Claude tokens + Stripe fees are the only variable costs; Claude usage capped per-business via an atomic rate-limit RPC + 6-hour `ai_insight_cache`.
 **Payback period via accountant channel:** <2 months.
 
 ---
@@ -145,7 +148,7 @@ Effective CAC per end-customer at scale: **$15–$40**. Effective LTV at Growth-
 - 6.0M US employer firms with 1–50 employees (Census BDS)
 - 800K active CPAs + ~400K bookkeepers (BLS)
 - Target penetration Y5: 1.5% of SMB ($96 ARPU) = **$104M ARR**
-- Accountant Pro Y5: 8K firms × $499 = **$48M ARR**
+- Accountant Y5: 13K firms × $299 = **$46M ARR**
 - **Total Y5 ARR target: $150M+**
 
 **Top-down:**
@@ -184,8 +187,10 @@ Compounding, in this order:
 **Honest:** Pre-launch. End of build phase.
 
 - ✅ Full product shipped to working state — onboarding, dashboard, deadlines, documents, AI insights, accountant portal, share, billing, reminders
-- ✅ Security baseline complete (RLS, CSP, Stripe binding, storage hardening, SAST/dep CI)
-- ✅ Four-tier pricing live in Stripe
+- ✅ Regulatory rule graph (the moat foundation) — 91 versioned rules with admin verify + edit-creates-new-version flow
+- ✅ Platform admin console (KPIs, businesses, waitlist, audit stream, plan overrides)
+- ✅ Security baseline complete (RLS on every tenant table, CSP, Stripe customer binding, RLS-protected storage, anon role revoked from sensitive routes, Semgrep + CodeQL + dep-audit in CI)
+- ✅ Two-tier pricing live in Stripe (Business $79 / Accountant $299)
 - ⏳ Next 60 days: legal copy + Vercel WAF + public launch via 5 design-partner accountants
 
 Why we're raising before logos: the build is done; the wedge is the accountant channel; the channel needs a small initial spend to ignite.
@@ -198,7 +203,7 @@ Why we're raising before logos: the build is done; the wedge is the accountant c
 |---|---|
 | Q2 2026 | Public launch · 5 design-partner accountants · 200 end-customers |
 | Q3 2026 | $50K MRR · expand jurisdiction coverage to all 50 states for top 12 NAICS |
-| Q4 2026 | Accountant Pro v2 — bulk document collection, e-signature, white-label |
+| Q4 2026 | Accountant v2 — bulk document collection, e-signature, white-label |
 | Q1 2027 | API + webhooks for accountant practice-management integrations (Karbon, Canopy) |
 | Q2 2027 | $250K MRR · Series A |
 

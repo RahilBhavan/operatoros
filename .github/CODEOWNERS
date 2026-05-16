@@ -1,0 +1,38 @@
+# CODEOWNERS — review routing
+#
+# Every PR auto-requests review from the listed owner. For a solo repo
+# this just makes the bookkeeping visible; when collaborators join, the
+# entries scope to the area they're responsible for.
+#
+# Syntax: <pattern>  <@github-handles or emails>
+# Later entries override earlier ones — most-specific wins.
+
+# Default — everything in the repo
+*                              @RahilBhavan
+
+# Docs — drift contract enforcement (CONTRIBUTING.md §4)
+/docs/                         @RahilBhavan
+/README.md                     @RahilBhavan
+/OVERVIEW.md                   @RahilBhavan
+/PITCH.md                      @RahilBhavan
+/OperatorOS_Project_Plan.md    @RahilBhavan
+/CONTRIBUTING.md               @RahilBhavan
+/MEMORY.md                     @RahilBhavan
+/AGENTS.md                     @RahilBhavan
+/CLAUDE.md                     @RahilBhavan
+
+# Security-sensitive surfaces — extra eyes
+/supabase/migrations/          @RahilBhavan
+/docs/security/                @RahilBhavan
+/src/lib/supabase/             @RahilBhavan
+/src/lib/security/             @RahilBhavan
+/src/lib/stripe.ts             @RahilBhavan
+/src/app/api/billing/          @RahilBhavan
+/src/app/api/cron/             @RahilBhavan
+/src/app/api/admin/            @RahilBhavan
+
+# CI / workflow / settings
+/.github/                      @RahilBhavan
+/vercel.json                   @RahilBhavan
+/next.config.ts                @RahilBhavan
+/package.json                  @RahilBhavan

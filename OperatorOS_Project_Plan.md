@@ -6,6 +6,9 @@
 > **Methodology:** Synthetic 1,000,000-business survey framework + agentic continuous improvement loop  
 > **Version:** 1.0 — May 2026  
 
+<!-- Last reviewed: 2026-05-16 — owner: rbhavanzim@gmail.com -->
+<!-- Calendar-triggered: quarterly re-review per docs/MAINTENANCE.md. This is the master research document; live operational specs live in OVERVIEW.md / README.md / docs/ARCHITECTURE.md / docs/DATABASE.md and override anything below when in conflict. -->
+
 ---
 
 ## Table of Contents
@@ -954,9 +957,30 @@ Supporting content:
 
 ### 8.5 Pricing Strategy and Packaging
 
+> **2026-05-16 update:** The 3-tier exploration below (Starter / Growth / Scale) was the Phase-1 hypothesis. After the 10-GP website-validity review (see `MEMORY.md`), production pricing collapsed to **two tiers — Business $79/mo and Accountant $299/mo**, source of truth in `src/lib/stripe.ts`. The table below is preserved as the research record. Live pricing detail lives in `OVERVIEW.md` §3.8 and the README.
+
 **Pricing philosophy:** Anchor on the cost of non-compliance, not the cost of the software. $79/month feels expensive until you frame it as "insurance against a $14,200 average missed deadline penalty."
 
-**Tier design:**
+**Tier design (live — 2 tiers):**
+
+| | **Business** | **Accountant** |
+|---|---|---|
+| Price | **$79/month** | **$299/month** |
+| Built for | Owner-operator tracking their own compliance | CPAs / bookkeepers managing 40–200 SMB clients |
+| Deadlines | Unlimited | Unlimited (across client book) |
+| Users | Up to 5 team members | Unlimited |
+| Document storage | 10 GB | Across portfolio |
+| Reminder channels | Email + SMS | Email + SMS |
+| AI insights | ✓ (rate-limited + cached) | ✓ |
+| Shareable audit link | ✓ | ✓ |
+| PDF audit export | ✓ | ✓ |
+| Accountant view | Read-only invite | Full portfolio dashboard + action portal |
+| Bulk client onboarding | — | ✓ |
+| White-labeled reports | — | ✓ |
+| Priority API access | — | ✓ |
+| Trial | 14-day free | 14-day free |
+
+**Phase-1 hypothesis (3 tiers, deprecated — kept for the audit trail):**
 
 | | Starter | Growth | Scale |
 |---|---|---|---|
@@ -972,9 +996,9 @@ Supporting content:
 | Compliance health score | ✗ | ✓ | ✓ |
 | Support | Email | Email + chat | Dedicated CSM |
 
-**Annual discount:** 20% (converts monthly churn risk to annual commitment)
+**Annual discount:** 20% (converts monthly churn risk to annual commitment) — roadmapped, not live.
 
-**Add-ons (Phase 3+):**
+**Add-ons (Phase 3+, roadmapped):**
 - Extra locations: $19/month each
 - Employee credential portal: $5/employee/month (capped at $99/month)
 - API access: $99/month
@@ -988,7 +1012,7 @@ Supporting content:
 
 | Metric | Value | Notes |
 |---|---|---|
-| Average Revenue Per Account (ARPA) | $79/month | Blended across tiers |
+| Average Revenue Per Account (ARPA) | $79/month | Live tier price for Business (the dominant SMB tier); blended ARPU rises with Accountant-tier mix |
 | Customer Acquisition Cost (CAC) | $140 | Blended across channels at Phase 3 |
 | Gross Margin | 78% | SaaS gross margin after hosting, Twilio, Stripe fees |
 | Monthly Churn | 2.5% | Target; industry benchmark for compliance SaaS is 3–5% |
@@ -1221,7 +1245,7 @@ Intelligence Agent publishes weekly report →
 | Edits an auto-generated deadline date | Possible DB error; flag for review |
 | Opens a 30-day reminder but not a 60-day | 60-day reminder format needs improvement |
 | Churns after 3 months | What was their last action? What deadline did they miss? |
-| Upgrades from Starter to Growth | What feature triggered the upgrade? |
+| Upgrades from Business to Accountant (or adds Accountant access) | What feature triggered the upgrade? |
 | Refers a friend | What was their NPS score? What was their first "aha" moment? |
 | Exports an audit package | When (inspection? audit? loan?) — helps us understand use cases |
 | Marks a deadline as "not applicable" | Discovery Agent over-matched; reduce confidence for this industry × location |
@@ -1267,7 +1291,7 @@ At each user milestone, here is what the Intelligence Agent knows:
 **At 1,000 users:**
 - Which deadline types are missed most often, by industry × state
 - Which reminder channels work for which industry
-- Which features drive upgrade from Starter to Growth
+- Which features drive upgrade from Business to Accountant access (or trigger an Accountant invite)
 
 **At 10,000 users:**
 - Predictive miss probability for any deadline type × business profile
@@ -1361,7 +1385,7 @@ OperatorOS tracks every deadline automatically and sends reminders before anythi
 - 20% recurring commission on every client subscription ($16–30/month per client)
 - Co-branded compliance reports you can send to clients with your name on them
 
-**What your clients pay:** $29–149/month depending on business size
+**What your clients pay:** $79/month on Business (live pricing per `src/lib/stripe.ts`)
 
 **What it costs you:** Nothing.
 

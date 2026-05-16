@@ -2,7 +2,12 @@
 
 **Compliance OS for small businesses (1–50 employees).**
 
+<!-- Last reviewed: 2026-05-15 — owner: rbhavanzim@gmail.com -->
+<!-- Update triggers: package.json scripts · pricing in src/lib/stripe.ts · env vars in .env.example · top-level architecture (src/lib/regulatory-graph.ts) -->
+
 OperatorOS pre-populates the federal and state compliance deadlines a small business typically faces — based on the industry, state, entity type, and employee count you tell us during onboarding — then tracks a compliance score, sends reminders, and lets accountants manage their client portfolio from one place.
+
+> **Looking for something specific?** See [`docs/INDEX.md`](./docs/INDEX.md) for the full doc map (architecture, database, API surface, security, roadmap, contribution guide).
 
 > A 25-employee, multi-state business typically faces ~47 annual compliance obligations across federal, state, and industry-specific filings. Even one missed deposit can trigger IRS failure-to-deposit penalties that compound monthly until the issue is resolved.
 
@@ -26,12 +31,16 @@ The compliance score penalizes overdue items heavily (−20 pts each) and distin
 
 ## Tech Stack
 
-- **Next.js 16** (App Router)
-- **Supabase** — PostgreSQL, Auth, Storage, RLS
-- **Anthropic Claude** — Compliance follow-ups + document expiry extraction
-- **Stripe** — Subscription billing (Business / Accountant)
-- **Resend** — Transactional email reminders
-- **Vercel** — Hosting + daily cron jobs
+- **Next.js 16** (App Router) — note: this is post-breaking-changes Next, see `AGENTS.md`
+- **React 19**, **TypeScript 5**, **Tailwind CSS v4**
+- **Supabase** — PostgreSQL, Auth, Storage, RLS · 27 migrations in `supabase/migrations/`
+- **Regulatory rule graph** (`src/lib/regulatory-graph.ts` + DB table `regulatory_rules`) — versioned, citation-backed substrate that drives deadline seeding · the long-term data moat
+- **Anthropic Claude** — Compliance follow-ups + document expiry extraction; rate-limited per business and cached for 6h
+- **Stripe** — Subscription billing (Business $79/mo / Accountant $299/mo)
+- **Resend** — Transactional email reminders (daily cron at 09:00 UTC)
+- **Vercel** — Hosting + cron + WAF (waitlist rate-limit gate)
+- **Bun** — Package manager and lockfile of record (CI uses `bun install` + `bun audit`)
+- **Vitest** + **Playwright** + **Semgrep** + **CodeQL** in CI
 
 ---
 
@@ -122,14 +131,48 @@ Point to `https://yourdomain.com/api/billing/webhook` with:
 ### 6. Run Locally
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Common scripts
+
+| Script | What it does |
+|--------|--------------|
+| `bun run dev` | Next dev server on :3000 |
+| `bun run build` | Production build |
+| `bun run lint` | ESLint over `src/` |
+| `bun run type-check` | `tsc --noEmit` |
+| `bun run test` | Vitest run (unit + component) |
+| `bun run test:e2e` | Playwright e2e |
+| `bun run security:deps` | `bun audit` against the dep tree |
+| `bun run security:sast` | Semgrep (TS/JS/SQL rulesets) |
+| `bun run security:db-lint` | `supabase db lint` |
+| `bun run db:push` | Apply migrations |
+| `bun run db:types` | Regenerate `src/types/supabase.ts` |
 
 ---
 
 ## Deployment
 
-Deploy to Vercel. The `vercel.json` cron job runs daily reminder emails at 9am UTC.
+Deploy to Vercel. `vercel.json` schedules the daily reminder cron (09:00 UTC). For the full ship checklist see [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) and the pre-launch list in `OVERVIEW.md` §13.
+
+---
+
+## Contributing
+
+Before you open a PR, read [`CONTRIBUTING.md`](./CONTRIBUTING.md) §3 (pre-merge bar) and §4 (the docs drift contract — "if you change X, update Y"). The PR template at [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md) enforces both at review time and is not optional. New contributors: [`AGENTS.md`](./AGENTS.md) lists the read-first order.
+
+---
+
+## Documentation map
+
+- **Product story / pitch:** `OVERVIEW.md`, `PITCH.md`, `OperatorOS_Project_Plan.md`
+- **System design:** [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md), [`docs/DATABASE.md`](./docs/DATABASE.md)
+- **Working in this repo:** [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md), [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- **Security:** `docs/security/` (RLS matrix, API route matrix, admin allowlist, threat models, CI verification)
+- **Roadmap / decisions:** [`docs/roadmap/WORLD_CLASS.md`](./docs/roadmap/WORLD_CLASS.md), `MEMORY.md`
+- **Docs maintenance:** [`docs/MAINTENANCE.md`](./docs/MAINTENANCE.md)
+- **Full index:** [`docs/INDEX.md`](./docs/INDEX.md)

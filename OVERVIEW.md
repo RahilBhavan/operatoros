@@ -2,6 +2,9 @@
 
 > A single document covering what OperatorOS is, what it does, how it works, what it wants to become, who it competes with, and what it does not yet have.
 
+<!-- Last reviewed: 2026-05-15 — owner: rbhavanzim@gmail.com -->
+<!-- Update triggers: pricing change in `src/lib/stripe.ts` · plan tier in `src/types/billing` · status change in `MEMORY.md` -->
+
 ---
 
 ## 1. The One-Paragraph Answer
@@ -55,7 +58,7 @@ One overdue item on an otherwise clean calendar lands at ~70/100. Three overdue 
 Every deadline can have files attached — licenses, COIs, filed forms, inspection results. Stored in Supabase Storage with RLS-enforced per-tenant isolation. Claude extracts expiry dates from uploaded documents and proposes deadline updates.
 
 ### 3.4 AI Insights (Claude)
-On Growth/Scale tiers, Claude reads the business profile and active deadlines and surfaces obligations the user *did not tell us about*: payroll-threshold-triggered filings, multi-state nexus exposure, license CE renewal cadence, industry-specific quarterly returns. Every insight is sourced to the responsible agency and carries a verify-with-your-accountant disclosure.
+Claude reads the business profile and active deadlines and surfaces obligations the user *did not tell us about*: payroll-threshold-triggered filings, multi-state nexus exposure, license CE renewal cadence, industry-specific quarterly returns. Every insight is sourced to the responsible agency and carries a verify-with-your-accountant disclosure. Available on both Business and Accountant plans, rate-limited per business via the `try_consume_ai_rate_limit` RPC with a 6-hour context-hash cache (`ai_insight_cache`).
 
 ### 3.5 Accountant Portal
 Magic-link access — no login friction — into a single view of every client a CPA manages: each client's compliance score, upcoming deadlines, overdue items, document status, and a notes thread. This is the only surface in the market that gives a 40-client bookkeeper a portfolio compliance view at sub-$1,000/month.
@@ -67,14 +70,14 @@ Time-limited, read-only public URLs an owner can send to an auditor, insurance c
 Multi-stage email cadence at T-30 / T-7 / T-1 / overdue, dispatched daily by a Vercel cron through Resend. SMS and WhatsApp are roadmapped, not built.
 
 ### 3.8 Billing (live)
-Four-tier Stripe pricing:
+Two-tier Stripe pricing (source of truth: `src/lib/stripe.ts`):
 
-| Plan | Price | Deadlines | Users | Accountant features |
+| Plan | Price | Deadlines | Users | Built for |
 |---|---|---|---|---|
-| Starter | $29/mo | 50 | 1 | — |
-| Growth | $79/mo | Unlimited | 3 | Read-only invite |
-| Scale | $149/mo | Unlimited | 10 | + AI insights |
-| **Accountant Pro** | **$499/mo** | Unlimited | Unlimited | Full portfolio, white-label, bulk onboarding |
+| **Business** | **$79/mo** | Unlimited | Up to 5 team members | Owners tracking their own compliance. Includes 10 GB document storage, email + SMS reminders, AI insights, shareable audit link, PDF export, read-only accountant invite. |
+| **Accountant** | **$299/mo** | Unlimited (across clients) | Unlimited | CPAs / bookkeepers managing 40–200 SMB clients. Includes bulk onboarding, white-labeled reports, per-client compliance dashboard, action portal, priority API. |
+
+Both include a 14-day free trial; no card required to start.
 
 ---
 
@@ -82,16 +85,20 @@ Four-tier Stripe pricing:
 
 | Capability | Where it lives |
 |---|---|
-| Onboarding / deadline seeding | `src/app/(onboarding)/` |
+| Onboarding / deadline seeding | `src/app/(onboarding)/` → calls `complete_onboarding` RPC |
+| Regulatory rule graph (the moat substrate) | `src/lib/regulatory-graph.ts`, `src/lib/seed-deadlines.ts`, DB table `regulatory_rules` (versioned, citation-backed) |
 | Dashboard + compliance score | `src/app/(app)/dashboard/`, `src/lib/deadline-utils.ts` |
 | Deadlines CRUD + document attachment | `src/app/(app)/deadlines/`, `src/app/api/documents/` |
-| AI insights | `src/app/api/ai/` |
+| AI insights | `src/app/api/ai/` — `try_consume_ai_rate_limit` RPC + `ai_insight_cache` |
 | Accountant portfolio | `src/app/accountant/`, `src/app/api/accountant/` |
 | Share/audit export | `src/app/share/[token]/`, `src/app/api/share/`, `src/app/api/export/` |
-| Email reminders cron | `src/app/api/cron/` (Vercel daily job) |
+| Email reminders cron | `src/app/api/cron/reminders/` (Vercel daily at 09:00 UTC) |
 | Stripe checkout + webhook | `src/app/(app)/billing/`, `src/app/api/billing/` |
-| Waitlist | `src/app/api/waitlist/` |
-| Multi-tenant security | `supabase/migrations/` — 15 migrations, RLS-enforced on every table |
+| Waitlist (+ UTM capture, referral codes) | `src/app/api/waitlist/`, `waitlist_signups` |
+| Team membership + invite | `src/app/(app)/settings/team/`, `memberships`, `src/app/api/team/invite/` |
+| Platform admin (CEO/staff control plane) | `src/app/admin/`, `src/app/api/admin/`, `platform_admins`, `is_platform_admin()` RPC |
+| Auth rate limiting | `auth_rate_limits` + `try_consume_auth_rate_limit` RPC (5/15min per IP+email) |
+| Multi-tenant security | `supabase/migrations/` — 27 migrations · RLS on every tenant table · `service_role` callsites audited in `docs/security/admin-client-allowlist.md` |
 
 ---
 
@@ -155,7 +162,7 @@ The compliance data layer is the load-bearing component. Every jurisdiction × i
 - **Personal services** — cosmetology, pesticide, fire safety inspections. The most underpowered segment; 68% track nothing.
 
 ### Channel ICP — the accountant
-A CPA, bookkeeper, or fractional CFO managing 40–200 small business clients. Currently uses some combination of QuickBooks Online Accountant + spreadsheets + their head. Wants a portfolio compliance view; will pay $499/mo and re-bill it (or absorb it) across clients.
+A CPA, bookkeeper, or fractional CFO managing 40–200 small business clients. Currently uses some combination of QuickBooks Online Accountant + spreadsheets + their head. Wants a portfolio compliance view; will pay $299/mo and re-bill it (or absorb it) across clients.
 
 ---
 
@@ -163,7 +170,7 @@ A CPA, bookkeeper, or fractional CFO managing 40–200 small business clients. C
 
 **The accountant channel is the company.**
 
-A SaaS sale to a single SMB costs $300–$800 in CAC. A SaaS sale to a single accountant who then onboards their book costs roughly the same — and yields 40+ paying end-customers. Effective CAC per end-customer at channel scale: **$15–$40**. LTV at Growth-tier ARPU and 3% monthly churn: **$2,400+**.
+A SaaS sale to a single SMB costs $300–$800 in CAC. A SaaS sale to a single accountant who then onboards their book costs roughly the same — and yields 40+ paying end-customers. Effective CAC per end-customer at channel scale: **$15–$40**. LTV at Business-tier ARPU ($79/mo) and 3% monthly churn: **~$2,600**.
 
 **Tactical sequence:**
 1. **Phase 0 (now):** 5–10 design-partner accountants. White-glove onboarding. Goal: one says "I can't run my practice without this."
@@ -177,11 +184,11 @@ A SaaS sale to a single SMB costs $300–$800 in CAC. A SaaS sale to a single ac
 
 ## 9. Business Model
 
-**Pricing:** four tiers, listed above. Blended ARPU target at Y2: **~$96/mo** per end-business.
+**Pricing:** two tiers, listed above. Blended ARPU target at Y2: **~$96/mo** per end-business (mix of Business at $79 + Accountant at $299, accountant clients re-billed at Business tier).
 
 **Costs (variable):**
 - Supabase (Postgres + Auth + Storage): ~$1–3/customer/mo at scale
-- Anthropic Claude tokens (Scale tier only): capped at ~$2/customer/mo via prompt caching + tier gating
+- Anthropic Claude tokens: capped at ~$2/customer/mo via prompt caching + 6-hour `ai_insight_cache` + atomic per-business rate-limit RPC
 - Stripe fees: 2.9% + $0.30
 - Resend: ~$0.10/customer/mo
 - → **Target gross margin: 82%**
@@ -198,7 +205,7 @@ A SaaS sale to a single SMB costs $300–$800 in CAC. A SaaS sale to a single ac
 - 6.0M US employer firms with 1–50 employees (Census BDS)
 - 800K active CPAs + ~400K bookkeepers (BLS)
 - 1.5% SMB penetration × $96 ARPU = $104M ARR (Y5)
-- 8K Accountant Pro firms × $499 = $48M ARR (Y5)
+- 13K Accountant firms × $299 = $46M ARR (Y5)
 - **Y5 ARR target: $150M+**
 
 **Total addressable spend:**
@@ -251,15 +258,18 @@ Nobody is in the box. The closest analogs are **Carta** (system of record for ca
 
 **Build status: complete and deployable.**
 
-- ✅ Onboarding seeds jurisdiction-aware deadlines
-- ✅ Dashboard with compliance score
-- ✅ Deadlines CRUD + document attachment
-- ✅ AI insights (Claude) gated to Growth/Scale
-- ✅ Accountant portfolio portal (magic-link)
-- ✅ Audit share links + PDF export
-- ✅ Daily reminder cron via Resend
-- ✅ Stripe four-tier billing (Starter / Growth / Scale / Accountant Pro)
-- ✅ Security baseline: RLS on every table, Stripe customer binding, hardened CSP, RLS-protected storage, anon role revoked from sensitive endpoints, SAST + dep-audit in CI
+- ✅ Onboarding seeds jurisdiction-aware deadlines via the regulatory rule graph
+- ✅ Regulatory rule graph (Workstream A) — 91 seeded rules across federal + 5 states, versioned, citation-backed, admin-editable; templated `state-fallback-*` rules cover the other 46 states pending Workstream B
+- ✅ Dashboard with risk-weighted compliance score + top-3 actions
+- ✅ Deadlines CRUD + document attachment (with versioning via `document_versions`)
+- ✅ AI insights (Claude) on both tiers, rate-limited + cached
+- ✅ Accountant portfolio portal (90-day magic-link) with score / overdue / exposure per client, IP-hashed access log
+- ✅ Audit share links (configurable expiry, labels, revocation, view tracking) + PDF export
+- ✅ Daily reminder cron via Resend with severity-colored emails + unsubscribe token
+- ✅ Stripe two-tier billing (Business $79 / Accountant $299)
+- ✅ Platform admin (CEO/staff control plane): KPIs, businesses, waitlist invites, cross-tenant audit stream, plan-tier overrides
+- ✅ Auth rate limiting (5/15min per IP+email), Google OAuth on sign-in/up, team memberships + invite lifecycle
+- ✅ Security baseline: RLS on every tenant table, Stripe customer binding, hardened CSP, RLS-protected storage, anon role revoked from sensitive endpoints, Semgrep + CodeQL + dep-audit in CI
 
 **Pre-launch blockers:**
 - Legal copy (ToS, Privacy, liability disclaimers) — needs commissioned legal review, not LLM-generated text
@@ -289,7 +299,7 @@ Nobody is in the box. The closest analogs are **Carta** (system of record for ca
 |---|---|
 | Q2 2026 | Public launch · legal review · 5 accountant design partners · 200 end-customers |
 | Q3 2026 | $50K MRR · 50-state coverage for top 12 NAICS · mobile-responsive polish |
-| Q4 2026 | Accountant Pro v2: bulk document collection, e-signature, white-label · SMS reminders |
+| Q4 2026 | Accountant v2: bulk document collection, e-signature, white-label · SMS reminders |
 | Q1 2027 | API + integrations (Karbon, Canopy practice-management) · regulatory change Monitoring Agent v2 |
 | Q2 2027 | $250K MRR · Series A · multi-location dashboard |
 | H2 2027 | Credential network for construction · Canada expansion |
@@ -314,4 +324,4 @@ Compliance is the largest under-tooled SMB obligation left. The accountant is al
 
 ---
 
-*For the investor narrative: see `PITCH.md`. For the full master plan with survey methodology, vertical deep-dives, and 5-phase rollout: see `OperatorOS_Project_Plan.md`. For setup and architecture: see `README.md`.*
+*For the investor narrative: `PITCH.md`. For the full master plan with survey methodology, vertical deep-dives, and 5-phase rollout: `OperatorOS_Project_Plan.md`. For setup, scripts, and local dev: `README.md` and `docs/DEVELOPMENT.md`. For system architecture and the request-flow diagrams: `docs/ARCHITECTURE.md`. For the full doc map: `docs/INDEX.md`.*

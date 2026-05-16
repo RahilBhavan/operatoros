@@ -4,6 +4,32 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-16 — Documentation reset: world-class + continuously-updated mechanism
+
+What: Promoted the doc set from "scattered & drifting" to "indexed, fresh, and self-maintaining via a review-time contract." Closed every drift between code and prose I could find, and shipped the mechanism that prevents the next round of drift.
+
+Why: User goal — "make sure the documentation is worldclass and continously updated." The keyword is "continuously." A one-time rewrite would have rotted within a week. The load-bearing change is the drift contract in `CONTRIBUTING.md` §4 + the PR template — enforced at review time, not by CI (no automation; reviewers are the gate).
+
+Shipped:
+- **New canonical docs**: `docs/INDEX.md` (full doc map, grouped by audience), `docs/ARCHITECTURE.md` (request flow, three Supabase client types, regulatory-graph runtime, token-gated surfaces, cron, AI path, billing, auth), `docs/DATABASE.md` (every table by domain, RPC catalog, migration index with what each one added, regulatory-seed regen instructions), `docs/DEVELOPMENT.md` (setup, scripts, env vars, testing strategy with the three load-bearing graph guards, debugging tips, repo layout), `docs/MAINTENANCE.md` (per-doc owner + event-triggered re-review signal — explicit "calendar review is theater" stance), `CONTRIBUTING.md` (the drift contract).
+- **PR template** at `.github/PULL_REQUEST_TEMPLATE.md` — pre-merge bar + the 12-row "if you change X, update Y" checklist + hard-stops + memory-entry prompt. This is the load-bearing mechanism.
+- **AGENTS.md rewired** to point future agent sessions at `MEMORY.md` → `docs/INDEX.md` → `CONTRIBUTING.md` §3/§4 so the discovery loop closes itself.
+- **Drift fixes** (the audit found more than expected): `OVERVIEW.md` (4-tier→2-tier pricing in §3.8 + §7 ICP + §9 economics + §10 market + §13 build-status + §15 roadmap), `README.md` (npm→bun, regulatory-graph in stack, scripts table, doc-map footer), `PITCH.md` (6 slides — billing, distribution, business-model, market, traction, roadmap — all referenced the deprecated Starter/Growth/Scale/Accountant-Pro tiers), `docs/security/api-route-matrix.md` (was missing 8 routes incl. all admin/*), `docs/security/rls-matrix.md` (was missing 11+ tables incl. all of platform, regulatory_rules, audit_events, memberships, document_versions, ai_insight_cache, share_link_views, accountant_access_log, reminder_preferences, auth_rate_limits).
+- **Last-reviewed comments** added to the top of every actively-maintained doc, matching dates to the `MAINTENANCE.md` registry.
+
+Rejected / deferred:
+- **CI-based stale-docs check** (e.g. fail PR if a migration changes without `DATABASE.md` being touched). Plausible follow-on but adds noise; the review-time checklist is cheaper to maintain and catches the same drift. Revisit if reviewer enforcement slips.
+- **Calendar-based "review every quarter" cadence** on most docs. Explicitly stated in `MAINTENANCE.md` §2: most docs decay on a code-change signal, not a clock. Only `OperatorOS_Project_Plan.md` and the VC-review docs are time-triggered.
+- **A `CHANGELOG.md`**. The pattern here is dated decision entries in `MEMORY.md` + workstream rows in `docs/roadmap/WORLD_CLASS.md`. A second changelog would duplicate without a release cadence to anchor it. Add when there's a v1.0 to release-note against.
+- **API-route OpenAPI spec**. The matrix in `docs/security/api-route-matrix.md` is the right level of detail for an internal-only API. Generate OpenAPI if/when we expose a partner API (Workstream pre-Q1-2027).
+
+Verification: ran a final `grep` sweep across all `*.md` for `Starter|Growth \$79|Scale \$149|Accountant Pro|four-tier|Growth/Scale|\$499/mo|\$149/mo|\$29/mo` outside `MEMORY.md` / `docs/vc-review/` (historical files); only legitimate current-pricing matches remain.
+
+Follow-on (same day):
+- **`OperatorOS_Project_Plan.md`** brought into the registry: live 2-tier table inserted at §8.5 above the original 3-tier hypothesis (preserved as research record), §9 ARPA caption updated, §14.2 + §14.3 upgrade-trigger language fixed, affiliate-pitch pricing fixed, last-reviewed banner added with an override note ("live operational specs override this doc when in conflict").
+- **`docs/audit/LIMITATIONS_AND_FIXES.md`** strengthened upfront framing to make clear that **Tier A/B/C are stage gates** while **Workstream A–I are technical units** — labels coincidentally overlap; §4 already mapped them, just wasn't called out at the top.
+- **Contributor-flow enforcement**: added `.github/CODEOWNERS` (routes docs / security / migration / billing / admin paths to the owner), strengthened the PR template top with a "DO NOT delete sections" callout + a "None of the above applies" tick so silent n/a isn't allowed, added a "Contributing" callout in `README.md` pointing at `CONTRIBUTING.md` §3/§4.
+
 ## 2026-05-15 — Workstream A · Regulatory Rule Graph (closes §3-A in WORLD_CLASS roadmap)
 
 What: Shipped the moat-foundation workstream end-to-end. Hardcoded `buildStarterDeadlines()` (838 LOC) replaced with a declarative rule graph: typed `RuleDef` / `DueDateRule` / `AppliesWhen` shapes in `src/lib/regulatory-graph.ts`, 91 canonical rows seeded into `regulatory_rules` via `20260516000005`, snapshot equivalence guard, per-kind evaluator unit spec, admin list with 50-state coverage gaps, admin detail with verify + edit-creates-new-version flow, backfill migration mapping pre-existing deadlines to rule_keys where the (name, agency, frequency, severity) match is unambiguous. All four acceptance checks in `docs/roadmap/WORLD_CLASS.md` §3-A now hold.
