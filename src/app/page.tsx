@@ -14,6 +14,7 @@ import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { PenaltyCalc } from "@/components/marketing/PenaltyCalc";
 import { PortfolioPreview } from "@/components/marketing/PortfolioPreview";
+import { PanAmTag } from "@/components/doctrine/PanAmTag";
 
 const PRICING_TIERS = [
   {
@@ -191,53 +192,72 @@ export default function LandingPage() {
     <div className="bg-[var(--color-field)] text-[var(--color-ground)]">
       <MarketingNav />
 
-      {/* HERO */}
-      <section className="px-6 py-20 sm:py-28">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)] px-4 py-1.5 mb-8">
-            <span
-              aria-hidden
-              className="w-2 h-2 bg-[var(--color-mark)] motion-safe:animate-pulse"
+      {/* HERO — copy left, the artifact right. Destination over decoration. */}
+      <section className="px-6 py-20 sm:py-24">
+        <div className="max-w-[1100px] mx-auto grid md:grid-cols-[1.4fr_1fr] gap-12 md:gap-16 items-start">
+          <div>
+            <div className="inline-flex items-center gap-2 border-2 border-[var(--color-ground)] px-4 py-1.5 mb-8">
+              <span
+                aria-hidden
+                className="w-2 h-2 bg-[var(--color-mark)] motion-safe:animate-pulse"
+              />
+              <Utility>
+                Now in early access · 14-day free trial · no credit card
+              </Utility>
+            </div>
+
+            <Display
+              as="h1"
+              className="!text-[48px] sm:!text-[68px] !leading-[1.0] !tracking-tight mb-6"
+            >
+              Never get blindsided by a{" "}
+              <span className="text-[var(--color-mark)]">
+                compliance failure
+              </span>{" "}
+              again.
+            </Display>
+
+            <Body className="t-subhead !font-normal text-[var(--color-ground)] opacity-80 mb-10 max-w-xl">
+              A 50-state compliance calendar with statute citations,
+              severity-tiered risk scoring, and a portfolio view your accountant
+              can actually use. Pre-populated in 30 seconds; audit-ready behind a
+              share link your auditor can verify with one click.
+            </Body>
+
+            <div className="flex flex-col sm:flex-row gap-3 items-start">
+              <LinkButton href="/sign-up" variant="mark">
+                Start free trial →
+              </LinkButton>
+              <LinkButton href="/sign-up?role=accountant" variant="ghost">
+                I&apos;m an accountant
+              </LinkButton>
+            </div>
+
+            <Caption className="!mt-5">
+              14-day free trial · no credit card · or{" "}
+              <a href="#waitlist" className="t-link">
+                join the waitlist
+              </a>{" "}
+              if you&apos;re outside the US.
+            </Caption>
+          </div>
+
+          {/* Hero artifact — the deadline tag. The destination is the loudest mark. */}
+          <div className="hidden md:flex justify-center items-start pt-2">
+            <PanAmTag
+              serial="004221"
+              destination="IRS"
+              city="SEP · 30 · 2026"
+              agency="irs"
+              routing="D"
+              routingMark
+              formRun={{ a: "B-3,", b: "941", c: "—Q3" }}
+              stripLeft="3077-9412 / FINAL DEADLINE"
+              stripRight="PTD. BY OPS / 5-77/D"
+              scale={1}
+              shadow
             />
-            <Utility>
-              Now in early access · 14-day free trial · no credit card
-            </Utility>
           </div>
-
-          <Display
-            as="h1"
-            className="!text-[48px] sm:!text-[75px] !leading-[1.0] !tracking-tight mb-6"
-          >
-            Never get blindsided by a{" "}
-            <span className="text-[var(--color-mark)]">
-              compliance failure
-            </span>{" "}
-            again.
-          </Display>
-
-          <Body className="t-subhead !font-normal text-[var(--color-ground)] opacity-80 mb-10 max-w-2xl mx-auto">
-            A 50-state compliance calendar with statute citations,
-            severity-tiered risk scoring, and a portfolio view your accountant
-            can actually use. Pre-populated in 30 seconds; audit-ready behind a
-            share link your auditor can verify with one click.
-          </Body>
-
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
-            <LinkButton href="/sign-up" variant="mark">
-              Start free trial →
-            </LinkButton>
-            <LinkButton href="/sign-up?role=accountant" variant="ghost">
-              I&apos;m an accountant
-            </LinkButton>
-          </div>
-
-          <Caption className="!mt-5">
-            14-day free trial · no credit card · or{" "}
-            <a href="#waitlist" className="t-link">
-              join the waitlist
-            </a>{" "}
-            if you&apos;re outside the US.
-          </Caption>
         </div>
       </section>
 

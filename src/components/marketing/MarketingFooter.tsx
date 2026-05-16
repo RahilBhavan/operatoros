@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Wordmark } from "@/components/doctrine/Wordmark";
 
 type FooterLink = {
   label: string;
@@ -33,21 +34,9 @@ const COLUMNS: FooterColumn[] = [
   {
     heading: "Resources",
     links: [
-      {
-        label: "Support",
-        href: "mailto:support@operatoros.com",
-        external: true,
-      },
-      {
-        label: "Security disclosure",
-        href: "mailto:security@operatoros.com",
-        external: true,
-      },
-      {
-        label: "Press",
-        href: "mailto:press@operatoros.com",
-        external: true,
-      },
+      { label: "Support", href: "mailto:support@operatoros.com", external: true },
+      { label: "Security disclosure", href: "mailto:security@operatoros.com", external: true },
+      { label: "Press", href: "mailto:press@operatoros.com", external: true },
     ],
   },
   {
@@ -62,22 +51,26 @@ const COLUMNS: FooterColumn[] = [
 
 export function MarketingFooter() {
   return (
-    <footer className="w-full bg-[var(--color-ground)] text-[var(--color-field)] mt-auto">
-      <div className="max-w-[1100px] mx-auto px-6 py-16">
+    <footer className="w-full panel-ink mt-auto border-t-4 border-[var(--color-ground)]">
+      <div className="max-w-[1160px] mx-auto px-6 py-16">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-12">
           <div className="flex flex-col gap-4 max-w-xs">
-            <div className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="inline-flex items-center justify-center w-9 h-9 bg-[var(--color-mark)] text-[var(--color-field)] font-black text-xl leading-none"
-              >
-                O
-              </span>
-              <span className="t-utility !text-[15px] text-[var(--color-field)]">
-                OperatorOS
-              </span>
-            </div>
-            <p className="t-caption text-[var(--color-field)] !opacity-80">
+            <span
+              className="inline-flex items-baseline leading-none uppercase font-black tracking-tight"
+              style={{
+                fontFamily: "var(--font-destination)",
+                fontWeight: 900,
+                fontSize: 20,
+                letterSpacing: "0.02em",
+                color: "var(--color-field)",
+              }}
+            >
+              OPERATOR<span className="text-[var(--color-mark)]">OS</span>
+            </span>
+            <p
+              className="t-body"
+              style={{ color: "var(--color-field)", fontFamily: "var(--font-index)" }}
+            >
               The compliance operating system for the 1–50 employee business.
               Built for the owner. Distributed through the accountant.
             </p>
@@ -86,7 +79,7 @@ export function MarketingFooter() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 flex-1">
             {COLUMNS.map((col) => (
               <div key={col.heading} className="flex flex-col gap-3">
-                <h3 className="t-utility text-[var(--color-field)] opacity-70">
+                <h3 className="t-utility text-[var(--color-field)]">
                   {col.heading}
                 </h3>
                 <ul className="flex flex-col gap-2">
@@ -95,14 +88,16 @@ export function MarketingFooter() {
                       {link.external ? (
                         <a
                           href={link.href}
-                          className="text-[var(--color-field)] hover:text-[var(--color-mark)] transition-colors text-[15px]"
+                          className="text-[var(--color-field)] hover:text-[var(--color-mark)] no-underline transition-colors text-[15px]"
+                          style={{ fontFamily: "var(--font-index)" }}
                         >
                           {link.label}
                         </a>
                       ) : (
                         <Link
                           href={link.href}
-                          className="text-[var(--color-field)] hover:text-[var(--color-mark)] transition-colors text-[15px]"
+                          className="text-[var(--color-field)] hover:text-[var(--color-mark)] no-underline transition-colors text-[15px]"
+                          style={{ fontFamily: "var(--font-index)" }}
                         >
                           {link.label}
                         </Link>
@@ -115,14 +110,24 @@ export function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-14 pt-8 border-t border-[var(--color-field)]/20 flex flex-col gap-3 text-[12px] text-[var(--color-field)]/70 leading-relaxed">
-          <p>
-            Information provided by OperatorOS is not legal, tax, accounting, or
-            compliance advice. Verify obligations with a licensed professional
-            before relying on them.
+        <div className="mt-14 pt-8 border-t border-[var(--color-field)] flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <p
+            className="t-utility text-[var(--color-field)]"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            © {new Date().getFullYear()} OperatorOS · Built for 1–50 employee businesses
           </p>
-          <p>© {new Date().getFullYear()} OperatorOS. All rights reserved.</p>
+          <Wordmark href={false} size={14} className="!text-[var(--color-field)]" />
         </div>
+
+        <p
+          className="mt-6 text-[12px] leading-relaxed"
+          style={{ color: "var(--color-field)", fontFamily: "var(--font-index)" }}
+        >
+          Information provided by OperatorOS is not legal, tax, accounting, or
+          compliance advice. Verify obligations with a licensed professional
+          before relying on them.
+        </p>
       </div>
     </footer>
   );

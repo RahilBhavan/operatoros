@@ -40,6 +40,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# fleet orchestrator runtime state (per-workstream pid/state/respawn + logs)
+/.fleet-state/
+/.fleet-logs/
+
+# external design system bundle (referenced read-only; tokens live in src/app/globals.css)
+/OperatorOS Design System/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

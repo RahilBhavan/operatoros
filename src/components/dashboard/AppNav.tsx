@@ -24,7 +24,7 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <nav className="bg-[var(--color-field)] border-b-2 border-[var(--color-ground)]">
+    <nav className="bg-[var(--color-field)] border-t-4 border-b border-t-[var(--color-ground)] border-b-[var(--color-ground)]/15">
       <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-8 flex-wrap">
           <Link href="/dashboard" className="flex items-baseline gap-3">

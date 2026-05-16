@@ -1,8 +1,13 @@
 # The Tag Doctrine
 
+<!-- Last reviewed: 2026-05-16 — owner: rbhavanzim@gmail.com -->
+<!-- Update trigger: any change to `src/app/globals.css` tokens or to the doctrine components in `src/components/doctrine/`. -->
+
 *A design philosophy extracted from vintage Pan Am luggage tags.*
 *Reviewed by a five-person jury (Jobs, Rams, Ive, Vignelli, Scher) over three revisions.*
 *Final scores: 9.2 · 9.0 · 9.0 · 9.5 · 9.2.*
+
+> **2026-05-16 — White pivot.** Originally a cream Pan Am artifact (Field `#F4EDE0`), the system pivoted to a clean white SaaS surface. The three roles are now **Surface (white) · Ink (navy) · Signal (red)**. The cream + kraft + six-agency tag palette is preserved but scoped to a single product artifact — the deadline tag — and never bleeds into app chrome. The legacy Field / Ground / Mark names are kept as aliases so the doctrine's vocabulary continues to read in code; "Surface · Ink · Signal" is the canonical naming going forward.
 
 ---
 
@@ -77,13 +82,30 @@ Design for the floor of capacity, not the ceiling.
 
 ### Color — three hex values, no exceptions
 
-| Role | Hex |
-|---|---|
-| **Field** | `#F4EDE0` |
-| **Ground** | `#14213D` |
-| **Mark** | `#C8102E` |
+| Role | Hex | Use |
+|---|---|---|
+| **Surface** (`--color-field`) | `#FFFFFF` | Page background, app chrome — always behind type. |
+| **Ink** (`--color-ground`) | `#14213D` | Type, rules, primary buttons, dark-mode panels, every load-bearing mark. |
+| **Signal** (`--color-mark`) | `#C8102E` | Destination dates, alarm, stamps, overdue. Reserved — never decoration. |
 
-No tints. No shades. No opacity below 100%.
+No tints. No shades. No opacity below 100%. No gradients. The app chrome runs on these three values only.
+
+### Tag artifact palette — scoped to the deadline tag, never app chrome
+
+The deadline tag is a printed-looking object that sits inside the white app: kraft tab with grommet, agency color top, cream paper bottom, serrated edge. The tag carries its own palette and the tag is the only place it appears.
+
+| Token | Hex | Use |
+|---|---|---|
+| `--color-tag-paper` | `#F4EDE0` | Cream lower-half of every tag |
+| `--color-tag-kraft` | `#C9A576` | Brown header tab with grommet |
+| `--color-tag-irs` | `#C8102E` | IRS · federal tax |
+| `--color-tag-osha` | `#E5712D` | OSHA · DOL · safety |
+| `--color-tag-state` | `#5A8F3E` | State filings · SOS · DOR |
+| `--color-tag-license` | `#4A82B5` | Local business license · city/county |
+| `--color-tag-insurance` | `#D9B547` | COI · GL · workers' comp |
+| `--color-tag-health` | `#C84F87` | DPH · food handler · pharmacy |
+
+Each deadline routes to one of six agency families; the agency family sets the tag top color. The `PanAmTag` component (`src/components/doctrine/PanAmTag.tsx`) is the only consumer.
 
 ### Type — three roles
 

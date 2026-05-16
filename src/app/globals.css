@@ -5,29 +5,58 @@
    3 colors · 3 type roles · 6 tenets · 6 refusals · 4 tests
    Reading distance: arm's length (40cm) · Light: any
    Contrast: ≥7:1 Destination · ≥4.5:1 Utility (WCAG AAA / AA)
+
+   No tints. No shades. No opacity below 100%. No gradients.
+   No rounded corners (except the kraft tab grommet hole).
+   No light gray on white. No centered body text.
    ============================================================ */
 
 @theme {
-  /* Color — three hex values, no exceptions */
-  --color-field: #F4EDE0;        /* cream — body / background plane */
-  --color-ground: #14213D;       /* navy — primary type / structure / Pan Am saturated block */
-  --color-mark: #C8102E;         /* red — signals / indices / references / past-due */
+  /* Color — three hex values, no exceptions.
+     Surface (white) · Ink (navy) · Signal (red). */
+  --color-field: #FFFFFF;
+  --color-ground: #14213D;
+  --color-mark: #C8102E;
 
-  /* Subtle structural tints (used ONLY for thin rules and inks, never as decoration) */
-  --color-ground-soft: #2A3754;  /* navy at lower weight for borders */
-  --color-field-soft: #ECE3D0;   /* cream darker for hovers / pressed states */
-  --color-kraft: #C9A87C;        /* the kraft-paper reinforcement tab */
+  /* Semantic aliases — same three hexes, named by role. */
+  --color-surface: var(--color-field);
+  --color-ink: var(--color-ground);
+  --color-signal: var(--color-mark);
 
-  /* Type — three roles */
-  --font-destination: var(--font-destination), "Inter", system-ui, sans-serif;
-  --font-index: var(--font-index), "Roboto Slab", "Rockwell", serif;
-  --font-utility: var(--font-destination), "Inter", system-ui, sans-serif;
+  /* Legacy "soft" aliases. The doctrine forbids tints — these now resolve to
+     the pure values so any straggling consumer renders correctly. Do not
+     introduce new uses; section banding uses an inverse Ink panel instead. */
+  --color-field-soft: var(--color-field);
+  --color-ground-soft: var(--color-ground);
+
+  /* ── Tag artifact palette — scoped to the deadline tag ────────────────
+     The tag is a printed-looking object inside the white app: kraft tab with
+     grommet, color top by agency family, cream paper bottom, serrated edge.
+     These tokens are scoped to the tag — never used in app chrome. */
+  --color-tag-paper: #F4EDE0;
+  --color-tag-kraft: #C9A576;
+  --color-kraft: var(--color-tag-kraft);
+
+  /* Six category top-colors. Each deadline routes to one agency family. */
+  --color-tag-irs:       #C8102E;
+  --color-tag-osha:      #E5712D;
+  --color-tag-state:     #5A8F3E;
+  --color-tag-license:   #4A82B5;
+  --color-tag-insurance: #D9B547;
+  --color-tag-health:    #C84F87;
+
+  /* Type — three roles. Inter substitutes Akzidenz-Grotesk, Roboto Slab
+     substitutes Rockwell/Stymie, Atkinson Hyperlegible is the dyslexic-safe
+     fallback. */
+  --font-destination: var(--font-destination), "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-index: var(--font-index), "Roboto Slab", "Rockwell", "Courier New", serif;
+  --font-utility: var(--font-destination), "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-a11y: var(--font-a11y), "Atkinson Hyperlegible", "Inter", sans-serif;
 
-  /* Type scale — 1.250 minor third — steps 12·15·19·24·30·38·48·60·75 pt */
+  /* Type scale — 1.250 minor third — 12 · 13 · 15 · 19 · 24 · 30 · 38 · 48 · 60 · 75 pt */
   --text-utility: 12px;
   --text-utility--line-height: 1.4;
-  --text-utility--letter-spacing: 0.08em;
+  --text-utility--letter-spacing: 0.12em;
   --text-caption: 13px;
   --text-caption--line-height: 1.45;
   --text-body: 15px;
@@ -48,15 +77,20 @@
   --text-destination--line-height: 1.0;
   --text-destination--letter-spacing: -0.02em;
 
-  /* Spacing — 8pt base · Fibonacci modular scale */
+  /* Spacing — 8pt base · Fibonacci modular scale (8/16/24/40/64/104). */
   --spacing: 8px;
 
-  /* Radius — sharp by default. Only the kraft tab gets a hint of softness. */
+  /* Radius — sharp by default. The kraft tab gets the only legal softness. */
   --radius-tab: 4px;
   --radius-card: 0px;
   --radius-hole: 9999px;
 
-  /* Format — 2:3 ratio is the canonical aspect for any tag-card */
+  /* Rule weights — solid strokes, four legal weights only. */
+  --rule-hair: 1px;    /* field dividers */
+  --rule-body: 2px;    /* section starts, cards */
+  --rule-stamp: 4px;   /* destination underscores, nav route-bar, top page edge */
+
+  /* Format — 2:3 is canonical for any tag-card. */
   --aspect-tag: 2 / 3;
   --aspect-tag-wide: 3 / 2;
 }
@@ -75,7 +109,6 @@
   }
 }
 
-/* Dyslexic-safe fallback — opt in via [data-a11y="hyperlegible"] on <html> */
 html[data-a11y="hyperlegible"] body {
   font-family: var(--font-a11y);
 }
@@ -90,12 +123,14 @@ html {
 
 body {
   font-family: var(--font-destination);
-  font-feature-settings: "ss01", "cv11";  /* Inter alt forms — straighter digits */
+  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-ground);
 }
 
 ::selection {
-  background: var(--color-ground);
+  background: var(--color-mark);
   color: var(--color-field);
 }
 
@@ -105,10 +140,9 @@ body {
 }
 
 /* ============================================================
-   Doctrine utility classes
+   Doctrine type roles — three tiers, 4:2:1 proportion
    ============================================================ */
 
-/* Three-Second test scaffolding: ensure the destination dominates */
 .t-destination {
   font-family: var(--font-destination);
   font-weight: 900;
@@ -116,6 +150,7 @@ body {
   line-height: 1;
   letter-spacing: -0.03em;
   color: var(--color-ground);
+  text-transform: uppercase;
 }
 
 .t-display {
@@ -124,6 +159,7 @@ body {
   font-size: var(--text-display);
   line-height: 1.05;
   letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
 
 .t-marquee {
@@ -132,6 +168,7 @@ body {
   font-size: var(--text-marquee);
   line-height: 1;
   letter-spacing: -0.025em;
+  text-transform: uppercase;
 }
 
 .t-h1 {
@@ -140,6 +177,7 @@ body {
   font-size: var(--text-h1);
   line-height: 1.1;
   letter-spacing: -0.015em;
+  text-transform: uppercase;
 }
 
 .t-h2 {
@@ -148,6 +186,7 @@ body {
   font-size: var(--text-h2);
   line-height: 1.15;
   letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 
 .t-h3 {
@@ -155,26 +194,27 @@ body {
   font-weight: 700;
   font-size: var(--text-h3);
   line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
 }
 
 .t-subhead {
-  font-family: var(--font-destination);
-  font-weight: 600;
+  font-family: var(--font-index);
+  font-weight: 700;
   font-size: var(--text-subhead);
   line-height: 1.4;
 }
 
 .t-body {
-  font-family: var(--font-destination);
+  font-family: var(--font-index);
   font-weight: 400;
   font-size: var(--text-body);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .t-index {
   font-family: var(--font-index);
   font-weight: 700;
-  font-style: normal;
   color: var(--color-mark);
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
@@ -196,10 +236,218 @@ body {
   letter-spacing: 0.04em;
   line-height: 1.4;
   color: var(--color-ground);
-  opacity: 0.7;
 }
 
-/* The Pan Am kraft tab — punched hole at top center, slight tan tone, sharp corners */
+/* ============================================================
+   Buttons — sharp, no gradients, no rounding, no opacity-hover
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 0 20px;
+  height: 44px;
+  border: 2px solid var(--color-ground);
+  background: var(--color-ground);
+  color: var(--color-field);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 100ms linear, color 100ms linear, border-color 100ms linear;
+  text-decoration: none;
+}
+.btn:hover {
+  background: var(--color-field);
+  color: var(--color-ground);
+  border-color: var(--color-ground);
+}
+.btn:active {
+  background: var(--color-mark);
+  color: var(--color-field);
+  border-color: var(--color-mark);
+}
+.btn:disabled {
+  background: var(--color-ground);
+  color: var(--color-field);
+  border-color: var(--color-ground);
+  cursor: not-allowed;
+}
+
+.btn-lg {
+  height: 52px;
+  font-size: 14px;
+  padding: 0 24px;
+}
+
+.btn-sm {
+  height: 36px;
+  font-size: 11px;
+  padding: 0 14px;
+  letter-spacing: 0.14em;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ground);
+  border-color: var(--color-ground);
+}
+.btn-ghost:hover {
+  background: var(--color-ground);
+  color: var(--color-field);
+}
+.btn-ghost:active {
+  background: var(--color-mark);
+  border-color: var(--color-mark);
+  color: var(--color-field);
+}
+
+.btn-mark {
+  background: var(--color-mark);
+  border-color: var(--color-mark);
+  color: var(--color-field);
+}
+.btn-mark:hover {
+  background: var(--color-field);
+  color: var(--color-mark);
+  border-color: var(--color-mark);
+}
+.btn-mark:active {
+  background: var(--color-ground);
+  color: var(--color-field);
+  border-color: var(--color-ground);
+}
+
+.btn-inverse {
+  background: var(--color-field);
+  color: var(--color-ground);
+  border-color: var(--color-field);
+}
+.btn-inverse:hover {
+  background: transparent;
+  color: var(--color-field);
+  border-color: var(--color-field);
+}
+
+/* ============================================================
+   Stamp chip — destination codes, statuses, route stamps
+   ============================================================ */
+
+.stamp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--color-ground);
+  color: var(--color-field);
+  border: 2px solid var(--color-ground);
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.stamp-chip--mark {
+  background: var(--color-mark);
+  color: var(--color-field);
+  border-color: var(--color-mark);
+}
+.stamp-chip--field {
+  background: var(--color-field);
+  color: var(--color-ground);
+  border-color: var(--color-ground);
+}
+.stamp-chip__dot {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* ============================================================
+   Form inputs — sharp, high-contrast, glove-tolerant
+   ============================================================ */
+
+.t-input {
+  font-family: var(--font-index);
+  font-weight: 500;
+  font-size: 16px;
+  padding: 0 14px;
+  height: 44px;
+  border: 2px solid var(--color-ground);
+  background: var(--color-field);
+  color: var(--color-ground);
+  width: 100%;
+  line-height: 1.2;
+  outline: none;
+  box-sizing: border-box;
+}
+.t-input::placeholder {
+  color: var(--color-ground);
+  font-family: var(--font-destination);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+.t-input:focus {
+  outline: 2px solid var(--color-mark);
+  outline-offset: -2px;
+}
+
+textarea.t-input {
+  height: auto;
+  min-height: 88px;
+  padding: 10px 14px;
+  line-height: 1.45;
+}
+
+select.t-input {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-ground) 50%),
+    linear-gradient(135deg, var(--color-ground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+}
+
+/* ============================================================
+   Links — underline always. No light gray on white.
+   ============================================================ */
+
+.t-link {
+  color: var(--color-ground);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.t-link:hover {
+  color: var(--color-mark);
+}
+
+/* ============================================================
+   Section rules — destination underscores, page edges, route bars
+   ============================================================ */
+
+.rule-hair  { border: 0; border-top: var(--rule-hair) solid var(--color-ground); }
+.rule-body  { border: 0; border-top: var(--rule-body) solid var(--color-ground); }
+.rule-stamp { border: 0; border-top: var(--rule-stamp) solid var(--color-ground); }
+.rule-mark  { border-top-color: var(--color-mark); }
+
+/* ============================================================
+   The Pan Am kraft tab — punched hole, kraft tone, sharp corners
+   ============================================================ */
+
 .tag-tab {
   background: var(--color-kraft);
   color: var(--color-ground);
@@ -215,7 +463,6 @@ body {
   align-items: center;
   gap: 8px;
 }
-
 .tag-tab::before {
   content: "";
   width: 10px;
@@ -239,7 +486,10 @@ body {
   padding-bottom: var(--notch);
 }
 
-/* Sorting symbol arrow — the right-pointing arrow with a letter A/B/C */
+/* ============================================================
+   Sorting symbol — outlined arrow with letter (A/B/C)
+   ============================================================ */
+
 .sort-arrow {
   display: inline-flex;
   align-items: stretch;
@@ -264,77 +514,18 @@ body {
   font-size: var(--text-subhead);
 }
 
-/* The reproduction-test specimen rule: a 1px hairline always uses ground */
-.t-rule {
-  border-color: var(--color-ground);
-  border-width: 1px;
-}
+/* ============================================================
+   Inverse panel — solid Ink, Surface type. The only legal "band"
+   for breaking page rhythm without breaking the doctrine.
+   ============================================================ */
 
-/* Buttons — sharp, no gradients, no rounded-everything */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-destination);
-  font-weight: 700;
-  font-size: var(--text-body);
-  padding: 12px 20px;
-  border: 2px solid var(--color-ground);
-  background: var(--color-ground);
-  color: var(--color-field);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: transform 80ms ease-out, background 120ms ease-out;
-  min-height: 44px;            /* glove-tolerant target */
-  cursor: pointer;
-}
-.btn:hover { background: var(--color-mark); border-color: var(--color-mark); }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.btn-ghost {
-  background: transparent;
-  color: var(--color-ground);
-}
-.btn-ghost:hover {
+.panel-ink {
   background: var(--color-ground);
   color: var(--color-field);
 }
-
-.btn-mark {
-  background: var(--color-mark);
-  border-color: var(--color-mark);
+.panel-ink .t-caption,
+.panel-ink .t-utility,
+.panel-ink .t-body,
+.panel-ink .t-subhead {
   color: var(--color-field);
-}
-.btn-mark:hover { background: var(--color-ground); border-color: var(--color-ground); }
-
-/* Form inputs — sharp, high-contrast, glove-tolerant */
-.t-input {
-  font-family: var(--font-destination);
-  font-size: var(--text-body);
-  padding: 12px 14px;
-  border: 2px solid var(--color-ground);
-  background: var(--color-field);
-  color: var(--color-ground);
-  min-height: 44px;
-  width: 100%;
-}
-.t-input::placeholder {
-  color: var(--color-ground);
-  opacity: 0.4;
-}
-.t-input:focus {
-  outline: 2px solid var(--color-mark);
-  outline-offset: -2px;
-}
-
-/* Link */
-.t-link {
-  color: var(--color-ground);
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-.t-link:hover {
-  color: var(--color-mark);
 }

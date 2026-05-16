@@ -1,26 +1,57 @@
 import Link from "next/link";
-import { Shield } from "lucide-react";
+import { Wordmark } from "@/components/doctrine/Wordmark";
+import { StampChip } from "@/components/doctrine/StampChip";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center px-4">
-      <div className="flex items-center gap-2 mb-8">
-        <Shield className="w-6 h-6 text-blue-600" />
-        <span className="font-bold text-xl text-slate-900">OperatorOS</span>
-      </div>
-      <h1 className="text-6xl font-extrabold text-slate-300 mb-4">404</h1>
-      <h2 className="text-xl font-semibold text-slate-700 mb-2">
-        Page not found
-      </h2>
-      <p className="text-slate-500 mb-8 max-w-sm">
-        The page you&apos;re looking for doesn&apos;t exist or has been moved.
-      </p>
-      <Link
-        href="/dashboard"
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-      >
-        Back to dashboard
-      </Link>
+    <div className="min-h-screen bg-[var(--color-field)] flex flex-col">
+      <header className="border-b border-[var(--color-ground)] px-6 py-5">
+        <div className="max-w-[1160px] mx-auto">
+          <Wordmark size={20} />
+        </div>
+      </header>
+
+      <main className="flex-1 flex items-center px-6 py-16">
+        <div className="max-w-[680px] mx-auto w-full">
+          <StampChip tone="mark">Not on the manifest · 404</StampChip>
+          <h1
+            className="mt-6"
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontWeight: 900,
+              fontSize: 60,
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+              color: "var(--color-ground)",
+            }}
+          >
+            No route here.
+          </h1>
+          <div className="rule-stamp mt-6" />
+          <p
+            className="mt-6"
+            style={{
+              fontFamily: "var(--font-index)",
+              fontWeight: 400,
+              fontSize: 17,
+              lineHeight: 1.55,
+              color: "var(--color-ground)",
+            }}
+          >
+            The page you asked for isn&apos;t routed. It may have moved, or the
+            link may be stale. Pick a destination below.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link href="/dashboard" className="btn">
+              Dashboard →
+            </Link>
+            <Link href="/" className="btn btn-ghost">
+              Landing page
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
