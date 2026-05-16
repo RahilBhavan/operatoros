@@ -7,7 +7,13 @@ import {
 } from "@/lib/deadline-utils";
 import { createHash } from "node:crypto";
 
-type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
+// regulatory_rule_id was added in migration 20260516000004 but the generated
+// supabase types haven't regenerated yet; widen the row shape here so the
+// portal + corrections UI can read it without further casts.
+type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
+  regulatory_rule_id?: string | null;
+  rule_id?: string | null;
+};
 
 export type AccountantPortfolioLink = {
   token: string;

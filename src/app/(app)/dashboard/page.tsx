@@ -8,6 +8,8 @@ import ComplianceScoreChart from "@/components/dashboard/ComplianceScoreChart";
 import ProactiveInsights from "@/components/dashboard/ProactiveInsights";
 import PeerBenchmarkBar from "@/components/dashboard/PeerBenchmarkBar";
 import { getPeerContext } from "@/lib/benchmarks";
+import ConfidenceBadge from "@/components/dashboard/ConfidenceBadge";
+import { loadRuleConfidence, type RuleConfidenceRow } from "@/lib/admin/data";
 import {
   formatDueDate,
   computeAutoStatus,
@@ -26,7 +28,11 @@ import {
   LinkButton,
 } from "@/components/doctrine";
 
-type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
+// regulatory_rule_id added in workstream A; supabase types haven't
+// regenerated yet, so widen the runtime row here.
+type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
+  regulatory_rule_id?: string | null;
+};
 
 type StatusKey = "overdue" | "in_progress" | "upcoming" | "compliant";
 
@@ -70,8 +76,12 @@ export default async function DashboardPage() {
       .order("recorded_at", { ascending: true }),
   ]);
 
-  const deadlines = allDeadlines ?? [];
+  const deadlines = (allDeadlines ?? []) as Deadline[];
   const history = scoreHistory ?? [];
+  const ruleIds = deadlines
+    .map((d) => d.regulatory_rule_id)
+    .filter((x): x is string => !!x);
+  const confidenceMap = await loadRuleConfidence([...new Set(ruleIds)]);
 
   const overdue = deadlines.filter((d) => computeAutoStatus(d) === "overdue");
   const inProgress = deadlines.filter((d) => computeAutoStatus(d) === "in_progress");
@@ -214,16 +224,16 @@ export default async function DashboardPage() {
       ) : (
         <div className="flex flex-col gap-10">
           {overdue.length > 0 && (
-            <DeadlineGroup statusKey="overdue" deadlines={overdue} />
+            <DeadlineGroup statusKey="overdue" deadlines={overdue} confidenceMap={confidenceMap} />
           )}
           {inProgress.length > 0 && (
-            <DeadlineGroup statusKey="in_progress" deadlines={inProgress} />
+            <DeadlineGroup statusKey="in_progress" deadlines={inProgress} confidenceMap={confidenceMap} />
           )}
           {upcoming.length > 0 && (
-            <DeadlineGroup statusKey="upcoming" deadlines={upcoming} />
+            <DeadlineGroup statusKey="upcoming" deadlines={upcoming} confidenceMap={confidenceMap} />
           )}
           {compliant.length > 0 && (
-            <DeadlineGroup statusKey="compliant" deadlines={compliant} />
+            <DeadlineGroup statusKey="compliant" deadlines={compliant} confidenceMap={confidenceMap} />
           )}
         </div>
       )}
@@ -263,9 +273,11 @@ function ScoreCell({
 function DeadlineGroup({
   statusKey,
   deadlines,
+  confidenceMap,
 }: {
   statusKey: StatusKey;
   deadlines: Deadline[];
+  confidenceMap: Map<string, RuleConfidenceRow>;
 }) {
   const conf = STATUS[statusKey];
   const overdue = statusKey === "overdue";
@@ -295,26 +307,34 @@ function DeadlineGroup({
         </span>
       </header>
       <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
-        {deadlines.map((d) => (
-          <li key={d.id}>
-            <Link
-              href={`/deadlines/${d.id}`}
-              className="flex items-center justify-between px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors gap-4"
-            >
-              <div className="min-w-0 flex-1">
-                <Body className="!font-bold truncate">{d.name}</Body>
-                {d.governing_agency && (
-                  <Caption className="!mt-0.5 !text-[12px]">
-                    {d.governing_agency.toUpperCase()}
-                  </Caption>
-                )}
-              </div>
-              <Index className={`shrink-0 ${overdue ? "" : "!text-[var(--color-ground)]"}`}>
-                {formatDueDate(d.due_date)}
-              </Index>
-            </Link>
-          </li>
-        ))}
+        {deadlines.map((d) => {
+          const confidence = d.regulatory_rule_id
+            ? confidenceMap.get(d.regulatory_rule_id) ?? null
+            : null;
+          return (
+            <li key={d.id}>
+              <Link
+                href={`/deadlines/${d.id}`}
+                className="flex items-center justify-between px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors gap-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Body className="!font-bold truncate">{d.name}</Body>
+                    <ConfidenceBadge confidence={confidence} />
+                  </div>
+                  {d.governing_agency && (
+                    <Caption className="!mt-0.5 !text-[12px]">
+                      {d.governing_agency.toUpperCase()}
+                    </Caption>
+                  )}
+                </div>
+                <Index className={`shrink-0 ${overdue ? "" : "!text-[var(--color-ground)]"}`}>
+                  {formatDueDate(d.due_date)}
+                </Index>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
