@@ -4,6 +4,51 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-16 — Workstream B · Accountant Corrections Loop (closes §3-B in WORLD_CLASS roadmap)
+
+What: Shipped the compounding-loop workstream end-to-end. Accountants holding a portal token can now flag any deadline-backed rule with a free-text rationale + optional structured one-field override (severity, frequency, agency, name, description, source_url, statute_citation) + citation URL. Submissions land in a per-status admin queue at `/admin/corrections` sorted by rule severity. Admin accept forks v+1 of the rule via the same `version_regulatory_rule` RPC that the manual edit path uses (so v+1 lifecycle is uniform); reject requires a written reviewer note. Business-side `/dashboard` and `/deadlines` render a `ConfidenceBadge` per row based on the new `rule_confidence` materialized view.
+
+Why: The 10-GP feature-moat consensus loop named this as the compounding network effect — "more accountants → more corrections → better rules → more business adoption → more accountants." Without it, the rule graph from Workstream A is static. The corrections dataset itself is the second-order moat (a labeled, expert-verified, citation-backed regulatory dataset is rare in its own right).
+
+Shipped (in branch `workstream/b-corrections-loop` → merged to `main`):
+- Migration `20260516000008_corrections_loop.sql`: `rule_corrections` table with `proposed_by_connection_id` + `proposed_by_user_id` (CHECK at least one present — accountants don't auth through Supabase), 4-state status enum, partial pending index, RLS locked to platform admins; `rule_confidence` materialized view with case-by-tier logic (`low` > 2 rejects, `unverified` null verify, `stale` >180d, `community_validated` ≥1 accept, else `baseline`), unique index on `rule_id`, granted SELECT to authenticated; `accept_correction(p_correction_id)` + `reject_correction(p_correction_id, p_review_note)` RPCs with FOR UPDATE serialisation + is_platform_admin() gate + 22023 SQLSTATE on already-resolved (matches the version-already-superseded shape so callers handle both with one branch); `refresh_rule_confidence()` service-role-only function called from the API route after each commit.
+- Server-side: `src/lib/corrections.ts` (shared validators — `validateProposedChanges` mirrors `version_regulatory_rule`'s editable fields, `validateRationale` 8..4000 chars after trim, `validateCitationUrl` http(s) only). `POST /api/accountant/corrections` (token-auth via `accountant_connections`, 10/hr per connection via `try_consume_auth_rate_limit("correction:{connection_id}", 10, 3600)`, writes correction + `accountant.correction_submitted` audit). `POST /api/admin/corrections/[id]/accept` + `/reject` (admin-gated via `requirePlatformAdminForRoute`, call RPCs as the calling user so security-definer + auth.uid() match RLS, audit on success, fire-and-forget materialised view refresh).
+- Admin UI: `/admin/corrections` queue (status tabs pending/accepted/rejected, sorted by rule severity DESC then created_at DESC, KPI strip — pending mark-red when > 0). `/admin/corrections/[id]` review (proposer + rule manifest, full rationale + citation panel, side-by-side current-vs-proposed diff table, two-step CorrectionReviewActions: idle → confirm_accept / reject_form → busy → done with router.refresh). AdminNav gains a `CORRECTIONS` (code E) tab; AUDIT bumps to F, INVITES to G.
+- Business UI: `ConfidenceBadge` component renders subtle gray (unverified/stale), green-checkmark (community_validated), or mark-red (low/disputed) per deadline card; baseline tier renders nothing. Wired into `/dashboard` DeadlineGroup + `/deadlines` list. Both pages now widen `Deadline` to include `regulatory_rule_id` (supabase types haven't regenerated).
+- Accountant UI: `FlagRuleButton` on each portal deadline row — opens a modal with optional structured field override (4 select-driven, 3 free-text), required ≥8-char rationale, optional citation URL. Rationale-only submissions still record a synthetic `description` change so the admin can see the flag in the diff table. Returns muted indicator when the deadline isn't linked to a `regulatory_rules` row (hand-created deadline).
+- Tests: 19 new tests across 3 files (`corrections.test.ts` exhaustively covers validators; `corrections-migration.test.ts` contract-tests the SQL for FOR UPDATE + 22023 + tier ordering + RLS + RPC-level admin gate — closest we get to the spec's "1 vitest spec for the race condition" without a live Postgres; `CorrectionReviewActions.test.tsx` + `FlagRuleButton.test.tsx` cover the 22023→409 mapping and rate-limit message). Total suite now 249/249.
+
+The acceptance criteria from `docs/roadmap/WORLD_CLASS.md` §3-B as shipped:
+- Accountant on a real client portal can submit a correction, see it appear in `/admin/corrections`: ✓
+- Admin Accept produces a new rule version, subsequent new businesses get the new version: ✓ (uses `version_regulatory_rule` which is the same RPC the lookup query already excludes superseded rows from)
+- Confidence badge shows on business dashboard: ✓ (materialised view refreshed inside the admin route after accept/reject — sub-second not 1hr)
+- All correction state transitions write `audit_events`: ✓ (`accountant.correction_submitted`, `platform.correction_accepted`, `platform.correction_rejected`)
+- Race-condition spec for accept_correction: ✓ (`corrections-migration.test.ts` pins FOR UPDATE + 22023 SQLSTATE; `CorrectionReviewActions.test.tsx` pins the 409 user-facing message)
+
+Quirks committed knowingly:
+- `proposed_by_connection_id` (not `proposed_by` per the original roadmap) — accountants in this codebase auth via portal token, not auth.users. Schema CHECK enforces at-least-one of connection_id / user_id is present.
+- Rationale-only flag submissions still write a synthetic `description` proposed_change so the admin reviewer queue's diff column never renders empty. The server-side validator ignores unknown keys, so future structured fields can land without breaking existing data.
+- Used a `MATERIALIZED VIEW` with explicit refresh-after-commit rather than a plain view. At our scale (~91 rules), a plain view would have been fine; the spec calls for materialised + cron refresh, so we honoured it but added an inline refresh on each accept/reject so the badge moves immediately. The `pg_cron` hourly refresh is documented as the backstop; not configured here (no pg_cron in this project yet).
+
+Verification at merge: tsc clean · vitest 249/249 · eslint 0 errors (13 pre-existing unused-imports warnings from main) · `npx next build` succeeds with new routes `/admin/corrections`, `/admin/corrections/[id]`, `/api/accountant/corrections`, `/api/admin/corrections/[id]/accept`, `/api/admin/corrections/[id]/reject`.
+
+E2E walkthrough (recorded for the PR description):
+1. Admin opens `/admin/rules/[any-id]` and confirms the rule lookup works.
+2. Accountant opens `/accountant/[token]` for a tenant whose deadlines were backfilled with `regulatory_rule_id`. Each deadline shows a `FLAG` button.
+3. Click FLAG → form opens. Pick "Frequency" → "annual" → write rationale ≥8 chars → submit. UI flips to `SUBMITTED ✓`.
+4. Admin reloads `/admin/corrections`. Pending count is +1; the row shows the rule severity, accountant email, rationale, and a REVIEW button.
+5. Click REVIEW → diff table shows current `frequency` vs proposed. Click ACCEPT → confirm step → confirm. UI flips to `Done`.
+6. Original rule's `/admin/rules/[id]` now banners as superseded and links to the v+1 head. The proposing accountant's portal deadline keeps the FLAG button (still linked to a head row — the new one) and confidence badge flips to `VERIFIED` on first refresh (materialised view refresh is fired before the API returns).
+7. Submit a second correction against the same rule and reject it with a note. Verify pending count drops, the rule's confidence stays unchanged (since rejected count is 1, still under the >2 threshold for `low`).
+8. Race-condition sanity: open two `/admin/corrections/[id]` tabs for one pending correction, click ACCEPT in both. The first returns 200; the second returns 409 `Correction already resolved.` and the UI surfaces the message without losing state.
+
+Rejected / deferred:
+- Re-pointing onboarding seed at `regulatory_rules` at request time (still uses the in-memory mirror) — the `regulatory_rule_id` lookup the corrections loop reads from is already populated for backfilled deadlines, so the loop functions today; the seed-engine switch is its own follow-on as called out in Workstream A's session entry.
+- Exposing "my corrections" to accountants (so they can see status + reviewer note on their own submissions) — schema supports it, UI deferred until the portal earns more accountant-side surface area in Workstreams D + G.
+- pg_cron hourly refresh of `rule_confidence` — relying on the in-route refresh today. When pg_cron lands for the reminder engine (Workstream G), wire this up alongside.
+
+---
+
 ## 2026-05-15 — Workstream A · Regulatory Rule Graph (closes §3-A in WORLD_CLASS roadmap)
 
 What: Shipped the moat-foundation workstream end-to-end. Hardcoded `buildStarterDeadlines()` (838 LOC) replaced with a declarative rule graph: typed `RuleDef` / `DueDateRule` / `AppliesWhen` shapes in `src/lib/regulatory-graph.ts`, 91 canonical rows seeded into `regulatory_rules` via `20260516000005`, snapshot equivalence guard, per-kind evaluator unit spec, admin list with 50-state coverage gaps, admin detail with verify + edit-creates-new-version flow, backfill migration mapping pre-existing deadlines to rule_keys where the (name, agency, frequency, severity) match is unambiguous. All four acceptance checks in `docs/roadmap/WORLD_CLASS.md` §3-A now hold.

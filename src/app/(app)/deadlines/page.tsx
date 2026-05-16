@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import DeadlineFilters from "@/components/dashboard/DeadlineFilters";
+import ConfidenceBadge from "@/components/dashboard/ConfidenceBadge";
+import { loadRuleConfidence } from "@/lib/admin/data";
 import type { Database } from "@/types/supabase";
 import {
   H1,
@@ -12,7 +14,11 @@ import {
   LinkButton,
 } from "@/components/doctrine";
 
-type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
+// regulatory_rule_id added in workstream A; supabase types haven't
+// regenerated yet, so widen the runtime row here.
+type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
+  regulatory_rule_id?: string | null;
+};
 
 const DEADLINE_TYPE_LABELS: Record<string, string> = {
   business_license: "Business License",
@@ -79,6 +85,11 @@ export default async function DeadlinesPage({
   }
 
   const { data: deadlines } = await query;
+  const deadlineRows = (deadlines ?? []) as Deadline[];
+  const ruleIds = deadlineRows
+    .map((d) => d.regulatory_rule_id)
+    .filter((x): x is string => !!x);
+  const confidenceMap = await loadRuleConfidence([...new Set(ruleIds)]);
 
   return (
     <div>
@@ -101,7 +112,7 @@ export default async function DeadlinesPage({
 
       <DeadlineFilters currentStatus={params.status} currentType={params.type} />
 
-      {deadlines && deadlines.length > 0 ? (
+      {deadlineRows.length > 0 ? (
         <div className="border-2 border-[var(--color-ground)]">
           {/* Column header */}
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
@@ -111,8 +122,11 @@ export default async function DeadlinesPage({
           </div>
 
           <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
-            {deadlines.map((d, idx) => {
+            {deadlineRows.map((d, idx) => {
               const badge = STATUS_BADGE[d.status];
+              const confidence = d.regulatory_rule_id
+                ? confidenceMap.get(d.regulatory_rule_id) ?? null
+                : null;
               return (
                 <li key={d.id}>
                   <Link
@@ -124,7 +138,10 @@ export default async function DeadlinesPage({
                         {String(idx + 1).padStart(3, "0")}
                       </Index>
                       <div className="min-w-0">
-                        <Body className="!font-bold truncate">{d.name}</Body>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Body className="!font-bold truncate">{d.name}</Body>
+                          <ConfidenceBadge confidence={confidence} />
+                        </div>
                         <Caption className="!mt-0.5 !text-[12px]">
                           {(DEADLINE_TYPE_LABELS[d.deadline_type] ?? d.deadline_type).toUpperCase()}
                           {d.governing_agency ? (

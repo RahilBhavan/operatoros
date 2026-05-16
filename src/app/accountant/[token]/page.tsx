@@ -20,12 +20,17 @@ import {
   Index,
 } from "@/components/doctrine";
 import DeadlineNote from "./DeadlineNote";
+import FlagRuleButton from "./FlagRuleButton";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
+// Match the augmented row in accountant-by-token.ts — supabase types
+// haven't regenerated since Workstream A added regulatory_rule_id.
+type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
+  regulatory_rule_id?: string | null;
+};
 
 type StatusKey = "overdue" | "in_progress" | "upcoming" | "compliant";
 
@@ -521,6 +526,13 @@ function DeadlineGroup({
                   })
                   .replace(/\//g, ".")}
               </Index>
+            </div>
+            <div className="flex items-center gap-3 mt-2">
+              <FlagRuleButton
+                token={token}
+                ruleId={d.regulatory_rule_id ?? null}
+                ruleName={d.name}
+              />
             </div>
             <DeadlineNote
               deadlineId={d.id}
