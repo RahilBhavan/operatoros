@@ -125,7 +125,10 @@ export async function loadAccountantPortalByToken(
         .from("deadlines")
         .select("due_date, status, severity_tier, penalty_estimate_cents")
         .eq("business_id", row.business_id);
-      const rows = ds ?? [];
+      // The DB stores status + severity_tier as TEXT with CHECK constraints
+      // that exactly mirror the TS union types. The generated Database type
+      // can't see the CHECK constraint, so we cast at the read boundary.
+      const rows = (ds ?? []) as unknown as Parameters<typeof computeRiskWeightedScore>[0];
       const score = computeRiskWeightedScore(rows);
       const overdue_count = rows.filter(
         (d) => computeAutoStatus({ due_date: d.due_date, status: d.status }) === "overdue"
@@ -154,7 +157,11 @@ export async function loadAccountantPortalByToken(
       business_id: connection.business_id,
       accountant_email: connection.accountant_email,
       accountant_name: connection.accountant_name,
-      created_at: connection.created_at,
+      // accountant_connections.created_at defaults to now() at DB level so
+      // null is structurally impossible for any row we read here. The
+      // generated Database type marks the column nullable because the
+      // INSERT shape allows omitting it; coalesce for the read.
+      created_at: connection.created_at ?? new Date(0).toISOString(),
       expires_at: connection.expires_at,
     },
     business,

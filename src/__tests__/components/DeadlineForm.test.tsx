@@ -122,6 +122,11 @@ describe("DeadlineForm (edit mode)", () => {
     penalty_estimate_cents: null,
     source_url: null,
     statute_citation: null,
+    regulatory_rule_id: null,
+    occurrence_key: null,
+    rule_id: null,
+    rule_version: null,
+    superseded_at: null,
   };
 
   beforeEach(() => {

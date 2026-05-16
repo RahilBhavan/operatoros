@@ -29,7 +29,7 @@ export type WaitlistRow = {
   utm_source: string | null;
   utm_campaign: string | null;
   referrer: string | null;
-  referral_code: string;
+  referral_code: string | null;
   referred_by_code: string | null;
   confirmation_sent_at: string | null;
   invited_at: string | null;

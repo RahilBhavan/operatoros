@@ -1,13 +1,18 @@
 export type DeadlineStatus = "overdue" | "in_progress" | "upcoming" | "compliant";
 export type SeverityTier = "critical" | "high" | "medium" | "low" | "info";
 
+// DB columns for status + severity_tier are TEXT with CHECK constraints that
+// match the union types above exactly, but the generated Database type erases
+// the constraint to `string`. The helper interfaces accept the bare DB shape
+// and narrow at runtime — STATUS_WEIGHTS / SEVERITY_WEIGHT lookups fall back
+// safely on unknown values.
 export interface DeadlineLike {
   due_date: string;
-  status: DeadlineStatus;
+  status: DeadlineStatus | string;
 }
 
 export interface DeadlineWithSeverity extends DeadlineLike {
-  severity_tier?: SeverityTier | null;
+  severity_tier?: SeverityTier | string | null;
   penalty_estimate_cents?: number | null;
   name?: string;
   id?: string;
@@ -42,6 +47,11 @@ export function computeAutoStatus(deadline: DeadlineLike): DeadlineStatus {
   return "upcoming";
 }
 
+function severityWeight(s: SeverityTier | string | null | undefined): number {
+  if (!s) return SEVERITY_WEIGHT.medium;
+  return s in SEVERITY_WEIGHT ? SEVERITY_WEIGHT[s as SeverityTier] : SEVERITY_WEIGHT.medium;
+}
+
 // Status weights (unweighted, retained for backward compat with un-tagged data).
 const STATUS_WEIGHTS: Record<DeadlineStatus, number> = {
   compliant: 10,
@@ -74,10 +84,6 @@ const SEVERITY_WEIGHT: Record<SeverityTier, number> = {
   low: 0.5,
   info: 0.25,
 };
-
-function severityWeight(s: SeverityTier | null | undefined): number {
-  return s ? SEVERITY_WEIGHT[s] : SEVERITY_WEIGHT.medium;
-}
 
 export function computeRiskWeightedScore(
   deadlines: DeadlineWithSeverity[],
@@ -140,7 +146,9 @@ export function topActions(
     .filter((d) => d.name)
     .map((d) => {
       const status = getStatus(d);
-      const severity = d.severity_tier ?? "medium";
+      const rawSeverity = d.severity_tier ?? "medium";
+      const severity: SeverityTier =
+        rawSeverity in SEVERITY_WEIGHT ? (rawSeverity as SeverityTier) : "medium";
       const penalty = d.penalty_estimate_cents ?? 0;
       const score =
         STATUS_URGENCY[status] * severityWeight(severity) +

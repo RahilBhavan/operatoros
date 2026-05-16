@@ -4,7 +4,9 @@ import { Utility, Index, Caption } from "@/components/doctrine";
 
 interface ScorePoint {
   score: number;
-  recorded_at: string;
+  // DB column is nullable (defaults at insert via DEFAULT now()); accept null
+  // and skip those rows when computing the trend.
+  recorded_at: string | null;
 }
 
 interface Props {
@@ -134,10 +136,12 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
 
         <div className="flex justify-between mt-2">
           <Caption className="!text-[12px]">
-            {new Date(first.recorded_at).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
+            {first.recorded_at
+              ? new Date(first.recorded_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })
+              : "—"}
           </Caption>
           <Caption className="!text-[12px]">TODAY</Caption>
         </div>

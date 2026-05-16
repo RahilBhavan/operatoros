@@ -80,7 +80,34 @@ export async function getPeerContext(
     return { kind: "empty", industrySlug, stateCode: null, cohortSize: 0 };
   }
 
-  const { data: bench } = await supabase
+  // industry_benchmarks is a materialised view scheduled to land in
+  // Workstream C (peer benchmarks). Until that migration lands, the query
+  // returns an error at runtime which the `if (!bench)` check handles —
+  // user just sees the empty-state UI. Type-cast the call so the build
+  // compiles without surfacing the missing-view error before its time.
+  type BenchRow = {
+    cohort_size: number;
+    p25: number;
+    median: number;
+    p75: number;
+    p90: number;
+    last_captured_at: string;
+  };
+  const benchClient = supabase as unknown as {
+    from(table: "industry_benchmarks"): {
+      select(cols: string): {
+        eq(col: string, val: string): {
+          eq(col: string, val: string): {
+            maybeSingle(): Promise<{
+              data: BenchRow | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+      };
+    };
+  };
+  const { data: bench } = await benchClient
     .from("industry_benchmarks")
     .select("cohort_size, p25, median, p75, p90, last_captured_at")
     .eq("industry_slug", industrySlug)

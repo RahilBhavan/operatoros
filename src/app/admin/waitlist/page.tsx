@@ -139,7 +139,7 @@ export default async function AdminWaitlistPage({
                   <Caption className="!text-[12px] !opacity-60 !mt-0">
                     ref{" "}
                     <span className="font-mono">
-                      {w.referral_code.slice(0, 8)}…
+                      {w.referral_code ? `${w.referral_code.slice(0, 8)}…` : "—"}
                     </span>
                     {w.referred_by_code && (
                       <>

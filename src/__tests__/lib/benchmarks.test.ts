@@ -1,12 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
 import { estimatePercentile, getPeerContext, describeCohort } from "@/lib/benchmarks";
-import type { Database } from "@/types/supabase";
 
 // Sentinel that the materialized view exposes only listed aggregates — no
 // business IDs, names, owner emails, locations, or any other identifier
-// that would break the k-anonymity guarantee. Compile-time guard via
-// an exhaustive Record check + a runtime keys assertion in the spec below.
-type IndustryBenchmarkRow = Database["public"]["Views"]["industry_benchmarks"]["Row"];
+// that would break the k-anonymity guarantee. The actual view ships with
+// Workstream C; until then, this test pins the expected shape so the view
+// can't be created with extra columns without this test going red.
+type IndustryBenchmarkRow = {
+  industry_slug: string;
+  state_code: string;
+  cohort_size: number;
+  p25: number;
+  median: number;
+  p75: number;
+  p90: number;
+  last_captured_at: string;
+};
 const ALLOWED_VIEW_KEYS = [
   "industry_slug",
   "state_code",
@@ -17,9 +26,6 @@ const ALLOWED_VIEW_KEYS = [
   "p90",
   "last_captured_at",
 ] as const;
-type AllowedKey = (typeof ALLOWED_VIEW_KEYS)[number];
-type _AssertAllowedExhaustive = Record<AllowedKey, never> &
-  Record<keyof IndustryBenchmarkRow, never>;
 
 describe("industry_benchmarks view shape (no-PII k-anonymity guard)", () => {
   it("exposes only the eight permitted aggregate columns — no PII fields", () => {

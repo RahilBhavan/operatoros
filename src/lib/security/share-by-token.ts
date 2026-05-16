@@ -71,7 +71,9 @@ export async function loadShareViewByToken(
     void supabase
       .rpc("record_share_view", {
         p_token: rawToken,
-        p_ip_hash: hashIp(viewer.ip ?? null),
+        // RPC signature is `text NOT NULL`. Empty string is a sentinel for
+        // "no IP captured" — record_share_view checks length before hashing.
+        p_ip_hash: hashIp(viewer.ip ?? null) ?? "",
         p_user_agent: (viewer.userAgent ?? "").slice(0, 120),
       })
       .then(() => undefined);

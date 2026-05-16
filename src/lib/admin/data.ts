@@ -84,8 +84,8 @@ export async function loadBusinessSummaries(
       name: b.name,
       owner_id: b.owner_id,
       owner_email: emailByOwner.get(b.owner_id) ?? null,
-      plan_tier: b.plan_tier,
-      billing_status: b.billing_status,
+      plan_tier: b.plan_tier as BusinessSummary["plan_tier"],
+      billing_status: b.billing_status as BusinessSummary["billing_status"],
       trial_ends_at: b.trial_ends_at,
       created_at: b.created_at,
       state: stateByBiz.get(b.id) ?? null,
@@ -458,12 +458,31 @@ export type NetworkDensity = {
  */
 export async function loadNetworkDensity(): Promise<NetworkDensity> {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  // industry_benchmarks is a Workstream C materialized view not yet present in
+  // the generated Database types. Cast through a narrow shape so the call
+  // stays typed without dragging in the full view definition.
+  type BenchmarkRow = {
+    industry_slug: string;
+    state_code: string;
+    cohort_size: number;
+    last_captured_at: string | null;
+  };
+  const viewClient = supabase as unknown as {
+    from(t: "industry_benchmarks"): {
+      select(s: string): {
+        order(
+          c: string,
+          o: { ascending: boolean }
+        ): Promise<{ data: BenchmarkRow[] | null }>;
+      };
+    };
+  };
+  const { data } = await viewClient
     .from("industry_benchmarks")
     .select("industry_slug, state_code, cohort_size, last_captured_at")
     .order("cohort_size", { ascending: false });
 
-  const rows = data ?? [];
+  const rows: BenchmarkRow[] = data ?? [];
   const businessesCovered = rows.reduce((sum, r) => sum + r.cohort_size, 0);
   const newestCohortAt = rows.reduce<string | null>((acc, r) => {
     if (!r.last_captured_at) return acc;

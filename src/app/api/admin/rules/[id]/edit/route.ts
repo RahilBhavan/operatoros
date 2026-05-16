@@ -3,6 +3,7 @@ import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
+import type { Json } from "@/types/supabase";
 
 export const runtime = "nodejs";
 
@@ -85,7 +86,7 @@ export async function POST(
     actor_user_id: auth.user.id,
     event_type: "platform.rule_versioned",
     target_id: newRuleId,
-    metadata: { from_rule_id: id, changes: validation.value },
+    metadata: { from_rule_id: id, changes: validation.value as Json },
   });
   if (auditError) {
     console.error("audit_insert_failed", {

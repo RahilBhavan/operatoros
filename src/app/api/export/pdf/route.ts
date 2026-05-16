@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   const compliant = rows.filter((d) => d.computed === "compliant").length;
   const score = computeComplianceScore(
     rows.map((r) => ({ due_date: r.due_date, status: r.computed as DeadlineStatus })),
-    (d) => d.status
+    (d) => d.status as DeadlineStatus
   );
 
   const statusColor: Record<string, string> = {
