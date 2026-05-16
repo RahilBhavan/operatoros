@@ -29,4 +29,7 @@ jobs:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
-      - run: semgrep scan --config p/typescript --config p/javascript --config p/sql --error
+      # `p/sql` was removed upstream (semgrep.dev returns 404). We rely on
+      # the typescript + javascript rulesets, which already cover SQL string
+      # injection patterns via the database client wrappers in this repo.
+      - run: semgrep scan --config p/typescript --config p/javascript --error
