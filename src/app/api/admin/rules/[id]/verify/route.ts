@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { invalidateRulesCache } from "@/lib/regulatory-graph";
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,11 @@ export async function POST(
       error: auditError.message,
     });
   }
+
+  // Mark the in-process rule cache stale so the next onboarding read
+  // pulls the updated last_verified_at (which feeds Workstream B
+  // confidence tiers when those land).
+  invalidateRulesCache();
 
   return NextResponse.json({ ok: true, last_verified_at: verifiedAt });
 }

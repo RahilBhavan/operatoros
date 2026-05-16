@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { invalidateRulesCache } from "@/lib/regulatory-graph";
 
 export const runtime = "nodejs";
 
@@ -94,6 +95,11 @@ export async function POST(
       error: auditError.message,
     });
   }
+
+  // The edit is now the new canonical head; bust the in-process cache so
+  // the next onboarding read sees v+1 immediately (otherwise cached
+  // LEGACY_RULES / v_old would still serve for up to 10 minutes).
+  invalidateRulesCache();
 
   return NextResponse.json({ ok: true, new_rule_id: newRuleId });
 }

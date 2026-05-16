@@ -8,7 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],
-    exclude: ["**/node_modules/**", "**/e2e/**"],
+    // `.claude/worktrees/**` is where transient agent worktrees land; they
+    // contain their own copy of src/__tests__ and would double-count.
+    exclude: ["**/node_modules/**", "**/e2e/**", "**/.claude/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
