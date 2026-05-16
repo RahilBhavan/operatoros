@@ -48,12 +48,7 @@ export async function checkAuthRateLimit(
   const { max, windowSeconds } = LIMITS[scope];
 
   const admin = createAdminClient();
-  const rpc = admin.rpc as unknown as (
-    fn: "try_consume_auth_rate_limit",
-    params: { p_key: string; p_max_attempts: number; p_window_seconds: number }
-  ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
-
-  const { data, error } = await rpc("try_consume_auth_rate_limit", {
+  const { data, error } = await admin.rpc("try_consume_auth_rate_limit", {
     p_key: key,
     p_max_attempts: max,
     p_window_seconds: windowSeconds,

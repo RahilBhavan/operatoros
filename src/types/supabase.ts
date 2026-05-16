@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -214,6 +222,11 @@ export type Database = {
           penalty_estimate_cents: number | null;
           source_url: string | null;
           statute_citation: string | null;
+          regulatory_rule_id: string | null;
+          rule_id: string | null;
+          rule_version: number | null;
+          occurrence_key: string | null;
+          superseded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -234,6 +247,11 @@ export type Database = {
           penalty_estimate_cents?: number | null;
           source_url?: string | null;
           statute_citation?: string | null;
+          regulatory_rule_id?: string | null;
+          rule_id?: string | null;
+          rule_version?: number | null;
+          occurrence_key?: string | null;
+          superseded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -254,6 +272,11 @@ export type Database = {
           penalty_estimate_cents?: number | null;
           source_url?: string | null;
           statute_citation?: string | null;
+          regulatory_rule_id?: string | null;
+          rule_id?: string | null;
+          rule_version?: number | null;
+          occurrence_key?: string | null;
+          superseded_at?: string | null;
         };
         Relationships: [
           {
@@ -737,6 +760,129 @@ export type Database = {
         };
         Relationships: [];
       };
+      auth_rate_limits: {
+        Row: {
+          key: string;
+          attempts: number;
+          window_start: string;
+        };
+        Insert: {
+          key: string;
+          attempts?: number;
+          window_start?: string;
+        };
+        Update: {
+          key?: string;
+          attempts?: number;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
+      regulatory_rules: {
+        Row: {
+          id: string;
+          rule_key: string;
+          version: number;
+          name: string;
+          description: string;
+          jurisdiction_type: string;
+          jurisdiction_code: string;
+          industry_slug: string | null;
+          deadline_type: string;
+          governing_agency: string;
+          frequency: string;
+          severity_tier: string;
+          penalty_estimate_cents: number | null;
+          statute_citation: string | null;
+          source_url: string | null;
+          due_date_rule: Json;
+          applies_when: Json;
+          effective_date: string;
+          sunset_date: string | null;
+          superseded_by: string | null;
+          last_verified_at: string | null;
+          last_verified_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          rule_key: string;
+          version?: number;
+          name: string;
+          description: string;
+          jurisdiction_type: string;
+          jurisdiction_code: string;
+          industry_slug?: string | null;
+          deadline_type: string;
+          governing_agency: string;
+          frequency: string;
+          severity_tier: string;
+          penalty_estimate_cents?: number | null;
+          statute_citation?: string | null;
+          source_url?: string | null;
+          due_date_rule?: Json;
+          applies_when?: Json;
+          effective_date?: string;
+          sunset_date?: string | null;
+          superseded_by?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          rule_key?: string;
+          version?: number;
+          name?: string;
+          description?: string;
+          jurisdiction_type?: string;
+          jurisdiction_code?: string;
+          industry_slug?: string | null;
+          deadline_type?: string;
+          governing_agency?: string;
+          frequency?: string;
+          severity_tier?: string;
+          penalty_estimate_cents?: number | null;
+          statute_citation?: string | null;
+          source_url?: string | null;
+          due_date_rule?: Json;
+          applies_when?: Json;
+          effective_date?: string;
+          sunset_date?: string | null;
+          superseded_by?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      regulatory_rule_sources: {
+        Row: {
+          id: string;
+          rule_id: string;
+          source_kind: string;
+          source_ref: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rule_id: string;
+          source_kind: string;
+          source_ref?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rule_id?: string;
+          source_kind?: string;
+          source_ref?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       industry_benchmarks: {
@@ -781,6 +927,18 @@ export type Database = {
       claim_platform_admin_invite: {
         Args: { p_token: string; p_display_name: string };
         Returns: boolean;
+      };
+      try_consume_auth_rate_limit: {
+        Args: { p_key: string; p_max_attempts: number; p_window_seconds: number };
+        Returns: boolean;
+      };
+      complete_onboarding: {
+        Args: { p_business: Json; p_location: Json; p_seeds: Json };
+        Returns: string;
+      };
+      version_regulatory_rule: {
+        Args: { p_rule_id: string; p_changes: Json };
+        Returns: string;
       };
     };
     Enums: {

@@ -3,6 +3,7 @@ import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
+import type { Json } from "@/types/supabase";
 
 export const runtime = "nodejs";
 
@@ -51,14 +52,9 @@ export async function POST(
   // not the service-role client, so auth.uid() resolves and the
   // is_platform_admin() guard inside the function fires correctly.
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
-    fn: "version_regulatory_rule",
-    params: { p_rule_id: string; p_changes: Record<string, unknown> }
-  ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;
-
-  const { data: newRuleId, error } = await rpc("version_regulatory_rule", {
+  const { data: newRuleId, error } = await supabase.rpc("version_regulatory_rule", {
     p_rule_id: id,
-    p_changes: validation.value,
+    p_changes: validation.value as unknown as Json,
   });
 
   if (error || !newRuleId) {

@@ -10,6 +10,7 @@ import type {
   Industry,
   OnboardingData,
 } from "@/types/onboarding";
+import type { Json } from "@/types/supabase";
 
 const INDUSTRY_VALUES: ReadonlySet<Industry> = new Set<Industry>([
   "restaurant",
@@ -140,16 +141,10 @@ export async function completeOnboarding(
     p_location: {
       state: data.state,
     },
-    p_seeds: seeds,
+    p_seeds: seeds as unknown as Json,
   };
 
-  // RPC types are regenerated via `bun run db:types` after the migration
-  // deploys. Cast at the call site so the rest of the file stays type-checked.
-  const rpcClient = supabase.rpc as unknown as (
-    fn: "complete_onboarding",
-    params: typeof rpcPayload
-  ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;
-  const { data: businessId, error } = await rpcClient("complete_onboarding", rpcPayload);
+  const { data: businessId, error } = await supabase.rpc("complete_onboarding", rpcPayload);
 
   if (error || !businessId) {
     if (error?.code === "42501") {
