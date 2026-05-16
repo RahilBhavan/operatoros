@@ -120,3 +120,38 @@ Rejected:
 - **Stub legal pages** — needs real legal copy, not Claude-generated text. Founder to commission or use Termly/iubenda before public launch.
 - **In-code waitlist rate limit** — Vercel WAF is purpose-built (no DB load, no code surface). Documented as a pre-launch action in `docs/security/threat-models.md`.
 - **Nonce-based CSP** — would let us drop `'unsafe-inline'` for scripts, but requires wiring nonces through every server component. Deferred.
+
+## 2026-05-15 — Workstream C: Peer Benchmark Scoring (shipped on `worktree-workstream-c-peer-benchmarks`)
+
+What: Built the peer-benchmark layer described in `docs/roadmap/WORLD_CLASS.md` §C, on a worktree branched from `origin/main` (independent of the in-progress Workstream A branch). Each business now sees its compliance score plotted against the median + p25/p75/p90 of the same `(industry_slug, state)` cohort. K-anonymity threshold enforced at the SQL level: cohorts with fewer than 10 businesses do not appear in the materialized view at all, so the dashboard's empty-state copy ("Be the first CA restaurant on OperatorOS — peer benchmarks unlock at 10 businesses") is the only signal a small cohort produces.
+
+Why: Closes Hoffman's deferred note from the feature-moat consensus loop ("score should compound as more peers join"). Adds a network-effect to the compliance score itself — your score becomes more meaningful only as more peers join — and gives the platform a concrete acquisition lever ("you're at the 67th percentile vs. CA restaurants") that's more visceral than a bare 0–100 number.
+
+Shipped (all on the worktree branch `worktree-workstream-c-peer-benchmarks`):
+- Migration `supabase/migrations/20260516000010_peer_benchmarks.sql`:
+  - Materialized view `public.industry_benchmarks` keyed on `(industry_slug, state_code)` with `cohort_size`, `p25 / median / p75 / p90`, and `last_captured_at`. `HAVING count(*) >= 10` enforces k-anonymity; rows below threshold are not emitted at all. View joins `businesses` → first `locations` row → latest `compliance_score_history.score`.
+  - Unique index `industry_benchmarks_pk (industry_slug, state_code)` so `REFRESH MATERIALIZED VIEW CONCURRENTLY` is non-blocking against dashboard reads.
+  - `SECURITY DEFINER` function `refresh_industry_benchmarks()` granted to `service_role` only.
+  - `GRANT SELECT ON public.industry_benchmarks TO authenticated` — safe because the view holds only aggregates above the k-anon threshold (no business IDs, no PII).
+- Vercel Cron entry `POST /api/cron/refresh-benchmarks` on `0 2 * * 0` (Sunday 02:00 UTC) — same `CRON_SECRET` + `vercel-cron` UA gate as the existing reminders cron.
+- `src/lib/benchmarks.ts` — `getPeerContext(supabase, businessId, userScore)` returns `{ kind: "matched" | "empty", ...}` and `estimatePercentile(score, q)` does piecewise-linear interpolation across the four percentile points. `describeCohort()` produces friendly labels (`"CA restaurants"`, `"TX construction firms"`) for empty-state and tooltip copy.
+- `src/components/dashboard/PeerBenchmarkBar.tsx` — sharp-edged SVG percentile bar matching the Pan Am doctrine (no traffic lights; navy when at-or-above median, red Mark when below). Tick marks at P25/MED/P75/P90, vertical "YOU" marker, footer "BASED ON N CA RESTAURANTS TRACKED ON OPERATOROS · LAST REFRESHED MMM D". Wired into `/dashboard` directly below the score chart + insights grid.
+- Admin `/admin` overview page: third CardPanel "NETWORK DENSITY · COHORTS ≥ 10" showing total cohorts past threshold, businesses covered, and the top 5 cohorts by size. Loader `loadNetworkDensity()` reads from the materialized view directly.
+- Tests `src/__tests__/lib/benchmarks.test.ts` (17 cases):
+  - Schema-shape guard asserting `industry_benchmarks.Row` exposes exactly the 8 aggregate columns — no business_id, owner_email, or other PII keys.
+  - `estimatePercentile` boundary + interpolation cases including NaN, clamps at 0/100, exact placement at each quartile point, midpoint interpolation between p25–median and p90–100.
+  - `describeCohort` industry-label fallback to "businesses" for unknown / null slugs and state-omission when null.
+  - `getPeerContext` covers: no industry_slug → empty; no state → empty; no benchmark row → empty; defensive `cohort_size < 10` → empty (belt and suspenders even though the view's HAVING already enforces this); matched cohort → correct percentile, cohort size, and labels.
+
+Acceptance criteria (from `WORLD_CLASS.md` §C):
+- ✅ New business with 0 peers sees the empty state, no leakage of small-cohort numbers (HAVING in the view + defensive client-side check).
+- ✅ Test cohort with 10+ synthetic businesses surfaces the percentile bar with correct math (verified via fixture in `benchmarks.test.ts`).
+- ✅ No PII in `industry_benchmarks` (compile-time `_AssertAllowedExhaustive` + runtime keys assertion).
+- ⚠️ Refresh cron updates `last_captured_at` — endpoint exists and is registered in `vercel.json`; requires a live deploy to verify end-to-end. Documented as the only remaining manual check before merge.
+
+Verification: `tsc --noEmit` clean · `vitest run` 174/174 pass · `eslint src/` 0 errors (13 pre-existing warnings in untouched files) · `next build` succeeds with `/api/cron/refresh-benchmarks` in the route table.
+
+Rejected / deferred:
+- **`SECURITY DEFINER` function to compute the user's *exact* percentile against raw scores** — would have used `compliance_score_history` directly per call. Decided that piecewise-linear interpolation off the four percentile points is sufficient UX precision and keeps the query path inside the already-public materialized view (no per-request scan of cross-tenant raw scores).
+- **Sparkline of `cohort_size_total` over time on `/admin`** (mentioned in WORLD_CLASS §C) — would need a separate `industry_benchmark_snapshots` table to record history week-over-week. Current static "cohorts at threshold / businesses covered" panel + top-5 cohort list ships the same insight in v1; sparkline can layer on once we have ≥4 weekly snapshots.
+- **Per-business percentile written into `compliance_score_history`** for trend-over-percentile charts — interesting follow-up but doesn't move the moat needle today.

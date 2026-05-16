@@ -739,7 +739,19 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      industry_benchmarks: {
+        Row: {
+          industry_slug: string;
+          state_code: string;
+          cohort_size: number;
+          p25: number;
+          median: number;
+          p75: number;
+          p90: number;
+          last_captured_at: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       check_and_increment_rate_limit: {
