@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
+import { Button, Utility, Index } from "@/components/doctrine";
 
 type DeadlineRow = Database["public"]["Tables"]["deadlines"]["Row"];
 
@@ -115,131 +116,164 @@ export default function DeadlineForm({ businessId, existing }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col gap-5"
+      className="border-2 border-[var(--color-ground)] bg-[var(--color-field)]"
     >
-      <Field label="Deadline name" required>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Illinois LLC Annual Report"
-          className={INPUT_CLASS}
-        />
-      </Field>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Type" required>
-          <select
-            value={deadlineType}
-            onChange={(e) => setDeadlineType(e.target.value)}
-            className={INPUT_CLASS}
-          >
-            {DEADLINE_TYPES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Frequency" required>
-          <select
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value)}
-            className={INPUT_CLASS}
-          >
-            {FREQUENCIES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </Field>
+      {/* FORM header strip */}
+      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
+        <Utility className="!text-[var(--color-field)] !opacity-90">
+          {isEdit ? "FORM · EDIT DEADLINE" : "FORM · NEW DEADLINE"}
+        </Utility>
+        <Index className="!text-[var(--color-field)] !text-[13px]">
+          PA-DL-{isEdit ? "EDIT" : "NEW"}
+        </Index>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Due date" required>
+      <div className="px-5 py-6 flex flex-col gap-5">
+        {/* SECTION 01 · ESSENTIALS */}
+        <div className="flex items-baseline gap-3">
+          <Index className="!text-[19px]">01</Index>
+          <Utility>· ESSENTIALS</Utility>
+        </div>
+
+        <FormField label="DEADLINE NAME" required>
           <input
-            type="date"
+            type="text"
             required
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={INPUT_CLASS}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Illinois LLC Annual Report"
+            className="t-input"
           />
-        </Field>
+        </FormField>
 
-        {isEdit && (
-          <Field label="Status">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FormField label="TYPE" required>
             <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value as DeadlineRow["status"])
-              }
-              className={INPUT_CLASS}
+              value={deadlineType}
+              onChange={(e) => setDeadlineType(e.target.value)}
+              className="t-input"
             >
-              <option value="upcoming">Upcoming</option>
-              <option value="in_progress">In Progress</option>
-              <option value="compliant">Compliant</option>
-              <option value="overdue">Overdue</option>
+              {DEADLINE_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
-          </Field>
+          </FormField>
+
+          <FormField label="FREQUENCY" required>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+              className="t-input"
+            >
+              {FREQUENCIES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+
+        {/* SECTION 02 · SCHEDULE */}
+        <div className="flex items-baseline gap-3 border-t-2 border-[var(--color-ground)] pt-6 mt-2">
+          <Index className="!text-[19px]">02</Index>
+          <Utility>· SCHEDULE</Utility>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FormField label="DUE DATE" required>
+            <input
+              type="date"
+              required
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="t-input"
+            />
+          </FormField>
+
+          {isEdit && (
+            <FormField label="STATUS">
+              <select
+                value={status}
+                onChange={(e) =>
+                  setStatus(e.target.value as DeadlineRow["status"])
+                }
+                className="t-input"
+              >
+                <option value="upcoming">Upcoming</option>
+                <option value="in_progress">In Progress</option>
+                <option value="compliant">Compliant</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </FormField>
+          )}
+        </div>
+
+        {/* SECTION 03 · CONTEXT */}
+        <div className="flex items-baseline gap-3 border-t-2 border-[var(--color-ground)] pt-6 mt-2">
+          <Index className="!text-[19px]">03</Index>
+          <Utility>· CONTEXT</Utility>
+        </div>
+
+        <FormField label="GOVERNING AGENCY">
+          <input
+            type="text"
+            value={governingAgency}
+            onChange={(e) => setGoverningAgency(e.target.value)}
+            placeholder="e.g. Illinois Secretary of State"
+            className="t-input"
+          />
+        </FormField>
+
+        <FormField label="DESCRIPTION">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional notes, renewal process, or requirements…"
+            rows={3}
+            className="t-input"
+          />
+        </FormField>
+
+        {error && (
+          <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-2">
+            <Utility className="!text-[var(--color-field)]">ERROR</Utility>
+            <span className="t-body !text-[var(--color-field)] block">
+              {error}
+            </span>
+          </div>
         )}
-      </div>
 
-      <Field label="Governing agency">
-        <input
-          type="text"
-          value={governingAgency}
-          onChange={(e) => setGoverningAgency(e.target.value)}
-          placeholder="e.g. Illinois Secretary of State"
-          className={INPUT_CLASS}
-        />
-      </Field>
-
-      <Field label="Description">
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional notes, renewal process, or requirements…"
-          rows={3}
-          className={INPUT_CLASS}
-        />
-      </Field>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
-          {error}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={loading || !name.trim() || !dueDate}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
-        >
-          {loading
-            ? isEdit
-              ? "Saving…"
-              : "Adding…"
-            : isEdit
-            ? "Save Changes"
-            : "Add Deadline"}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-slate-600 hover:text-slate-900 font-medium text-sm px-4 py-2.5"
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-3 pt-4 border-t-2 border-[var(--color-ground)] mt-2">
+          <Button
+            type="submit"
+            variant="ground"
+            disabled={loading || !name.trim() || !dueDate}
+          >
+            {loading
+              ? isEdit
+                ? "Saving…"
+                : "Adding…"
+              : isEdit
+              ? "Save Changes →"
+              : "Add Deadline →"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.back()}
+          >
+            Cancel
+          </Button>
+        </div>
       </div>
     </form>
   );
 }
 
-function Field({
+function FormField({
   label,
   required,
   children,
@@ -250,14 +284,15 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1">
-        {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+      <label className="block mb-2">
+        <Utility>
+          {label}
+          {required && (
+            <span className="text-[var(--color-mark)] ml-1">*</span>
+          )}
+        </Utility>
       </label>
       {children}
     </div>
   );
 }
-
-const INPUT_CLASS =
-  "w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder:text-slate-400 bg-white";

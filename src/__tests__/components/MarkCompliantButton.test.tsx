@@ -23,14 +23,14 @@ describe("MarkCompliantButton", () => {
 
   it("renders the Mark as Compliant button", () => {
     render(<MarkCompliantButton deadlineId="dl-1" />);
-    expect(screen.getByRole("button", { name: /mark as compliant/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /mark compliant/i })).toBeDefined();
   });
 
   it("calls supabase update and refreshes on success", async () => {
     mockEq.mockResolvedValue({ error: null });
 
     render(<MarkCompliantButton deadlineId="dl-1" />);
-    fireEvent.click(screen.getByRole("button", { name: /mark as compliant/i }));
+    fireEvent.click(screen.getByRole("button", { name: /mark compliant/i }));
 
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith({ status: "compliant" });
@@ -42,7 +42,7 @@ describe("MarkCompliantButton", () => {
     mockEq.mockResolvedValue({ error: { message: "DB error" } });
 
     render(<MarkCompliantButton deadlineId="dl-1" />);
-    fireEvent.click(screen.getByRole("button", { name: /mark as compliant/i }));
+    fireEvent.click(screen.getByRole("button", { name: /mark compliant/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to update/i)).toBeDefined();
@@ -53,7 +53,7 @@ describe("MarkCompliantButton", () => {
     mockEq.mockImplementation(() => new Promise(() => {}));
 
     render(<MarkCompliantButton deadlineId="dl-1" />);
-    fireEvent.click(screen.getByRole("button", { name: /mark as compliant/i }));
+    fireEvent.click(screen.getByRole("button", { name: /mark compliant/i }));
 
     await waitFor(() => {
       const btn = screen.getByRole("button") as HTMLButtonElement;

@@ -13,7 +13,7 @@
 - **Assets:** emails in `waitlist_signups`.
 - **Boundary:** public internet → Next route → Supabase service role.
 - **Attacker:** spam signups, DB fill.
-- **Mitigations:** validate email shape; service role never exposed to client; consider edge rate limit / CAPTCHA later.
+- **Mitigations:** validate email shape; service role never exposed to client. **Before public launch: enable Vercel WAF rate-limit rule on `/api/waitlist`** (e.g. 10 req/min/IP); add CAPTCHA if abuse appears.
 - **Residual:** no proof of human; email enumeration via timing (low).
 
 ### `POST /api/billing/webhook`

@@ -1,0 +1,168 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import InviteMemberForm from "@/components/dashboard/InviteMemberForm";
+import RevokeInviteButton from "@/components/dashboard/RevokeInviteButton";
+import {
+  H1,
+  H2,
+  Body,
+  Caption,
+  Utility,
+  Index,
+} from "@/components/doctrine";
+
+const ROLE_SORT: Record<string, string> = {
+  owner: "A",
+  admin: "B",
+  member: "C",
+};
+
+export default async function TeamSettingsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/sign-in");
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, name, owner_id")
+    .eq("owner_id", user.id)
+    .single();
+
+  if (!business) redirect("/onboarding");
+
+  const { data: myMembership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("business_id", business.id)
+    .eq("user_id", user.id)
+    .single();
+
+  const isAdmin = myMembership?.role === "admin";
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="border-2 border-[var(--color-ground)] p-10 text-center">
+          <Index className="!text-[38px] !text-[var(--color-ground)] opacity-30 mb-3">
+            🔒
+          </Index>
+          <H2 className="mb-3">Admin access required.</H2>
+          <Body className="!opacity-70">
+            Only an account admin can manage team members. Ask the person who
+            originally set up <strong>{business.name}</strong> on OperatorOS to
+            invite or promote you.
+          </Body>
+        </div>
+      </div>
+    );
+  }
+
+  const { data: members } = await supabase
+    .from("memberships")
+    .select(
+      "id, role, user_id, invited_email, created_at, status, accepted_at, invite_expires_at"
+    )
+    .eq("business_id", business.id)
+    .order("created_at", { ascending: true });
+
+  const active = (members ?? []).filter((m) => m.status === "active");
+  const pending = (members ?? []).filter((m) => m.status === "pending");
+  const renderedAt = new Date();
+
+  return (
+    <div className="max-w-[900px]">
+      <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <Index className="!text-[15px]">PA-TEAM</Index>
+          <Utility className="opacity-60">SETTINGS / TEAM</Utility>
+        </div>
+        <H1>Team.</H1>
+        <Caption className="!mt-2">
+          Members of <strong>{business.name}</strong>. Admins manage billing and team. Members use the app.
+        </Caption>
+      </header>
+
+      <section className="mb-10">
+        <InviteMemberForm />
+      </section>
+
+      <section className="border-2 border-[var(--color-ground)] mb-8">
+        <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+          <Utility className="!text-[var(--color-field)] !opacity-80">
+            MEMBER / EMAIL
+          </Utility>
+          <Utility className="!text-[var(--color-field)] !opacity-80">ROLE</Utility>
+          <Utility className="!text-[var(--color-field)] !opacity-80 hidden sm:block">JOINED</Utility>
+          <Utility className="!text-[var(--color-field)] !opacity-80">SORT</Utility>
+        </div>
+        <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
+          {active.map((m) => {
+            const sort = ROLE_SORT[m.role] ?? "C";
+            return (
+              <li
+                key={m.id}
+                className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-4"
+              >
+                <div className="min-w-0">
+                  <Body className="!font-bold truncate">
+                    {m.user_id === user.id ? "You" : m.invited_email ?? `user ${m.user_id.slice(0, 6)}…`}
+                  </Body>
+                  {m.user_id === user.id && (
+                    <Caption className="!mt-0.5 !text-[12px]">{user.email}</Caption>
+                  )}
+                </div>
+                <span className="t-utility !text-[12px] uppercase">{m.role}</span>
+                <Index className="!text-[12px] hidden sm:block">
+                  {new Date(m.accepted_at ?? m.created_at).toLocaleDateString(
+                    "en-US",
+                    { month: "short", day: "numeric", year: "numeric" }
+                  )}
+                </Index>
+                <span className="inline-flex items-center justify-center border-2 border-[var(--color-ground)] w-8 h-8 t-h3 leading-none">
+                  {sort}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {pending.length > 0 && (
+        <section className="border-2 border-[var(--color-mark)]">
+          <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-2.5 flex items-center justify-between">
+            <Utility className="!text-[var(--color-field)] !opacity-100">
+              PENDING INVITES ({pending.length})
+            </Utility>
+          </div>
+          <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
+            {pending.map((m) => {
+              const expired =
+                m.invite_expires_at &&
+                new Date(m.invite_expires_at).getTime() < renderedAt.getTime();
+              return (
+                <li
+                  key={m.id}
+                  className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-5 py-4"
+                >
+                  <Body className="!font-bold truncate">{m.invited_email}</Body>
+                  <span className="t-utility !text-[12px] uppercase">{m.role}</span>
+                  <Caption className="!text-[12px]">
+                    {expired
+                      ? "EXPIRED"
+                      : m.invite_expires_at
+                      ? `EXPIRES ${new Date(m.invite_expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}`
+                      : "PENDING"}
+                  </Caption>
+                  <RevokeInviteButton membershipId={m.id} />
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}

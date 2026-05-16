@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, AlertTriangle, Info, ChevronDown } from "lucide-react";
+import { Utility, Index, Caption, Body } from "@/components/doctrine";
 
 interface Insight {
   title: string;
@@ -10,10 +11,22 @@ interface Insight {
 }
 
 const URGENCY_CONFIG = {
-  high: { color: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: AlertTriangle },
-  medium: { color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200", icon: Info },
-  low: { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", icon: Info },
-};
+  high: {
+    letter: "A",
+    icon: AlertTriangle,
+    accent: "var(--color-mark)",
+  },
+  medium: {
+    letter: "B",
+    icon: Info,
+    accent: "var(--color-ground)",
+  },
+  low: {
+    letter: "C",
+    icon: Info,
+    accent: "var(--color-ground)",
+  },
+} as const;
 
 export default function ProactiveInsights() {
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -45,79 +58,143 @@ export default function ProactiveInsights() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+    <div className="border-2 border-[var(--color-ground)]">
       <button
+        type="button"
         onClick={load}
         disabled={loading}
-        className="flex items-center justify-between w-full group"
+        className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between w-full group disabled:opacity-70"
       >
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold text-slate-700">AI Compliance Insights</span>
+        <span className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[var(--color-field)]" />
+          <Utility className="!text-[var(--color-field)] !opacity-100">
+            AI COMPLIANCE INSIGHTS
+          </Utility>
           {!loaded && (
-            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-              New
+            <span className="border-2 border-[var(--color-field)] px-2 py-0.5 t-utility !text-[12px] !text-[var(--color-field)] !opacity-100">
+              NEW
             </span>
           )}
-        </div>
-        {!loaded && (
-          <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
-        )}
+        </span>
+        <span className="flex items-center gap-3">
+          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+            PA-AI
+          </Index>
+          {!loaded && (
+            <ChevronDown className="w-4 h-4 text-[var(--color-field)] transition-transform group-hover:translate-y-0.5" />
+          )}
+        </span>
       </button>
 
-      {loading && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-slate-400">
-          <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          Analyzing your compliance posture…
-        </div>
-      )}
+      <div className="bg-[var(--color-field)] px-5 py-5">
+        {loading && (
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 border-2 border-[var(--color-ground)] border-t-transparent animate-spin"
+              aria-hidden
+            />
+            <Caption>Analyzing your compliance posture…</Caption>
+          </div>
+        )}
 
-      {error === "upgrade" && (
-        <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-          <p className="text-xs font-semibold text-blue-700 mb-0.5">Growth or Scale plan required</p>
-          <p className="text-xs text-blue-600">
-            AI compliance insights are available on Growth ($79/mo) and Scale ($149/mo) plans.{" "}
-            <a href="/billing" className="underline font-medium">Upgrade to unlock.</a>
-          </p>
-        </div>
-      )}
+        {!loading && !loaded && (
+          <Caption>
+            Click to surface action items and risks from your active deadlines.
+          </Caption>
+        )}
 
-      {error && error !== "upgrade" && (
-        <p className="mt-3 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-      )}
-
-      {loaded && insights.length === 0 && !error && (
-        <p className="mt-3 text-xs text-slate-400">
-          No additional insights at this time — your compliance posture looks solid.
-        </p>
-      )}
-
-      {insights.length > 0 && (
-        <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
-          AI-generated suggestions — always verify with your accountant or the relevant agency before acting.
-        </p>
-      )}
-
-      {insights.length > 0 && (
-        <div className="mt-3 flex flex-col gap-2">
-          {insights.map((insight, i) => {
-            const config = URGENCY_CONFIG[insight.urgency] ?? URGENCY_CONFIG.low;
-            const Icon = config.icon;
-            return (
-              <div
-                key={i}
-                className={`flex items-start gap-3 p-3 rounded-xl border ${config.border} ${config.bg}`}
+        {error === "upgrade" && (
+          <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3">
+            <Utility className="!text-[12px]">PAID PLAN REQUIRED</Utility>
+            <Body className="mt-1">
+              AI compliance insights are available on the Business ($79/mo) and
+              Accountant ($299/mo) plans.{" "}
+              <a
+                href="/billing"
+                className="t-link text-[var(--color-mark)] underline"
               >
-                <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${config.color}`} />
-                <div>
-                  <div className={`text-xs font-semibold ${config.color}`}>{insight.title}</div>
-                  <div className={`text-xs mt-0.5 ${config.color} opacity-80`}>{insight.body}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                Upgrade to unlock.
+              </a>
+            </Body>
+          </div>
+        )}
+
+        {error && error !== "upgrade" && (
+          <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
+            <Utility className="!text-[var(--color-field)] !opacity-100 !text-[12px]">
+              ERROR
+            </Utility>
+            <p className="t-caption !text-[var(--color-field)] mt-1">{error}</p>
+          </div>
+        )}
+
+        {loaded && insights.length === 0 && !error && (
+          <Caption>
+            No additional insights at this time — your compliance posture looks
+            solid.
+          </Caption>
+        )}
+
+        {insights.length > 0 && (
+          <div className="mt-1 mb-3 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
+            <Utility className="!text-[var(--color-field)] !opacity-100 !text-[12px]">
+              ADVISORY
+            </Utility>
+            <p className="t-caption !text-[var(--color-field)] mt-1">
+              AI-generated suggestions — always verify with your accountant or
+              the relevant agency before acting.
+            </p>
+          </div>
+        )}
+
+        {insights.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {insights.map((insight, i) => {
+              const config =
+                URGENCY_CONFIG[insight.urgency] ?? URGENCY_CONFIG.low;
+              const Icon = config.icon;
+              const isHigh = insight.urgency === "high";
+              return (
+                <li
+                  key={i}
+                  className="flex items-stretch gap-3 bg-[var(--color-field)] border-l-2"
+                  style={{ borderLeftColor: config.accent }}
+                >
+                  {/* Sort-symbol letter box */}
+                  <span
+                    className="flex items-center justify-center w-10 shrink-0 border-2"
+                    style={{
+                      borderColor: config.accent,
+                      color: config.accent,
+                    }}
+                  >
+                    <span className="t-h3 leading-none">{config.letter}</span>
+                  </span>
+
+                  <div className="flex items-start gap-2 py-2 pr-2 flex-1 min-w-0">
+                    <Icon
+                      className="w-4 h-4 mt-0.5 shrink-0"
+                      style={{ color: config.accent }}
+                    />
+                    <div className="min-w-0">
+                      <div
+                        className="t-utility !text-[12px]"
+                        style={{ color: config.accent, opacity: 1 }}
+                      >
+                        {isHigh ? "HIGH URGENCY · " : insight.urgency === "medium" ? "MEDIUM · " : "LOW · "}
+                        {insight.title}
+                      </div>
+                      <Body className="!text-[13px] mt-0.5">
+                        {insight.body}
+                      </Body>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

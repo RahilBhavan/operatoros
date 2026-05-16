@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Button, Utility, Index } from "@/components/doctrine";
 
 export default function MarkCompliantButton({
   deadlineId,
@@ -12,6 +12,8 @@ export default function MarkCompliantButton({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [marked, setMarked] = useState(false);
+  const [markedAt, setMarkedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function handleMark() {
@@ -24,6 +26,8 @@ export default function MarkCompliantButton({
         .update({ status: "compliant" })
         .eq("id", deadlineId);
       if (updateErr) throw updateErr;
+      setMarkedAt(new Date().toISOString());
+      setMarked(true);
       router.refresh();
     } catch {
       setError("Failed to update. Please try again.");
@@ -32,17 +36,32 @@ export default function MarkCompliantButton({
     }
   }
 
+  if (marked && markedAt) {
+    const ts = new Date(markedAt).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    return (
+      <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)] px-4 py-3 inline-flex flex-col items-start gap-1">
+        <Utility>MARKED COMPLIANT</Utility>
+        <Index className="!text-[19px]">{ts}</Index>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-start gap-1">
-      <button
+    <div className="inline-flex flex-col items-start gap-2">
+      <Button
+        variant="mark"
         onClick={handleMark}
         disabled={loading}
-        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
       >
-        <CheckCircle className="w-4 h-4" />
-        {loading ? "Marking…" : "Mark as Compliant"}
-      </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+        {loading ? "Marking…" : "✓ Mark Compliant"}
+      </Button>
+      {error && (
+        <span className="t-caption !text-[var(--color-mark)]">{error}</span>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 # API route matrix
 
-Externally reachable `src/app/**/route.ts` handlers. Middleware excludes `/api/*`; each route must enforce its own trust boundary.
+Externally reachable `src/app/**/route.ts` handlers. The proxy (`src/proxy.ts`) excludes `/api/*`; each route must enforce its own trust boundary.
 
 | Path | Methods | Auth / trust | Data / tables | Supabase client |
 |------|---------|----------------|---------------|-----------------|

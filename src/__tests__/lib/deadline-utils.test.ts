@@ -1,12 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   daysUntil,
   formatDueDate,
   computeAutoStatus,
   computeComplianceScore,
+  computeRiskWeightedScore,
+  computeExposureCents,
+  topActions,
+  formatCents,
   escapeHtml,
   formatIsoDate,
   type DeadlineLike,
+  type DeadlineWithSeverity,
 } from "@/lib/deadline-utils";
 
 function isoDate(daysFromNow: number): string {
@@ -196,5 +201,126 @@ describe("formatIsoDate", () => {
   it("pads month and day with zeros", () => {
     const d = new Date(2026, 2, 5); // Mar 5 2026
     expect(formatIsoDate(d)).toBe("2026-03-05");
+  });
+});
+
+describe("computeRiskWeightedScore", () => {
+  it("returns 100 for empty deadlines", () => {
+    expect(computeRiskWeightedScore([])).toBe(100);
+  });
+
+  it("weights critical-severity overdue items more harshly than low", () => {
+    const overdueDate = isoDate(-1);
+    const criticalOverdue: DeadlineWithSeverity[] = [
+      { due_date: overdueDate, status: "upcoming", severity_tier: "critical" },
+      { due_date: isoDate(60), status: "upcoming", severity_tier: "low" },
+    ];
+    const lowOverdue: DeadlineWithSeverity[] = [
+      { due_date: isoDate(60), status: "upcoming", severity_tier: "critical" },
+      { due_date: overdueDate, status: "upcoming", severity_tier: "low" },
+    ];
+    const critScore = computeRiskWeightedScore(criticalOverdue);
+    const lowScore = computeRiskWeightedScore(lowOverdue);
+    expect(critScore).toBeLessThan(lowScore);
+  });
+
+  it("rewards compliant items proportionally to severity", () => {
+    const allCompliantCritical: DeadlineWithSeverity[] = [
+      { due_date: isoDate(60), status: "compliant", severity_tier: "critical" },
+    ];
+    expect(computeRiskWeightedScore(allCompliantCritical)).toBe(100);
+  });
+
+  it("falls back to medium weight when severity_tier is missing", () => {
+    const unweighted: DeadlineWithSeverity[] = [
+      { due_date: isoDate(60), status: "upcoming" },
+    ];
+    expect(computeRiskWeightedScore(unweighted)).toBe(50);
+  });
+});
+
+describe("computeExposureCents", () => {
+  it("sums penalty_estimate_cents for overdue + in_progress items only", () => {
+    const ds: DeadlineWithSeverity[] = [
+      { due_date: isoDate(-1), status: "upcoming", penalty_estimate_cents: 100000 },
+      { due_date: isoDate(5), status: "upcoming", penalty_estimate_cents: 50000 },
+      { due_date: isoDate(60), status: "upcoming", penalty_estimate_cents: 1000000 },
+      { due_date: isoDate(10), status: "compliant", penalty_estimate_cents: 999999 },
+    ];
+    expect(computeExposureCents(ds)).toBe(150000);
+  });
+
+  it("returns 0 when no items are overdue or due-soon", () => {
+    const ds: DeadlineWithSeverity[] = [
+      { due_date: isoDate(60), status: "upcoming", penalty_estimate_cents: 1000000 },
+    ];
+    expect(computeExposureCents(ds)).toBe(0);
+  });
+});
+
+describe("topActions", () => {
+  it("returns up to N items, prioritizing overdue + critical severity", () => {
+    const ds: DeadlineWithSeverity[] = [
+      {
+        id: "a",
+        name: "Critical overdue",
+        due_date: isoDate(-2),
+        status: "upcoming",
+        severity_tier: "critical",
+        penalty_estimate_cents: 200000,
+      },
+      {
+        id: "b",
+        name: "Low due-soon",
+        due_date: isoDate(5),
+        status: "upcoming",
+        severity_tier: "low",
+        penalty_estimate_cents: 0,
+      },
+      {
+        id: "c",
+        name: "Medium overdue",
+        due_date: isoDate(-1),
+        status: "upcoming",
+        severity_tier: "medium",
+        penalty_estimate_cents: 50000,
+      },
+      {
+        id: "d",
+        name: "Future compliant",
+        due_date: isoDate(60),
+        status: "compliant",
+        severity_tier: "critical",
+        penalty_estimate_cents: 0,
+      },
+    ];
+    const top = topActions(ds, 2);
+    expect(top.length).toBe(2);
+    expect(top[0].name).toBe("Critical overdue");
+    expect(top.find((t) => t.name === "Future compliant")).toBeUndefined();
+  });
+
+  it("returns empty array if no overdue or due-soon items", () => {
+    const ds: DeadlineWithSeverity[] = [
+      { id: "a", name: "Future", due_date: isoDate(60), status: "upcoming", severity_tier: "low" },
+    ];
+    expect(topActions(ds)).toEqual([]);
+  });
+});
+
+describe("formatCents", () => {
+  it("formats small amounts without commas", () => {
+    expect(formatCents(2000)).toBe("$20");
+    expect(formatCents(50000)).toBe("$500");
+  });
+
+  it("formats large amounts with commas", () => {
+    expect(formatCents(500000)).toBe("$5,000");
+    expect(formatCents(1000000)).toBe("$10,000");
+  });
+
+  it("returns $0 for non-positive amounts", () => {
+    expect(formatCents(0)).toBe("$0");
+    expect(formatCents(-100)).toBe("$0");
   });
 });

@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Shield, LayoutDashboard, FileText, LogOut, CreditCard } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { Utility, Caption } from "@/components/doctrine";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/deadlines", label: "Deadlines", icon: FileText },
-  { href: "/billing", label: "Billing", icon: CreditCard },
+  { href: "/dashboard", label: "DASHBOARD", code: "A" },
+  { href: "/deadlines", label: "DEADLINES", code: "B" },
+  { href: "/billing", label: "BILLING", code: "C" },
+  { href: "/settings/team", label: "TEAM", code: "D" },
 ];
 
 export default function AppNav({ userEmail }: { userEmail: string }) {
@@ -24,40 +24,45 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-6 py-3">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-slate-900">OperatorOS</span>
+    <nav className="bg-[var(--color-field)] border-b-2 border-[var(--color-ground)]">
+      <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-8 flex-wrap">
+          <Link href="/dashboard" className="flex items-baseline gap-3">
+            <span className="t-h3 font-black tracking-tight leading-none">
+              OPERATOR<span className="text-[var(--color-mark)]">OS</span>
+            </span>
           </Link>
-          <div className="flex items-center gap-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === href
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </Link>
-            ))}
+          <div className="flex items-center gap-1 flex-wrap">
+            {NAV_ITEMS.map(({ href, label, code }) => {
+              const active = pathname === href || pathname?.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`inline-flex items-stretch border-2 ${
+                    active
+                      ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
+                      : "border-transparent text-[var(--color-ground)] hover:border-[var(--color-ground)]"
+                  }`}
+                >
+                  <span className="px-3 py-1.5 border-r-2 border-current opacity-70 t-utility !text-[12px]">
+                    {code}
+                  </span>
+                  <span className="px-3 py-1.5 t-utility">{label}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-500 hidden sm:block">
+        <div className="flex items-center gap-4">
+          <Caption className="hidden sm:block !opacity-70 !text-[12px]">
             {userEmail}
-          </span>
+          </Caption>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors"
+            className="t-utility hover:text-[var(--color-mark)]"
           >
-            <LogOut className="w-4 h-4" />
-            Sign out
+            SIGN OUT →
           </button>
         </div>
       </div>

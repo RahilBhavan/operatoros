@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, getPriceId, PLANS, type PlanTier } from "@/lib/stripe";
+import { getStripe, getPriceId, PLANS, type PaidPlanTier } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],
-    line_items: [{ price: getPriceId(plan as PlanTier), quantity: 1 }],
+    line_items: [{ price: getPriceId(plan as PaidPlanTier), quantity: 1 }],
     success_url: `${appUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/billing`,
     subscription_data: {

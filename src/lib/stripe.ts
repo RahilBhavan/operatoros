@@ -12,76 +12,54 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export function getPriceId(tier: PlanTier): string {
-  const key =
-    tier === "starter"
-      ? "STRIPE_STARTER_PRICE_ID"
-      : tier === "growth"
-        ? "STRIPE_GROWTH_PRICE_ID"
-        : "STRIPE_SCALE_PRICE_ID";
+const PRICE_ENV_BY_TIER: Record<PaidPlanTier, string> = {
+  business: "STRIPE_BUSINESS_PRICE_ID",
+  accountant: "STRIPE_ACCOUNTANT_PRICE_ID",
+};
+
+export function getPriceId(tier: PaidPlanTier): string {
+  const key = PRICE_ENV_BY_TIER[tier];
   const id = process.env[key];
   if (!id) throw new Error(`${key} is not set`);
   return id;
 }
 
 export const PLANS = {
-  starter: {
-    name: "Starter",
-    amount: 29,
-    features: [
-      "Up to 50 deadlines",
-      "Email reminders",
-      "Document storage (1 GB)",
-      "Basic dashboard",
-    ],
-  },
-  growth: {
-    name: "Growth",
+  business: {
+    name: "Business",
     amount: 79,
+    description: "For small businesses tracking their own compliance",
     features: [
       "Unlimited deadlines",
-      "Email + SMS reminders",
       "Document storage (10 GB)",
-      "Shareable compliance link",
-      "PDF audit export",
+      "Email + SMS reminders",
       "AI compliance insights",
-      "Priority support",
+      "Shareable audit link",
+      "PDF audit export",
+      "Invite your accountant (read-only)",
+      "Up to 5 team members",
     ],
   },
-  scale: {
-    name: "Scale",
-    amount: 149,
-    features: [
-      "Everything in Growth",
-      "Multiple locations",
-      "Team members (5 seats)",
-      "API access",
-      "Custom reminders",
-      "Dedicated support",
-    ],
-  },
-  accountant_pro: {
-    name: "Accountant Pro",
-    amount: 499,
+  accountant: {
+    name: "Accountant",
+    amount: 299,
+    description: "For CPAs and bookkeepers managing client portfolios",
     features: [
       "Manage up to 200 client portfolios",
-      "White-labeled compliance reports",
       "Bulk client onboarding",
-      "Accountant action portal (add notes, flag items)",
+      "White-labeled compliance reports",
+      "Per-client compliance score dashboard",
+      "Accountant action portal (notes, flags)",
       "Priority API access",
       "Dedicated account manager",
-      "Volume discount pricing for clients",
     ],
   },
 } as const;
 
-export type PlanTier = keyof typeof PLANS;
+export type PaidPlanTier = keyof typeof PLANS;
+export type PlanTier = "free" | PaidPlanTier;
 
 
-/**
- * Stripe webhook helpers: never trust `metadata.business_id` unless it matches
- * the row keyed by `stripe_customer_id` from the Stripe object.
- */
 export function stripeCustomerIdToString(
   customer: string | { id?: string } | null | undefined
 ): string | null {
@@ -91,7 +69,6 @@ export function stripeCustomerIdToString(
   return null;
 }
 
-/** Business id to mutate, or null when metadata must not be applied. */
 export function resolveTrustedBusinessId(args: {
   stripeCustomerId: string | null;
   businessFromCustomer: { id: string } | null | undefined;
@@ -106,7 +83,6 @@ export function resolveTrustedBusinessId(args: {
   return row.id;
 }
 
-/** Subscription lifecycle events: prefer metadata match when present; otherwise trust customer→business row. */
 export function resolveSubscriptionBusinessId(args: {
   stripeCustomerId: string | null;
   businessFromCustomer: { id: string } | null | undefined;
@@ -118,4 +94,3 @@ export function resolveSubscriptionBusinessId(args: {
     ? args.businessFromCustomer.id
     : null;
 }
-

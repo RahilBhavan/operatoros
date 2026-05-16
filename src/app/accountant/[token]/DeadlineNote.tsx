@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 interface DeadlineNoteProps {
   deadlineId: string;
@@ -9,7 +9,11 @@ interface DeadlineNoteProps {
   existingNote: string | null;
 }
 
-export default function DeadlineNote({ deadlineId, token, existingNote }: DeadlineNoteProps) {
+export default function DeadlineNote({
+  deadlineId,
+  token,
+  existingNote,
+}: DeadlineNoteProps) {
   const [open, setOpen] = useState(!!existingNote);
   const [note, setNote] = useState(existingNote ?? "");
   const [saving, setSaving] = useState(false);
@@ -37,37 +41,38 @@ export default function DeadlineNote({ deadlineId, token, existingNote }: Deadli
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mt-1 transition-colors"
+        className="t-utility !text-[12px] !text-[var(--color-ground)] opacity-60 hover:opacity-100 hover:text-[var(--color-mark)] mt-2 transition-colors"
       >
-        <MessageSquare className="w-3 h-3" />
-        Add note
+        + ADD NOTE
       </button>
     );
   }
 
   return (
-    <div className="mt-2">
+    <div className="mt-3 border-t border-[var(--color-ground)] pt-3">
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Add a note for your client or for your records…"
         rows={2}
         maxLength={1000}
-        className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-700 placeholder:text-slate-300 resize-none"
+        className="t-input !text-[15px] resize-none"
       />
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-xs text-slate-300">{note.length}/1000</span>
+      <div className="flex items-center justify-between mt-2">
+        <span className="t-utility !text-[12px] opacity-60">
+          {note.length}/1000
+        </span>
         <button
           onClick={saveNote}
           disabled={saving || !note.trim()}
-          className="flex items-center gap-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-3 py-1 rounded-lg font-medium transition-colors"
+          className="btn !min-h-0 !py-2 !px-3 !text-[12px]"
         >
           {saving ? (
             <Loader2 className="w-3 h-3 animate-spin" />
           ) : saved ? (
             <Check className="w-3 h-3" />
           ) : null}
-          {saved ? "Saved" : "Save note"}
+          {saved ? "SAVED" : "SAVE NOTE"}
         </button>
       </div>
     </div>

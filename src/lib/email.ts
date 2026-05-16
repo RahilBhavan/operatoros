@@ -23,6 +23,28 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#x27;");
 }
 
+function formatCents(cents: number | null | undefined): string {
+  if (!cents || cents <= 0) return "";
+  if (cents < 100000) return `$${(cents / 100).toFixed(0)}`;
+  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
+const SEVERITY_LABEL: Record<string, string> = {
+  critical: "Critical",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  info: "Informational",
+};
+
+const SEVERITY_COLOR: Record<string, string> = {
+  critical: "#dc2626",
+  high: "#ea580c",
+  medium: "#ca8a04",
+  low: "#64748b",
+  info: "#94a3b8",
+};
+
 export interface ReminderEmailParams {
   to: string;
   businessName: string;
@@ -30,47 +52,99 @@ export interface ReminderEmailParams {
   daysUntilDue: number;
   dueDate: string;
   deadlineUrl: string;
+  governingAgency?: string | null;
+  severity?: string | null;
+  penaltyEstimateCents?: number | null;
+  statuteCitation?: string | null;
+  sourceUrl?: string | null;
+  unsubscribeUrl?: string | null;
 }
 
 export async function sendReminderEmail(params: ReminderEmailParams) {
-  const { to, businessName, deadlineName, daysUntilDue, dueDate, deadlineUrl } =
-    params;
+  const {
+    to,
+    businessName,
+    deadlineName,
+    daysUntilDue,
+    dueDate,
+    deadlineUrl,
+    governingAgency,
+    severity,
+    penaltyEstimateCents,
+    statuteCitation,
+    sourceUrl,
+    unsubscribeUrl,
+  } = params;
 
   const safeName = escapeHtml(businessName);
   const safeDeadline = escapeHtml(deadlineName);
   const safeDueDate = escapeHtml(dueDate);
   const safeUrl = deadlineUrl.startsWith("https://") ? deadlineUrl : "";
+  const safeAgency = governingAgency ? escapeHtml(governingAgency) : null;
+  const safeStatute = statuteCitation ? escapeHtml(statuteCitation) : null;
+  const safeSourceUrl =
+    sourceUrl && sourceUrl.startsWith("https://") ? sourceUrl : null;
+  const safeUnsubUrl =
+    unsubscribeUrl && unsubscribeUrl.startsWith("https://") ? unsubscribeUrl : null;
+
+  const sev = severity ?? "medium";
+  const sevColor = SEVERITY_COLOR[sev] ?? SEVERITY_COLOR.medium;
+  const sevLabel = SEVERITY_LABEL[sev] ?? SEVERITY_LABEL.medium;
+  const penaltyText = formatCents(penaltyEstimateCents);
+
+  // Subject leads with risk dollars when known, otherwise with severity.
+  const subjectPrefix =
+    penaltyText
+      ? `${penaltyText} penalty if missed`
+      : sev === "critical" || sev === "high"
+      ? `${sevLabel} priority`
+      : "Reminder";
+
+  const subject = `${subjectPrefix}: "${deadlineName}" due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}`;
 
   const urgencyLine =
-    daysUntilDue <= 7
-      ? `⚠️ This deadline is due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}.`
+    daysUntilDue <= 1
+      ? `This deadline is due ${daysUntilDue === 0 ? "today" : "tomorrow"}.`
+      : daysUntilDue <= 7
+      ? `This deadline is due in ${daysUntilDue} days.`
       : `Your deadline is coming up in ${daysUntilDue} days.`;
 
   const { error } = await getResend().emails.send({
     from: FROM,
     to,
-    subject: `Reminder: "${deadlineName}" is due in ${daysUntilDue} days`,
+    subject,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
-        <div style="margin-bottom: 24px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+        <div style="margin-bottom: 20px;">
           <span style="font-weight: 700; font-size: 18px; color: #1e293b;">OperatorOS</span>
         </div>
 
-        <p style="color: #475569; margin-bottom: 8px;">Hi ${safeName},</p>
-        <p style="color: #475569; margin-bottom: 16px;">${urgencyLine}</p>
+        <p style="color: #475569; margin: 0 0 8px;">Hi ${safeName},</p>
+        <p style="color: #475569; margin: 0 0 16px;">${urgencyLine}</p>
 
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
           <p style="margin: 0 0 4px; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Deadline</p>
           <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #0f172a;">${safeDeadline}</p>
-          <p style="margin: 0; font-size: 14px; color: #64748b;">Due: <strong>${safeDueDate}</strong></p>
+          <p style="margin: 0 0 4px; font-size: 14px; color: #64748b;">Due: <strong>${safeDueDate}</strong></p>
+          ${safeAgency ? `<p style="margin: 0 0 4px; font-size: 13px; color: #64748b;">Agency: ${safeAgency}</p>` : ""}
+          <p style="margin: 0 0 4px; font-size: 13px; color: ${sevColor};">
+            <strong>${sevLabel} severity</strong>${penaltyText ? ` &middot; estimated penalty <strong>${penaltyText}</strong>` : ""}
+          </p>
+          ${safeStatute ? `<p style="margin: 0; font-size: 12px; color: #94a3b8;">${safeStatute}</p>` : ""}
         </div>
 
-        <a href="${safeUrl}" style="display: inline-block; background: #2563eb; color: white; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; margin-bottom: 24px;">
+        <a href="${safeUrl}" style="display: inline-block; background: #2563eb; color: white; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; margin-bottom: 16px;">
           View deadline →
         </a>
 
-        <p style="font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 16px; margin: 0;">
-          You're receiving this because you have an account on OperatorOS.
+        ${safeSourceUrl ? `<p style="font-size: 12px; color: #64748b; margin: 0 0 16px;">Agency source: <a href="${safeSourceUrl}" style="color: #2563eb;">${escapeHtml(safeSourceUrl)}</a></p>` : ""}
+
+        <p style="font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; margin: 16px 0 0;">
+          Estimated penalty figures are statutory defaults; the actual amount may vary. OperatorOS does not provide legal, tax, or accounting advice — confirm exact requirements with the relevant agency or your accountant.
+        </p>
+
+        <p style="font-size: 11px; color: #94a3b8; margin: 12px 0 0;">
+          ${safeUnsubUrl ? `<a href="${safeUnsubUrl}" style="color: #94a3b8;">Unsubscribe from these reminders</a> &middot; ` : ""}
           <a href="${process.env.NEXT_PUBLIC_APP_URL}/billing" style="color: #94a3b8;">Manage subscription</a>
         </p>
       </div>

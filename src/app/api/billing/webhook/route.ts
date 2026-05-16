@@ -138,8 +138,8 @@ export async function POST(req: NextRequest) {
       await supabase
         .from("businesses")
         .update({
-          billing_status: "canceled",
-          plan_tier: "free",
+          billing_status: "canceled" as BillingStatus,
+          plan_tier: "free" as PlanTier,
           stripe_subscription_id: null,
         })
         .eq("id", trustedId);

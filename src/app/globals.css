@@ -1,12 +1,340 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+/* ============================================================
+   THE TAG DOCTRINE — design tokens
+   3 colors · 3 type roles · 6 tenets · 6 refusals · 4 tests
+   Reading distance: arm's length (40cm) · Light: any
+   Contrast: ≥7:1 Destination · ≥4.5:1 Utility (WCAG AAA / AA)
+   ============================================================ */
+
+@theme {
+  /* Color — three hex values, no exceptions */
+  --color-field: #F4EDE0;        /* cream — body / background plane */
+  --color-ground: #14213D;       /* navy — primary type / structure / Pan Am saturated block */
+  --color-mark: #C8102E;         /* red — signals / indices / references / past-due */
+
+  /* Subtle structural tints (used ONLY for thin rules and inks, never as decoration) */
+  --color-ground-soft: #2A3754;  /* navy at lower weight for borders */
+  --color-field-soft: #ECE3D0;   /* cream darker for hovers / pressed states */
+  --color-kraft: #C9A87C;        /* the kraft-paper reinforcement tab */
+
+  /* Type — three roles */
+  --font-destination: var(--font-destination), "Inter", system-ui, sans-serif;
+  --font-index: var(--font-index), "Roboto Slab", "Rockwell", serif;
+  --font-utility: var(--font-destination), "Inter", system-ui, sans-serif;
+  --font-a11y: var(--font-a11y), "Atkinson Hyperlegible", "Inter", sans-serif;
+
+  /* Type scale — 1.250 minor third — steps 12·15·19·24·30·38·48·60·75 pt */
+  --text-utility: 12px;
+  --text-utility--line-height: 1.4;
+  --text-utility--letter-spacing: 0.08em;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.45;
+  --text-body: 15px;
+  --text-body--line-height: 1.55;
+  --text-subhead: 19px;
+  --text-subhead--line-height: 1.4;
+  --text-h3: 24px;
+  --text-h3--line-height: 1.3;
+  --text-h2: 30px;
+  --text-h2--line-height: 1.2;
+  --text-h1: 38px;
+  --text-h1--line-height: 1.15;
+  --text-display: 48px;
+  --text-display--line-height: 1.05;
+  --text-marquee: 60px;
+  --text-marquee--line-height: 1.0;
+  --text-destination: 75px;
+  --text-destination--line-height: 1.0;
+  --text-destination--letter-spacing: -0.02em;
+
+  /* Spacing — 8pt base · Fibonacci modular scale */
+  --spacing: 8px;
+
+  /* Radius — sharp by default. Only the kraft tab gets a hint of softness. */
+  --radius-tab: 4px;
+  --radius-card: 0px;
+  --radius-hole: 9999px;
+
+  /* Format — 2:3 ratio is the canonical aspect for any tag-card */
+  --aspect-tag: 2 / 3;
+  --aspect-tag-wide: 3 / 2;
+}
+
+/* ============================================================
+   Stressed-Body — accessibility floor
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dyslexic-safe fallback — opt in via [data-a11y="hyperlegible"] on <html> */
+html[data-a11y="hyperlegible"] body {
+  font-family: var(--font-a11y);
+}
+
+/* ============================================================
+   Base styles — body, selection, focus
+   ============================================================ */
+
+html {
+  background: var(--color-field);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-destination);
+  font-feature-settings: "ss01", "cv11";  /* Inter alt forms — straighter digits */
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-ground);
+  color: var(--color-field);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-mark);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Doctrine utility classes
+   ============================================================ */
+
+/* Three-Second test scaffolding: ensure the destination dominates */
+.t-destination {
+  font-family: var(--font-destination);
+  font-weight: 900;
+  font-size: var(--text-destination);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--color-ground);
+}
+
+.t-display {
+  font-family: var(--font-destination);
+  font-weight: 800;
+  font-size: var(--text-display);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.t-marquee {
+  font-family: var(--font-destination);
+  font-weight: 900;
+  font-size: var(--text-marquee);
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.t-h1 {
+  font-family: var(--font-destination);
+  font-weight: 800;
+  font-size: var(--text-h1);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.t-h2 {
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: var(--text-h2);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.t-h3 {
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: var(--text-h3);
+  line-height: 1.25;
+}
+
+.t-subhead {
+  font-family: var(--font-destination);
+  font-weight: 600;
+  font-size: var(--text-subhead);
+  line-height: 1.4;
+}
+
+.t-body {
+  font-family: var(--font-destination);
+  font-weight: 400;
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+
+.t-index {
+  font-family: var(--font-index);
+  font-weight: 700;
+  font-style: normal;
+  color: var(--color-mark);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.t-utility {
+  font-family: var(--font-destination);
+  font-weight: 600;
+  font-size: var(--text-utility);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.t-caption {
+  font-family: var(--font-destination);
+  font-weight: 500;
+  font-size: var(--text-caption);
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  color: var(--color-ground);
+  opacity: 0.7;
+}
+
+/* The Pan Am kraft tab — punched hole at top center, slight tan tone, sharp corners */
+.tag-tab {
+  background: var(--color-kraft);
+  color: var(--color-ground);
+  padding: 8px 16px;
+  border-radius: 0 0 var(--radius-tab) var(--radius-tab);
+  position: relative;
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: var(--text-utility);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-tab::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-hole);
+  background: var(--color-field);
+  display: inline-block;
+}
+
+/* Die-cut perforation along the bottom edge of a tag-card */
+.tag-perforated {
+  --notch: 6px;
+  -webkit-mask: radial-gradient(circle at var(--notch) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px))
+    repeat-x;
+  -webkit-mask-size: calc(var(--notch) * 2) var(--notch);
+  -webkit-mask-position: bottom;
+  mask: radial-gradient(circle at var(--notch) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px))
+    repeat-x;
+  mask-size: calc(var(--notch) * 2) var(--notch);
+  mask-position: bottom;
+  padding-bottom: var(--notch);
+}
+
+/* Sorting symbol arrow — the right-pointing arrow with a letter A/B/C */
+.sort-arrow {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  border: 2px solid var(--color-ground);
+  font-family: var(--font-destination);
+  font-weight: 800;
+}
+.sort-arrow__label {
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-utility);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-right: 2px solid var(--color-ground);
+}
+.sort-arrow__letter {
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-subhead);
+}
+
+/* The reproduction-test specimen rule: a 1px hairline always uses ground */
+.t-rule {
+  border-color: var(--color-ground);
+  border-width: 1px;
+}
+
+/* Buttons — sharp, no gradients, no rounded-everything */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-destination);
+  font-weight: 700;
+  font-size: var(--text-body);
+  padding: 12px 20px;
+  border: 2px solid var(--color-ground);
+  background: var(--color-ground);
+  color: var(--color-field);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: transform 80ms ease-out, background 120ms ease-out;
+  min-height: 44px;            /* glove-tolerant target */
+  cursor: pointer;
+}
+.btn:hover { background: var(--color-mark); border-color: var(--color-mark); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ground);
+}
+.btn-ghost:hover {
+  background: var(--color-ground);
+  color: var(--color-field);
+}
+
+.btn-mark {
+  background: var(--color-mark);
+  border-color: var(--color-mark);
+  color: var(--color-field);
+}
+.btn-mark:hover { background: var(--color-ground); border-color: var(--color-ground); }
+
+/* Form inputs — sharp, high-contrast, glove-tolerant */
+.t-input {
+  font-family: var(--font-destination);
+  font-size: var(--text-body);
+  padding: 12px 14px;
+  border: 2px solid var(--color-ground);
+  background: var(--color-field);
+  color: var(--color-ground);
+  min-height: 44px;
+  width: 100%;
+}
+.t-input::placeholder {
+  color: var(--color-ground);
+  opacity: 0.4;
+}
+.t-input:focus {
+  outline: 2px solid var(--color-mark);
+  outline-offset: -2px;
+}
+
+/* Link */
+.t-link {
+  color: var(--color-ground);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.t-link:hover {
+  color: var(--color-mark);
 }

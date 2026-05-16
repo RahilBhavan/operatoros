@@ -2,6 +2,8 @@ import type { OnboardingData } from "@/types/onboarding";
 import { formatIsoDate } from "@/lib/deadline-utils";
 import { requiresOshaLog } from "@/lib/onboarding-utils";
 
+export type SeverityTier = "critical" | "high" | "medium" | "low" | "info";
+
 export type DeadlineSeed = {
   business_id: string;
   name: string;
@@ -11,9 +13,26 @@ export type DeadlineSeed = {
   frequency: string;
   due_date: string;
   source: string;
+  severity_tier: SeverityTier;
+  penalty_estimate_cents: number | null;
+  source_url: string | null;
+  statute_citation: string | null;
 };
 
-// Returns the next future date for a given month (0-indexed) and day.
+type SeedMeta = {
+  severity_tier?: SeverityTier;
+  penalty_estimate_cents?: number | null;
+  source_url?: string | null;
+  statute_citation?: string | null;
+};
+
+type PartialSeed = Omit<
+  DeadlineSeed,
+  "business_id" | "source" | "severity_tier" | "penalty_estimate_cents" | "source_url" | "statute_citation"
+> & SeedMeta;
+
+const DEFAULT_SEVERITY: SeverityTier = "medium";
+
 export function nextDate(month: number, day: number, referenceDate?: Date): Date {
   const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(0, 0, 0, 0);
@@ -22,13 +41,12 @@ export function nextDate(month: number, day: number, referenceDate?: Date): Date
   return candidate;
 }
 
-// Returns the next N quarterly 941 due dates (Apr 30, Jul 31, Oct 31, Jan 31).
 export function next941Dates(n: number, referenceDate?: Date): Date[] {
   const quarterEnds = [
-    [3, 30], // Q1 → April 30
-    [6, 31], // Q2 → July 31
-    [9, 31], // Q3 → October 31
-    [0, 31], // Q4 → January 31
+    [3, 30],
+    [6, 31],
+    [9, 31],
+    [0, 31],
   ];
   const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(0, 0, 0, 0);
@@ -43,17 +61,80 @@ export function next941Dates(n: number, referenceDate?: Date): Date[] {
   return candidates;
 }
 
-// State-specific deadline builders. Each returns zero or more seeds to append.
+// 50-state + DC annual entity-filing rule table. Each entry encodes the
+// agency name + typical filing month/day + frequency + source URL so the
+// generic state block can produce a citable deadline for any state we don't
+// explicitly hand-code.
+type StateRule = {
+  agency: string;
+  month: number; // 0-indexed
+  day: number;
+  frequency: "annual" | "biennial" | "decennial";
+  source_url: string;
+  statute_citation?: string;
+  late_fee_cents?: number;
+};
+
+const STATE_RULES: Record<string, StateRule> = {
+  AL: { agency: "Alabama Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://www.sos.alabama.gov/business-services" },
+  AK: { agency: "Alaska Division of Corporations", month: 0, day: 2, frequency: "biennial", source_url: "https://www.commerce.alaska.gov/web/cbpl/corporations.aspx" },
+  AZ: { agency: "Arizona Corporation Commission", month: 3, day: 15, frequency: "annual", source_url: "https://ecorp.azcc.gov/" },
+  AR: { agency: "Arkansas Secretary of State", month: 4, day: 1, frequency: "annual", source_url: "https://www.sos.arkansas.gov/business-commercial-services-bcs", late_fee_cents: 2500000 },
+  CO: { agency: "Colorado Secretary of State", month: 0, day: 31, frequency: "annual", source_url: "https://www.sos.state.co.us/biz/" },
+  CT: { agency: "Connecticut Secretary of State", month: 3, day: 1, frequency: "annual", source_url: "https://business.ct.gov/" },
+  DC: { agency: "DC Department of Licensing & Consumer Protection", month: 3, day: 1, frequency: "biennial", source_url: "https://dlcp.dc.gov/" },
+  GA: { agency: "Georgia Secretary of State", month: 3, day: 1, frequency: "annual", source_url: "https://sos.ga.gov/corporations-division" },
+  HI: { agency: "Hawaii Department of Commerce", month: 2, day: 31, frequency: "annual", source_url: "https://cca.hawaii.gov/breg/" },
+  ID: { agency: "Idaho Secretary of State", month: 10, day: 30, frequency: "annual", source_url: "https://sosbiz.idaho.gov/" },
+  IL: { agency: "Illinois Secretary of State", month: 1, day: 1, frequency: "annual", source_url: "https://www.ilsos.gov/departments/business_services/home.html", late_fee_cents: 30000 },
+  IN: { agency: "Indiana Secretary of State", month: 3, day: 30, frequency: "biennial", source_url: "https://inbiz.in.gov/" },
+  IA: { agency: "Iowa Secretary of State", month: 3, day: 1, frequency: "biennial", source_url: "https://sos.iowa.gov/business/" },
+  KS: { agency: "Kansas Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://sos.ks.gov/business/business-filing-center.html" },
+  KY: { agency: "Kentucky Secretary of State", month: 5, day: 30, frequency: "annual", source_url: "https://sos.ky.gov/bus/" },
+  LA: { agency: "Louisiana Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://www.sos.la.gov/BusinessServices/" },
+  ME: { agency: "Maine Secretary of State", month: 5, day: 1, frequency: "annual", source_url: "https://www.maine.gov/sos/cec/corp/" },
+  MD: { agency: "Maryland State Department of Assessments", month: 3, day: 15, frequency: "annual", source_url: "https://dat.maryland.gov/" },
+  MA: { agency: "Massachusetts Secretary of the Commonwealth", month: 2, day: 15, frequency: "annual", source_url: "https://www.sec.state.ma.us/cor/" },
+  MI: { agency: "Michigan LARA Bureau of Corporations", month: 1, day: 15, frequency: "annual", source_url: "https://www.michigan.gov/lara/bureau-list/cscl" },
+  MN: { agency: "Minnesota Secretary of State", month: 11, day: 31, frequency: "annual", source_url: "https://www.sos.state.mn.us/business-liens/" },
+  MS: { agency: "Mississippi Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://www.sos.ms.gov/business-services" },
+  MO: { agency: "Missouri Secretary of State", month: 7, day: 30, frequency: "annual", source_url: "https://www.sos.mo.gov/business" },
+  MT: { agency: "Montana Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://sosmt.gov/business/" },
+  NE: { agency: "Nebraska Secretary of State", month: 3, day: 1, frequency: "biennial", source_url: "https://sos.nebraska.gov/business-services" },
+  NV: { agency: "Nevada Secretary of State", month: 0, day: 31, frequency: "annual", source_url: "https://www.nvsos.gov/sos/businesses/" },
+  NH: { agency: "New Hampshire Secretary of State", month: 3, day: 1, frequency: "annual", source_url: "https://quickstart.sos.nh.gov/" },
+  NJ: { agency: "New Jersey Division of Revenue", month: 3, day: 30, frequency: "annual", source_url: "https://www.nj.gov/treasury/revenue/" },
+  NM: { agency: "New Mexico Secretary of State", month: 3, day: 15, frequency: "biennial", source_url: "https://www.sos.state.nm.us/business-services/" },
+  NC: { agency: "North Carolina Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://www.sosnc.gov/divisions/business_registration" },
+  ND: { agency: "North Dakota Secretary of State", month: 10, day: 1, frequency: "annual", source_url: "https://sos.nd.gov/business/" },
+  OH: { agency: "Ohio Secretary of State", month: 3, day: 15, frequency: "annual", source_url: "https://www.ohiosos.gov/businesses/" },
+  OK: { agency: "Oklahoma Secretary of State", month: 5, day: 30, frequency: "annual", source_url: "https://www.sos.ok.gov/business/" },
+  OR: { agency: "Oregon Secretary of State", month: 11, day: 31, frequency: "annual", source_url: "https://sos.oregon.gov/business/" },
+  PA: { agency: "Pennsylvania Department of State", month: 5, day: 30, frequency: "decennial", source_url: "https://www.dos.pa.gov/BusinessCharities/" },
+  RI: { agency: "Rhode Island Department of State", month: 1, day: 1, frequency: "annual", source_url: "https://www.sos.ri.gov/divisions/business-services" },
+  SC: { agency: "South Carolina Secretary of State", month: 2, day: 15, frequency: "annual", source_url: "https://sos.sc.gov/online-filings" },
+  SD: { agency: "South Dakota Secretary of State", month: 0, day: 31, frequency: "annual", source_url: "https://sosenterprise.sd.gov/" },
+  TN: { agency: "Tennessee Secretary of State", month: 3, day: 1, frequency: "annual", source_url: "https://sos.tn.gov/business-services" },
+  UT: { agency: "Utah Division of Corporations", month: 3, day: 15, frequency: "annual", source_url: "https://corporations.utah.gov/" },
+  VT: { agency: "Vermont Secretary of State", month: 2, day: 15, frequency: "annual", source_url: "https://sos.vermont.gov/corporations/" },
+  VA: { agency: "Virginia State Corporation Commission", month: 11, day: 31, frequency: "annual", source_url: "https://www.scc.virginia.gov/clk/" },
+  WA: { agency: "Washington Secretary of State", month: 3, day: 30, frequency: "annual", source_url: "https://www.sos.wa.gov/corporations/" },
+  WV: { agency: "West Virginia Secretary of State", month: 5, day: 30, frequency: "annual", source_url: "https://sos.wv.gov/business/Pages/default.aspx" },
+  WI: { agency: "Wisconsin Department of Financial Institutions", month: 3, day: 1, frequency: "annual", source_url: "https://www.wdfi.org/corporations/" },
+  WY: { agency: "Wyoming Secretary of State", month: 0, day: 1, frequency: "annual", source_url: "https://wyobiz.wyo.gov/" },
+};
+
+// States with their own explicit blocks — STATE_RULES fallback should skip these.
+const EXPLICITLY_HANDLED_STATES = new Set(["CA", "TX", "NY", "DE", "FL"]);
+
 function stateDeadlines(
   data: OnboardingData,
-  businessId: string,
   today: Date,
   nd: (month: number, day: number) => Date
-): Omit<DeadlineSeed, "business_id" | "source">[] {
+): PartialSeed[] {
   const { state, entityType } = data;
-  const out: Omit<DeadlineSeed, "business_id" | "source">[] = [];
+  const out: PartialSeed[] = [];
 
-  // California — LLC minimum franchise tax + Statement of Information
   if (state === "CA") {
     if (entityType === "llc" || entityType === "s_corp" || entityType === "c_corp") {
       out.push({
@@ -64,6 +145,10 @@ function stateDeadlines(
         governing_agency: "California Franchise Tax Board (FTB)",
         frequency: "annual",
         due_date: formatIsoDate(nd(3, 15)),
+        severity_tier: "critical",
+        penalty_estimate_cents: 80000,
+        source_url: "https://www.ftb.ca.gov/file/business/types/limited-liability-company/index.html",
+        statute_citation: "CA Rev & Tax Code §17941",
       });
     }
     if (entityType === "llc") {
@@ -75,6 +160,10 @@ function stateDeadlines(
         governing_agency: "California Secretary of State",
         frequency: "biennial",
         due_date: formatIsoDate(nd(3, 15)),
+        severity_tier: "high",
+        penalty_estimate_cents: 25000,
+        source_url: "https://bizfileonline.sos.ca.gov/",
+        statute_citation: "CA Corp Code §17702.09",
       });
     }
     if (data.employeeRange && data.employeeRange !== "1") {
@@ -86,11 +175,14 @@ function stateDeadlines(
         governing_agency: "California EDD",
         frequency: "quarterly",
         due_date: formatIsoDate(nd(3, 30)),
+        severity_tier: "high",
+        penalty_estimate_cents: 50000,
+        source_url: "https://edd.ca.gov/Payroll_Taxes/",
+        statute_citation: "CA Unemployment Insurance Code §1112",
       });
     }
   }
 
-  // Texas — Franchise tax (due May 15)
   if (state === "TX") {
     if (entityType && ["llc", "s_corp", "c_corp", "partnership"].includes(entityType)) {
       out.push({
@@ -101,11 +193,14 @@ function stateDeadlines(
         governing_agency: "Texas Comptroller of Public Accounts",
         frequency: "annual",
         due_date: formatIsoDate(nd(4, 15)),
+        severity_tier: "high",
+        penalty_estimate_cents: 5000,
+        source_url: "https://comptroller.texas.gov/taxes/franchise/",
+        statute_citation: "TX Tax Code Ch. 171",
       });
     }
   }
 
-  // New York — Biennial Statement + NYC Business Certificate
   if (state === "NY") {
     if (entityType === "llc") {
       out.push({
@@ -116,6 +211,10 @@ function stateDeadlines(
         governing_agency: "New York Department of State",
         frequency: "biennial",
         due_date: formatIsoDate(new Date(today.getFullYear() + 2, today.getMonth(), 1)),
+        severity_tier: "medium",
+        penalty_estimate_cents: 25000,
+        source_url: "https://dos.ny.gov/biennial-statements",
+        statute_citation: "NY LLC Law §301",
       });
     }
     if (entityType === "s_corp" || entityType === "c_corp") {
@@ -127,11 +226,14 @@ function stateDeadlines(
         governing_agency: "New York Department of State",
         frequency: "biennial",
         due_date: formatIsoDate(nd(0, 31)),
+        severity_tier: "medium",
+        penalty_estimate_cents: 25000,
+        source_url: "https://dos.ny.gov/biennial-statements",
+        statute_citation: "NY BCL §408",
       });
     }
   }
 
-  // Delaware — Annual Franchise Tax (due March 1)
   if (state === "DE") {
     if (entityType === "llc") {
       out.push({
@@ -142,6 +244,10 @@ function stateDeadlines(
         governing_agency: "Delaware Division of Corporations",
         frequency: "annual",
         due_date: formatIsoDate(nd(5, 1)),
+        severity_tier: "critical",
+        penalty_estimate_cents: 20000,
+        source_url: "https://corp.delaware.gov/paytaxes/",
+        statute_citation: "8 DE Code §132",
       });
     }
     if (entityType === "c_corp" || entityType === "s_corp") {
@@ -153,11 +259,14 @@ function stateDeadlines(
         governing_agency: "Delaware Division of Corporations",
         frequency: "annual",
         due_date: formatIsoDate(nd(2, 1)),
+        severity_tier: "critical",
+        penalty_estimate_cents: 20000,
+        source_url: "https://corp.delaware.gov/paytaxes/",
+        statute_citation: "8 DE Code §503",
       });
     }
   }
 
-  // Florida — Annual Report (due May 1)
   if (state === "FL") {
     if (entityType && ["llc", "s_corp", "c_corp"].includes(entityType)) {
       out.push({
@@ -168,8 +277,34 @@ function stateDeadlines(
         governing_agency: "Florida Division of Corporations (Sunbiz)",
         frequency: "annual",
         due_date: formatIsoDate(nd(4, 1)),
+        severity_tier: "high",
+        penalty_estimate_cents: 40000,
+        source_url: "https://dos.fl.gov/sunbiz/",
+        statute_citation: "Fla. Stat. §605.0212",
       });
     }
+  }
+
+  // Generic fallback for the remaining 45 states + DC.
+  if (
+    !EXPLICITLY_HANDLED_STATES.has(state) &&
+    STATE_RULES[state] &&
+    entityType &&
+    ["llc", "s_corp", "c_corp"].includes(entityType)
+  ) {
+    const rule = STATE_RULES[state];
+    out.push({
+      name: `${state} ${rule.frequency === "biennial" ? "Biennial" : rule.frequency === "decennial" ? "Decennial" : "Annual"} Entity Report`,
+      description: `${rule.frequency === "decennial" ? "Decennial" : rule.frequency === "biennial" ? "Biennial" : "Annual"} entity report filed with the ${rule.agency}. Failure to file can result in administrative dissolution. Verify filing window and fee at the agency portal.`,
+      deadline_type: "entity_filing",
+      governing_agency: rule.agency,
+      frequency: rule.frequency,
+      due_date: formatIsoDate(nd(rule.month, rule.day)),
+      severity_tier: "high",
+      penalty_estimate_cents: rule.late_fee_cents ?? 10000,
+      source_url: rule.source_url,
+      statute_citation: rule.statute_citation ?? null,
+    });
   }
 
   return out;
@@ -178,7 +313,6 @@ function stateDeadlines(
 /**
  * Builds the starter set of compliance deadlines for a new business.
  * Pure function — no side effects, no network calls.
- * Accepts an optional referenceDate for deterministic testing.
  */
 export function buildStarterDeadlines(
   data: OnboardingData,
@@ -193,15 +327,29 @@ export function buildStarterDeadlines(
 
   const deadlines: DeadlineSeed[] = [];
 
-  function push(d: Omit<DeadlineSeed, "business_id" | "source">) {
-    deadlines.push({ ...d, business_id: businessId, source: "discovery_agent" });
+  function push(d: PartialSeed) {
+    deadlines.push({
+      business_id: businessId,
+      source: "discovery_agent",
+      severity_tier: d.severity_tier ?? DEFAULT_SEVERITY,
+      penalty_estimate_cents: d.penalty_estimate_cents ?? null,
+      source_url: d.source_url ?? null,
+      statute_citation: d.statute_citation ?? null,
+      name: d.name,
+      description: d.description,
+      deadline_type: d.deadline_type,
+      governing_agency: d.governing_agency,
+      frequency: d.frequency,
+      due_date: d.due_date,
+    });
   }
 
   function nd(month: number, day: number): Date {
     return nextDate(month, day, today);
   }
 
-  // ── Entity filing ──────────────────────────────────────────────────────────
+  // Entity filing (generic per-state). Explicitly-handled states emit richer
+  // versions from stateDeadlines(); this remains a baseline for everyone else.
   if (data.entityType && ["llc", "s_corp", "c_corp"].includes(data.entityType)) {
     push({
       name: `${data.state} Annual Report / Entity Filing`,
@@ -210,10 +358,12 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Secretary of State`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 10000,
+      source_url: STATE_RULES[data.state]?.source_url ?? null,
     });
   }
 
-  // ── Business license ───────────────────────────────────────────────────────
   const licenseDate = new Date(today);
   licenseDate.setMonth(licenseDate.getMonth() + 11);
   push({
@@ -224,9 +374,11 @@ export function buildStarterDeadlines(
     governing_agency: "City / County Business Office",
     frequency: "annual",
     due_date: formatIsoDate(licenseDate),
+    severity_tier: "medium",
+    penalty_estimate_cents: 5000,
   });
 
-  // ── Federal income tax return ──────────────────────────────────────────────
+  // Federal income tax
   if (data.entityType === "s_corp" || data.entityType === "partnership") {
     push({
       name: "Federal Business Tax Return (Form 1120-S / 1065)",
@@ -236,6 +388,10 @@ export function buildStarterDeadlines(
       governing_agency: "IRS",
       frequency: "annual",
       due_date: formatIsoDate(nd(2, 15)),
+      severity_tier: "critical",
+      penalty_estimate_cents: 21000,
+      source_url: "https://www.irs.gov/businesses/small-businesses-self-employed/s-corporations",
+      statute_citation: "IRC §6699",
     });
   } else if (data.entityType === "c_corp") {
     push({
@@ -246,6 +402,10 @@ export function buildStarterDeadlines(
       governing_agency: "IRS",
       frequency: "annual",
       due_date: formatIsoDate(nd(3, 15)),
+      severity_tier: "critical",
+      penalty_estimate_cents: 50000,
+      source_url: "https://www.irs.gov/forms-pubs/about-form-1120",
+      statute_citation: "IRC §6651",
     });
   } else {
     push({
@@ -255,10 +415,14 @@ export function buildStarterDeadlines(
       governing_agency: "IRS",
       frequency: "annual",
       due_date: formatIsoDate(nd(3, 15)),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
+      source_url: "https://www.irs.gov/forms-pubs/about-form-1040",
+      statute_citation: "IRC §6651",
     });
   }
 
-  // ── Quarterly estimated taxes (non-withheld income) ────────────────────────
+  // Quarterly estimated taxes
   if (data.entityType !== "c_corp") {
     const estTaxDates = [
       { month: 3, day: 15, label: "Q1" },
@@ -276,12 +440,16 @@ export function buildStarterDeadlines(
           governing_agency: "IRS",
           frequency: "quarterly",
           due_date: formatIsoDate(dt),
+          severity_tier: "high",
+          penalty_estimate_cents: 15000,
+          source_url: "https://www.irs.gov/forms-pubs/about-form-1040-es",
+          statute_citation: "IRC §6654",
         });
       }
     }
   }
 
-  // ── Payroll tax deadlines (businesses with employees) ─────────────────────
+  // Payroll
   if (hasEmployees) {
     const dates941 = next941Dates(2, today);
     for (const dt of dates941) {
@@ -293,6 +461,10 @@ export function buildStarterDeadlines(
         governing_agency: "IRS",
         frequency: "quarterly",
         due_date: formatIsoDate(dt),
+        severity_tier: "critical",
+        penalty_estimate_cents: 200000,
+        source_url: "https://www.irs.gov/forms-pubs/about-form-941",
+        statute_citation: "IRC §6651, §6656 (failure-to-deposit)",
       });
     }
 
@@ -304,6 +476,10 @@ export function buildStarterDeadlines(
       governing_agency: "IRS",
       frequency: "annual",
       due_date: formatIsoDate(nd(0, 31)),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
+      source_url: "https://www.irs.gov/forms-pubs/about-form-940",
+      statute_citation: "IRC §3301",
     });
 
     push({
@@ -314,6 +490,10 @@ export function buildStarterDeadlines(
       governing_agency: "IRS / SSA",
       frequency: "annual",
       due_date: formatIsoDate(nd(0, 31)),
+      severity_tier: "high",
+      penalty_estimate_cents: 6000,
+      source_url: "https://www.irs.gov/forms-pubs/about-form-w-2",
+      statute_citation: "IRC §6721",
     });
 
     const wcDate = new Date(today);
@@ -326,10 +506,14 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Workers' Comp Board`,
       frequency: "annual",
       due_date: formatIsoDate(wcDate),
+      severity_tier: "critical",
+      penalty_estimate_cents: 500000,
     });
   }
 
-  // ── OSHA 300 Log (6+ employees) ───────────────────────────────────────────
+  // OSHA 300 — note: 10+ employee threshold; current bucket "6-15" can include
+  // 6-9 employee businesses. Kept as-is to preserve seeded behavior; thresholds
+  // here are best-effort given the coarse employee range buckets in onboarding.
   if (requiresOshaLog(data.employeeRange)) {
     push({
       name: "OSHA 300 Log — Annual Summary Posting",
@@ -339,10 +523,13 @@ export function buildStarterDeadlines(
       governing_agency: "OSHA (Federal / State)",
       frequency: "annual",
       due_date: formatIsoDate(new Date(today.getFullYear() + 1, 1, 1)),
+      severity_tier: "medium",
+      penalty_estimate_cents: 1500000,
+      source_url: "https://www.osha.gov/recordkeeping",
+      statute_citation: "29 CFR 1904",
     });
   }
 
-  // ── 1099-NEC (contractor-hiring businesses) ───────────────────────────────
   if (data.hiresContractors) {
     push({
       name: "1099-NEC Filing for Contractors",
@@ -352,15 +539,18 @@ export function buildStarterDeadlines(
       governing_agency: "IRS",
       frequency: "annual",
       due_date: formatIsoDate(nd(0, 31)),
+      severity_tier: "high",
+      penalty_estimate_cents: 6000,
+      source_url: "https://www.irs.gov/forms-pubs/about-form-1099-nec",
+      statute_citation: "IRC §6041A",
     });
   }
 
-  // ── State-specific deadlines ──────────────────────────────────────────────
-  for (const d of stateDeadlines(data, businessId, today, nd)) {
-    deadlines.push({ ...d, business_id: businessId, source: "discovery_agent" });
+  for (const d of stateDeadlines(data, today, nd)) {
+    push(d);
   }
 
-  // ── Industry: Restaurant ──────────────────────────────────────────────────
+  // ── Industry blocks ───────────────────────────────────────────────────────
   if (data.industry === "restaurant") {
     const healthDate = new Date(today);
     healthDate.setMonth(healthDate.getMonth() + 6);
@@ -372,6 +562,8 @@ export function buildStarterDeadlines(
       governing_agency: "County Health Department",
       frequency: "annual",
       due_date: formatIsoDate(healthDate),
+      severity_tier: "critical",
+      penalty_estimate_cents: 100000,
     });
     push({
       name: "Food Handler Certifications (Staff)",
@@ -381,6 +573,9 @@ export function buildStarterDeadlines(
       governing_agency: "State Health Department",
       frequency: "biennial",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 25000,
+      source_url: "https://www.servsafe.com/",
     });
     push({
       name: "State Sales Tax Filing — Monthly",
@@ -392,10 +587,11 @@ export function buildStarterDeadlines(
       due_date: formatIsoDate(
         nd(today.getMonth() + 1 > 11 ? 0 : today.getMonth() + 1, 20)
       ),
+      severity_tier: "high",
+      penalty_estimate_cents: 20000,
     });
   }
 
-  // ── Industry: Construction ────────────────────────────────────────────────
   if (data.industry === "construction") {
     push({
       name: "Contractor License Renewal",
@@ -405,6 +601,8 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Contractors Licensing Board`,
       frequency: "biennial",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "critical",
+      penalty_estimate_cents: 500000,
     });
     if (data.hiresContractors) {
       push({
@@ -415,11 +613,12 @@ export function buildStarterDeadlines(
         governing_agency: "Insurance Provider",
         frequency: "annual",
         due_date: formatIsoDate(nextYear),
+        severity_tier: "high",
+        penalty_estimate_cents: 250000,
       });
     }
   }
 
-  // ── Industry: Healthcare ──────────────────────────────────────────────────
   if (data.industry === "healthcare") {
     push({
       name: "Professional License Renewals",
@@ -429,6 +628,8 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Professional Licensing Board`,
       frequency: "biennial",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "critical",
+      penalty_estimate_cents: 1000000,
     });
     push({
       name: "DEA Registration Renewal",
@@ -440,6 +641,10 @@ export function buildStarterDeadlines(
       due_date: formatIsoDate(
         new Date(today.getFullYear() + 3, today.getMonth(), today.getDate())
       ),
+      severity_tier: "critical",
+      penalty_estimate_cents: 1000000,
+      source_url: "https://www.deadiversion.usdoj.gov/drugreg/",
+      statute_citation: "21 USC §822",
     });
     push({
       name: "HIPAA Security Risk Assessment",
@@ -449,10 +654,13 @@ export function buildStarterDeadlines(
       governing_agency: "HHS / OCR",
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 10000000,
+      source_url: "https://www.hhs.gov/hipaa/for-professionals/security/",
+      statute_citation: "45 CFR 164.308(a)(1)",
     });
   }
 
-  // ── Industry: Retail ──────────────────────────────────────────────────────
   if (data.industry === "retail") {
     push({
       name: "State Sales Tax Filing",
@@ -464,6 +672,8 @@ export function buildStarterDeadlines(
       due_date: formatIsoDate(
         nd(today.getMonth() + 1 > 11 ? 0 : today.getMonth() + 1, 20)
       ),
+      severity_tier: "high",
+      penalty_estimate_cents: 20000,
     });
     push({
       name: "Seller's Permit / Retail License Renewal",
@@ -473,10 +683,11 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Department of Revenue`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
     });
   }
 
-  // ── Industry: Personal Services ───────────────────────────────────────────
   if (data.industry === "personal_services") {
     push({
       name: "Cosmetology / Trade License Renewal",
@@ -486,6 +697,8 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Board of Cosmetology`,
       frequency: "biennial",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
     });
     push({
       name: "Establishment License Renewal",
@@ -495,10 +708,11 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Board of Cosmetology / Health`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
     });
   }
 
-  // ── Industry: Fitness / Wellness ──────────────────────────────────────────
   if (data.industry === "fitness") {
     push({
       name: "Fitness Facility License Renewal",
@@ -508,6 +722,8 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Department of Consumer Affairs`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "medium",
+      penalty_estimate_cents: 25000,
     });
     push({
       name: "Personal Trainer / Instructor Certifications",
@@ -517,10 +733,11 @@ export function buildStarterDeadlines(
       governing_agency: "NASM / ACE / NSCA",
       frequency: "biennial",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "medium",
+      penalty_estimate_cents: 10000,
     });
   }
 
-  // ── Industry: Transportation / Logistics ──────────────────────────────────
   if (data.industry === "transportation") {
     push({
       name: "USDOT Number Biennial Update",
@@ -532,6 +749,10 @@ export function buildStarterDeadlines(
       due_date: formatIsoDate(
         new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
       ),
+      severity_tier: "critical",
+      penalty_estimate_cents: 1100000,
+      source_url: "https://www.fmcsa.dot.gov/registration/usdot-number",
+      statute_citation: "49 CFR 390.19",
     });
     push({
       name: "Commercial Vehicle Registration Renewal",
@@ -541,6 +762,8 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} DMV / DOT`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
     });
     if (hasEmployees) {
       push({
@@ -553,11 +776,12 @@ export function buildStarterDeadlines(
         due_date: formatIsoDate(
           new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())
         ),
+        severity_tier: "high",
+        penalty_estimate_cents: 250000,
       });
     }
   }
 
-  // ── Industry: Manufacturing ───────────────────────────────────────────────
   if (data.industry === "manufacturing") {
     push({
       name: "EPA Hazardous Waste Annual Report",
@@ -567,6 +791,10 @@ export function buildStarterDeadlines(
       governing_agency: "EPA",
       frequency: "annual",
       due_date: formatIsoDate(nd(2, 1)),
+      severity_tier: "high",
+      penalty_estimate_cents: 5000000,
+      source_url: "https://www.epa.gov/hwgenerators",
+      statute_citation: "40 CFR 262",
     });
     push({
       name: "Air Permit / Emissions Reporting",
@@ -576,6 +804,35 @@ export function buildStarterDeadlines(
       governing_agency: `${data.state} Environmental Agency`,
       frequency: "annual",
       due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 2500000,
+    });
+  }
+
+  // Business / professional services (accounting firms, law practices, consulting,
+  // SaaS, agencies) — previously had no industry-specific coverage at all.
+  if (data.industry === "business_services") {
+    push({
+      name: "Professional Liability / E&O Insurance Renewal",
+      description:
+        "Errors & Omissions / professional liability policy renewal. Required by most state bars, accounting boards, and large client contracts.",
+      deadline_type: "coi",
+      governing_agency: "Insurance Provider",
+      frequency: "annual",
+      due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 250000,
+    });
+    push({
+      name: "CPA / Bar / Licensing-Board CE Credits",
+      description:
+        "Continuing education requirements for licensed practitioners (CPA, attorney, EA, CFP). Track CE hours and reporting deadlines for each licensed staff member.",
+      deadline_type: "employee_cert",
+      governing_agency: `${data.state} Professional Licensing Board`,
+      frequency: "biennial",
+      due_date: formatIsoDate(nextYear),
+      severity_tier: "high",
+      penalty_estimate_cents: 50000,
     });
   }
 

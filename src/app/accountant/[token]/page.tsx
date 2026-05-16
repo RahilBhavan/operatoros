@@ -1,18 +1,46 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Shield, Users } from "lucide-react";
-import { computeAutoStatus, computeComplianceScore } from "@/lib/deadline-utils";
+import { headers } from "next/headers";
+import { ExternalLink } from "lucide-react";
+import {
+  computeAutoStatus,
+  computeRiskWeightedScore,
+  computeExposureCents,
+  formatCents,
+} from "@/lib/deadline-utils";
 import { loadAccountantPortalByToken } from "@/lib/security/accountant-by-token";
 import type { Database } from "@/types/supabase";
+import {
+  TagCard,
+  H2,
+  Body,
+  Caption,
+  Utility,
+  Index,
+} from "@/components/doctrine";
 import DeadlineNote from "./DeadlineNote";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
 
-const STATUS_CONFIG = {
-  overdue: { label: "Overdue", color: "text-red-700", bg: "bg-red-50", border: "border-red-200", dot: "bg-red-500" },
-  in_progress: { label: "Due Soon", color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200", dot: "bg-yellow-500" },
-  upcoming: { label: "Upcoming", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-500" },
-  compliant: { label: "Compliant", color: "text-green-700", bg: "bg-green-50", border: "border-green-200", dot: "bg-green-500" },
+type StatusKey = "overdue" | "in_progress" | "upcoming" | "compliant";
+
+const STATUS_LABEL: Record<StatusKey, string> = {
+  overdue: "OVERDUE — ACTION REQUIRED",
+  in_progress: "DUE WITHIN 30 DAYS",
+  upcoming: "UPCOMING",
+  compliant: "COMPLIANT",
+};
+
+const STATUS_SORT: Record<StatusKey, string> = {
+  overdue: "X",
+  in_progress: "A",
+  upcoming: "B",
+  compliant: "C",
 };
 
 export default async function AccountantPortalPage({
@@ -21,193 +49,487 @@ export default async function AccountantPortalPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const hdrs = await headers();
+  const ip =
+    hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    hdrs.get("x-real-ip") ??
+    null;
+  const userAgent = hdrs.get("user-agent");
 
-  const payload = await loadAccountantPortalByToken(token);
+  const payload = await loadAccountantPortalByToken(token, { ip, userAgent });
   if (!payload) notFound();
 
-  const { connection, business, deadlines: allDeadlines, portfolio, noteByDeadlineId } =
-    payload;
+  const {
+    connection,
+    business,
+    deadlines: allDeadlines,
+    portfolio,
+    noteByDeadlineId,
+  } = payload;
 
-  const notesByDeadline = new Map<string, string>(Object.entries(noteByDeadlineId));
+  const notesByDeadline = new Map<string, string>(
+    Object.entries(noteByDeadlineId),
+  );
 
-  const score = computeComplianceScore(allDeadlines, computeAutoStatus);
+  const score = computeRiskWeightedScore(allDeadlines);
+  const exposure = computeExposureCents(allDeadlines);
 
   const overdue = allDeadlines.filter((d) => computeAutoStatus(d) === "overdue");
-  const inProgress = allDeadlines.filter((d) => computeAutoStatus(d) === "in_progress");
-  const upcoming = allDeadlines.filter((d) => computeAutoStatus(d) === "upcoming");
+  const inProgress = allDeadlines.filter(
+    (d) => computeAutoStatus(d) === "in_progress",
+  );
+  const upcoming = allDeadlines.filter(
+    (d) => computeAutoStatus(d) === "upcoming",
+  );
   const compliant = allDeadlines.filter((d) => d.status === "compliant");
 
-  const scoreColor =
-    score >= 80 ? "text-green-600" : score >= 60 ? "text-yellow-600" : "text-red-600";
+  const generatedAt = new Date();
+  const tokenSuffix = token.slice(-6).toUpperCase();
+  const businessCode = business.id.slice(0, 6).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-4 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-slate-900">OperatorOS</span>
-            <span className="text-slate-300 mx-2">·</span>
-            <span className="text-sm text-slate-500">Accountant View</span>
-          </div>
-          <div className="text-xs text-slate-400">
-            Read-only · Live data
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--color-field)]">
+      <PublicNav expiresAt={connection.expires_at} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Portfolio sidebar strip — shown when accountant has multiple clients */}
-        {portfolio.length > 0 && (
-          <div className="mb-6 bg-white rounded-2xl border border-slate-200 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-slate-400" />
-              <span className="text-sm font-semibold text-slate-700">
-                Your other clients on OperatorOS ({portfolio.length})
-              </span>
+      <main className="max-w-[1100px] mx-auto px-6 py-10">
+        {/* Hero — accountant tag (red / mark variant for VIP access) */}
+        <TagCard
+          variant="mark"
+          destination={<span className="block uppercase">ACCOUNTANT.</span>}
+          subtitle="PORTFOLIO"
+          topCode="A-200"
+          topRight="VERIFIED ACCESS"
+          tabLabel="CPA"
+          sortSymbol="B"
+          refNumber={`PA-${tokenSuffix}`}
+          perforated
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <Utility className="opacity-60">VIEWING</Utility>
+              <Body className="!font-bold !mt-1 uppercase">
+                {business.name}
+              </Body>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {portfolio.map((c) => (
-                  <Link
-                    key={c.token}
-                    href={`/accountant/${c.token}`}
-                    className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg font-medium text-slate-600 transition-colors"
-                  >
-                    {c.business_name}
-                  </Link>
-                ))}
+            <div className="text-right">
+              <Utility className="opacity-60">CLIENTS IN VIEW</Utility>
+              <Index className="!text-[24px] !text-[var(--color-ground)] block mt-1">
+                {portfolio.length + 1}
+              </Index>
             </div>
           </div>
+        </TagCard>
+
+        {/* Portfolio panel — list of other clients */}
+        {portfolio.length > 0 && (
+          <>
+            <SectionHeader
+              index="00"
+              title={`YOUR PORTFOLIO (${portfolio.length + 1} CLIENTS)`}
+              sort="P"
+            />
+            <section className="border-2 border-[var(--color-ground)] mb-10">
+              <header className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+                <Utility className="!text-[var(--color-field)] !opacity-100">
+                  TOTAL EXPOSURE ACROSS PORTFOLIO
+                </Utility>
+                <Index className="!text-[var(--color-field)] !text-[15px]">
+                  {formatCents(
+                    portfolio.reduce((s, p) => s + p.exposure_cents, 0) +
+                      exposure,
+                  )}
+                </Index>
+              </header>
+              <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
+                {portfolio.map((c) => (
+                  <li key={c.token}>
+                    <Link
+                      href={`/accountant/${c.token}`}
+                      className="flex items-center gap-5 px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <Body className="!font-bold truncate uppercase">
+                          {c.business_name}
+                        </Body>
+                        <Caption className="!mt-1 !text-[12px]">
+                          {c.overdue_count} OVERDUE
+                        </Caption>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <Utility className="opacity-60 !text-[12px]">
+                          SCORE
+                        </Utility>
+                        <Index
+                          className={`!text-[19px] block ${
+                            c.score >= 80 ? "!text-[var(--color-ground)]" : ""
+                          }`}
+                        >
+                          {c.score}
+                        </Index>
+                      </div>
+                      <div className="shrink-0 text-right w-28">
+                        <Utility className="opacity-60 !text-[12px]">
+                          EXPOSURE
+                        </Utility>
+                        <Index className="!text-[15px] block">
+                          {formatCents(c.exposure_cents)}
+                        </Index>
+                      </div>
+                      <Utility className="opacity-60 shrink-0">→</Utility>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </>
         )}
 
-        {/* Business info */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">{business.name}</h1>
-          <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-            {business.entity_type && (
-              <span className="capitalize">{business.entity_type.replace(/_/g, " ")}</span>
-            )}
-            {business.employee_count && (
-              <>
-                <span className="text-slate-300">·</span>
-                <span>{business.employee_count} employees</span>
-              </>
-            )}
-            <span className="text-slate-300">·</span>
-            <span>Shared {new Date(connection.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+        {/* Business identity strip */}
+        <div className="border-2 border-[var(--color-ground)] mb-10">
+          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between gap-2 flex-wrap">
+            <Utility className="!text-[var(--color-field)] !opacity-100">
+              CLIENT MANIFEST
+            </Utility>
+            <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+              PA-{businessCode}
+            </Index>
+          </div>
+          <div className="bg-[var(--color-field)] px-5 py-4">
+            <H2 className="uppercase">{business.name}</H2>
+            <Caption className="!mt-2 !text-[12px]">
+              {business.entity_type
+                ? business.entity_type.replace(/_/g, " ").toUpperCase()
+                : "ENTITY UNKNOWN"}
+              {business.employee_count
+                ? ` · ${business.employee_count} EMPLOYEES`
+                : ""}
+              {" · SHARED "}
+              {new Date(connection.created_at)
+                .toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+                .replace(/\//g, ".")}
+            </Caption>
           </div>
         </div>
 
-        {/* Score + stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:col-span-2 lg:col-span-1">
-            <p className="text-sm text-slate-500 mb-1">Compliance Score</p>
-            <div className={`text-4xl font-extrabold ${scoreColor}`}>
-              {score}
-              <span className="text-xl font-medium text-slate-400">/100</span>
-            </div>
+        {/* SCORE STRIP */}
+        <SectionHeader index="01" title="RISK-WEIGHTED SCORE" sort="A" />
+        <section className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-[var(--color-ground)]">
+            <ScoreCell
+              label="SCORE"
+              value={`${score}`}
+              suffix="/100"
+              big
+              extra={
+                exposure > 0 ? (
+                  <Caption className="!text-[var(--color-mark)] !text-[12px] !mt-1">
+                    {formatCents(exposure)} exposure
+                  </Caption>
+                ) : null
+              }
+            />
+            <ScoreCell
+              label="OVERDUE"
+              value={`${overdue.length}`}
+              mark={overdue.length > 0}
+            />
+            <ScoreCell label="DUE SOON" value={`${inProgress.length}`} />
+            <ScoreCell label="COMPLIANT" value={`${compliant.length}`} />
           </div>
-
-          {[
-            { label: "Overdue", count: overdue.length, color: "text-red-600" },
-            { label: "Due Soon", count: inProgress.length, color: "text-yellow-600" },
-            { label: "Compliant", count: compliant.length, color: "text-green-600" },
-          ].map(({ label, count, color }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-200 p-5">
-              <p className="text-sm text-slate-500 mb-1">{label}</p>
-              <div className={`text-4xl font-extrabold ${color}`}>{count}</div>
-            </div>
-          ))}
-        </div>
+        </section>
 
         {/* Deadline groups */}
         {allDeadlines.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
-            <p className="text-slate-500">No deadlines on record.</p>
-          </div>
+          <section className="border-2 border-[var(--color-ground)] py-16 px-6 text-center mb-10">
+            <Index className="!text-[48px] opacity-30 block mb-3">000</Index>
+            <H2>No deadlines on record.</H2>
+          </section>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-10">
             {overdue.length > 0 && (
-              <DeadlineGroup title="Overdue — Action Required" deadlines={overdue} statusKey="overdue" token={token} notesByDeadline={notesByDeadline} />
+              <div>
+                <SectionHeader index="02" title="OVERDUE" sort="X" mark />
+                <DeadlineGroup
+                  deadlines={overdue}
+                  statusKey="overdue"
+                  token={token}
+                  notesByDeadline={notesByDeadline}
+                />
+              </div>
             )}
             {inProgress.length > 0 && (
-              <DeadlineGroup title="Due Within 30 Days" deadlines={inProgress} statusKey="in_progress" token={token} notesByDeadline={notesByDeadline} />
+              <div>
+                <SectionHeader
+                  index="03"
+                  title="DUE WITHIN 30 DAYS"
+                  sort="A"
+                />
+                <DeadlineGroup
+                  deadlines={inProgress}
+                  statusKey="in_progress"
+                  token={token}
+                  notesByDeadline={notesByDeadline}
+                />
+              </div>
             )}
             {upcoming.length > 0 && (
-              <DeadlineGroup title="Upcoming" deadlines={upcoming} statusKey="upcoming" token={token} notesByDeadline={notesByDeadline} />
+              <div>
+                <SectionHeader index="04" title="UPCOMING" sort="B" />
+                <DeadlineGroup
+                  deadlines={upcoming}
+                  statusKey="upcoming"
+                  token={token}
+                  notesByDeadline={notesByDeadline}
+                />
+              </div>
             )}
             {compliant.length > 0 && (
-              <DeadlineGroup title="Compliant" deadlines={compliant} statusKey="compliant" token={token} notesByDeadline={notesByDeadline} />
+              <div>
+                <SectionHeader index="05" title="COMPLIANT" sort="C" />
+                <DeadlineGroup
+                  deadlines={compliant}
+                  statusKey="compliant"
+                  token={token}
+                  notesByDeadline={notesByDeadline}
+                />
+              </div>
             )}
           </div>
         )}
 
-        <p className="text-xs text-slate-400 text-center mt-8">
-          Powered by <strong>OperatorOS</strong> · Data updates in real time · Notes are private to this accountant view
-        </p>
-        <p className="text-xs text-slate-300 text-center mt-2 max-w-2xl mx-auto">
-          Compliance calendar data is auto-generated based on business profile and is provided for reference only.
-          Always verify filing requirements with the relevant agency or a licensed professional before relying on any deadline.
-          OperatorOS does not provide legal, tax, or accounting advice.
-        </p>
+        {/* Footer */}
+        <footer className="border-t-2 border-[var(--color-ground)] pt-6 mt-12">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <Utility className="opacity-60">GENERATED</Utility>
+              <Index className="!text-[19px] !text-[var(--color-ground)] block mt-1">
+                {generatedAt
+                  .toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })
+                  .replace(/\//g, ".")}
+              </Index>
+            </div>
+            <div className="text-center">
+              <Utility className="opacity-60">TOKEN</Utility>
+              <Index className="!text-[19px] !text-[var(--color-ground)] block mt-1">
+                {tokenSuffix}
+              </Index>
+            </div>
+            <div className="text-right max-w-md">
+              <Caption className="!opacity-70">
+                Notes are private to this accountant view. Compliance data is
+                auto-generated based on business profile and is for reference
+                only. OperatorOS does not provide legal, tax, or accounting
+                advice.
+              </Caption>
+            </div>
+          </div>
+          <Caption className="!opacity-60 !text-[12px] mt-3 text-center">
+            Generated by{" "}
+            <Link href="/" className="t-link">
+              OperatorOS
+            </Link>
+            {" · operatoros.com"}
+          </Caption>
+        </footer>
       </main>
     </div>
   );
 }
 
-function DeadlineGroup({
+/* -------------------------------------------------------------------------- */
+
+function PublicNav({ expiresAt }: { expiresAt: string }) {
+  return (
+    <nav className="border-b-2 border-[var(--color-ground)] bg-[var(--color-field)] px-6 py-4">
+      <div className="max-w-[1100px] mx-auto flex items-center justify-between gap-4">
+        <Link href="/" className="t-h3 font-black tracking-tight">
+          OPERATOR<span className="text-[var(--color-mark)]">OS</span>
+        </Link>
+        <div className="flex items-center gap-4 flex-wrap justify-end">
+          <Utility className="opacity-60">
+            ACCOUNTANT PORTAL · READ-ONLY
+          </Utility>
+          <span className="inline-flex items-stretch border-2 border-[var(--color-ground)]">
+            <span className="px-2 py-0.5 border-r-2 border-[var(--color-ground)] t-utility !text-[12px]">
+              EXPIRES
+            </span>
+            <span className="px-2 py-0.5 t-utility !text-[12px]">
+              {new Date(expiresAt)
+                .toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+                .replace(/\//g, ".")}
+            </span>
+          </span>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function SectionHeader({
+  index,
   title,
+  sort,
+  mark,
+}: {
+  index: string;
+  title: string;
+  sort: string;
+  mark?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between mt-2 mb-3 gap-3 flex-wrap">
+      <div className="flex items-baseline gap-3">
+        <Index className="!text-[19px] !text-[var(--color-mark)]">
+          SECTION {index}
+        </Index>
+        <Utility className={mark ? "!text-[var(--color-mark)]" : ""}>
+          {" · "}
+          {title}
+        </Utility>
+      </div>
+      <span className="inline-flex items-stretch border-2 border-[var(--color-ground)]">
+        <span className="px-2 py-0.5 border-r-2 border-[var(--color-ground)] t-utility !text-[12px]">
+          SORT
+        </span>
+        <span className="px-2 py-0.5 t-h3 leading-none">{sort}</span>
+      </span>
+    </div>
+  );
+}
+
+function ScoreCell({
+  label,
+  value,
+  suffix,
+  extra,
+  big,
+  mark,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  extra?: React.ReactNode;
+  big?: boolean;
+  mark?: boolean;
+}) {
+  return (
+    <div className="px-5 py-5">
+      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <div className={big ? "t-display !text-[38px]" : "t-h1"}>
+        <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
+        {suffix && <span className="t-h3 !opacity-50 ml-1">{suffix}</span>}
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+function DeadlineGroup({
   deadlines,
   statusKey,
   token,
   notesByDeadline,
 }: {
-  title: string;
   deadlines: Deadline[];
-  statusKey: keyof typeof STATUS_CONFIG;
+  statusKey: StatusKey;
   token: string;
   notesByDeadline: Map<string, string>;
 }) {
-  const config = STATUS_CONFIG[statusKey];
-
+  const overdue = statusKey === "overdue";
   return (
-    <div>
-      <h2 className={`text-sm font-semibold mb-3 ${config.color}`}>
-        {title} ({deadlines.length})
-      </h2>
-      <div className="flex flex-col gap-2">
+    <section
+      className={`border-2 ${
+        overdue
+          ? "border-[var(--color-mark)]"
+          : "border-[var(--color-ground)]"
+      }`}
+    >
+      <header
+        className={`flex items-center justify-between px-5 py-3 ${
+          overdue
+            ? "bg-[var(--color-mark)] text-[var(--color-field)]"
+            : "bg-[var(--color-ground)] text-[var(--color-field)]"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <Utility className="!text-[var(--color-field)] !opacity-100">
+            {STATUS_LABEL[statusKey]}
+          </Utility>
+          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+            ({deadlines.length})
+          </Index>
+        </div>
+        <span className="inline-flex items-stretch border-2 border-[var(--color-field)]">
+          <span className="px-2 py-0.5 border-r-2 border-[var(--color-field)] t-utility !text-[12px]">
+            SORT
+          </span>
+          <span className="px-2 py-0.5 t-h3 leading-none">
+            {STATUS_SORT[statusKey]}
+          </span>
+        </span>
+      </header>
+      <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
         {deadlines.map((d) => (
-          <div
-            key={d.id}
-            className={`p-4 rounded-xl border ${config.border} ${config.bg}`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${config.dot}`} />
-                <div className="min-w-0">
-                  <div className={`font-medium ${config.color} truncate`}>{d.name}</div>
-                  {d.governing_agency && (
-                    <div className="text-xs text-slate-500 mt-0.5">{d.governing_agency}</div>
+          <li key={d.id} className="px-5 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <Body className="!font-bold truncate flex items-center gap-2">
+                  {d.name}
+                  {d.source_url && (
+                    <a
+                      href={d.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="opacity-70 hover:opacity-100 hover:text-[var(--color-mark)] transition-opacity"
+                      aria-label="source"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
                   )}
-                </div>
+                </Body>
+                {d.governing_agency && (
+                  <Caption className="!mt-1 !text-[12px]">
+                    {d.governing_agency.toUpperCase()}
+                  </Caption>
+                )}
               </div>
-              <div className={`text-sm font-semibold ${config.color} shrink-0 ml-4`}>
-                {new Date(d.due_date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </div>
+              <Index
+                className={`shrink-0 ${
+                  overdue ? "" : "!text-[var(--color-ground)]"
+                }`}
+              >
+                {new Date(d.due_date)
+                  .toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  })
+                  .replace(/\//g, ".")}
+              </Index>
             </div>
             <DeadlineNote
               deadlineId={d.id}
               token={token}
               existingNote={notesByDeadline.get(d.id) ?? null}
             />
-          </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }

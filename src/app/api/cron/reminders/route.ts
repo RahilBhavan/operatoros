@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReminderEmail } from "@/lib/email";
-import { computeComplianceScore, computeAutoStatus } from "@/lib/deadline-utils";
+import { computeRiskWeightedScore, computeAutoStatus } from "@/lib/deadline-utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // On Vercel, cron invocations use a dedicated user-agent (do not rely on this alone).
   if (process.env.VERCEL === "1") {
     const ua = req.headers.get("user-agent") ?? "";
     if (!ua.includes("vercel-cron")) {
@@ -36,8 +35,8 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
   const now = new Date();
+  const nowIso = now.toISOString();
 
-  // Build the set of target dates for all reminder windows
   const targetDates = REMINDER_WINDOWS.map(({ days, type }) => {
     const d = new Date(now);
     d.setDate(d.getDate() + days);
@@ -46,11 +45,10 @@ export async function GET(req: NextRequest) {
 
   const dateStrings = targetDates.map((t) => t.dateStr);
 
-  // Batch-fetch all upcoming deadlines across all windows in one query
   const { data: deadlines } = await supabase
     .from("deadlines")
     .select(
-      `id, name, due_date, business_id,
+      `id, name, due_date, business_id, governing_agency, severity_tier, penalty_estimate_cents, statute_citation, source_url,
        businesses!inner (
          id, name, owner_id, billing_status, plan_tier
        )`
@@ -59,26 +57,70 @@ export async function GET(req: NextRequest) {
     .neq("status", "compliant");
 
   if (!deadlines?.length) {
-    return NextResponse.json({ processed: 0, errors: 0, timestamp: now.toISOString() });
+    return NextResponse.json({ processed: 0, errors: 0, timestamp: nowIso });
   }
 
-  // Batch-fetch all already-sent reminder_log entries for these deadlines
   const deadlineIds = deadlines.map((d) => d.id);
-  const { data: sentLogs } = await supabase
-    .from("reminder_log")
-    .select("deadline_id, reminder_type")
-    .in("deadline_id", deadlineIds)
-    .eq("status", "sent");
+  const businessIds = [
+    ...new Set(deadlines.map((d) => d.business_id).filter(Boolean) as string[]),
+  ];
+
+  const [{ data: sentLogs }, { data: prefRows }] = await Promise.all([
+    supabase
+      .from("reminder_log")
+      .select("deadline_id, reminder_type")
+      .in("deadline_id", deadlineIds)
+      .eq("status", "sent"),
+    supabase
+      .from("reminder_preferences")
+      .select("business_id, email_enabled, muted_until, unsubscribe_token")
+      .in("business_id", businessIds),
+  ]);
 
   const sentSet = new Set(
     (sentLogs ?? []).map((r) => `${r.deadline_id}:${r.reminder_type}`)
   );
 
-  // Batch-fetch all owner emails
-  const ownerIds = [...new Set(deadlines.map((d) => {
-    const biz = Array.isArray(d.businesses) ? d.businesses[0] : d.businesses;
-    return biz?.owner_id;
-  }).filter(Boolean) as string[])];
+  const prefByBusiness = new Map<
+    string,
+    { email_enabled: boolean; muted_until: string | null; unsubscribe_token: string }
+  >();
+  for (const p of prefRows ?? []) {
+    prefByBusiness.set(p.business_id, {
+      email_enabled: p.email_enabled,
+      muted_until: p.muted_until,
+      unsubscribe_token: p.unsubscribe_token,
+    });
+  }
+
+  // Auto-provision preference rows for businesses that don't yet have one so
+  // unsubscribe links work on the first reminder. Insert ignores conflicts.
+  const missingPrefs = businessIds.filter((id) => !prefByBusiness.has(id));
+  if (missingPrefs.length > 0) {
+    const { data: inserted } = await supabase
+      .from("reminder_preferences")
+      .upsert(
+        missingPrefs.map((id) => ({ business_id: id })),
+        { onConflict: "business_id", ignoreDuplicates: false }
+      )
+      .select("business_id, email_enabled, muted_until, unsubscribe_token");
+    for (const p of inserted ?? []) {
+      prefByBusiness.set(p.business_id, {
+        email_enabled: p.email_enabled,
+        muted_until: p.muted_until,
+        unsubscribe_token: p.unsubscribe_token,
+      });
+    }
+  }
+
+  const ownerIds = [
+    ...new Set(
+      deadlines.map((d) => {
+        const biz = Array.isArray(d.businesses) ? d.businesses[0] : d.businesses;
+        return biz?.owner_id;
+      }).filter(Boolean) as string[]
+    ),
+  ];
 
   const emailMap = new Map<string, string>();
   await Promise.all(
@@ -88,10 +130,11 @@ export async function GET(req: NextRequest) {
     })
   );
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+
   let processed = 0;
   let errors = 0;
 
-  // Build pending reminders
   const toInsert: Array<{
     deadline_id: string;
     business_id: string;
@@ -113,7 +156,6 @@ export async function GET(req: NextRequest) {
       const business = Array.isArray(deadline.businesses)
         ? deadline.businesses[0]
         : deadline.businesses;
-
       if (!business) continue;
 
       const isEligible =
@@ -122,22 +164,30 @@ export async function GET(req: NextRequest) {
       if (!isEligible) continue;
 
       const hasPremiumPlan =
-        business.plan_tier === "growth" || business.plan_tier === "scale";
+        business.plan_tier === "business" || business.plan_tier === "accountant";
       if (isPremiumReminder && !hasPremiumPlan) continue;
 
       if (sentSet.has(`${deadline.id}:${type}`)) continue;
+
+      const prefs = prefByBusiness.get(deadline.business_id);
+      if (prefs && !prefs.email_enabled) continue;
+      if (prefs?.muted_until && new Date(prefs.muted_until).getTime() > now.getTime()) {
+        continue;
+      }
 
       const email = emailMap.get(business.owner_id);
       if (!email) continue;
 
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
         const trackingParams = new URLSearchParams({
           utm_source: "reminder",
           utm_medium: "email",
           utm_campaign: type,
         });
         const deadlineUrl = `${appUrl}/deadlines/${deadline.id}?${trackingParams}`;
+        const unsubUrl = prefs
+          ? `${appUrl}/unsubscribe/${prefs.unsubscribe_token}`
+          : null;
 
         await sendReminderEmail({
           to: email,
@@ -150,6 +200,12 @@ export async function GET(req: NextRequest) {
             year: "numeric",
           }),
           deadlineUrl,
+          governingAgency: deadline.governing_agency,
+          severity: deadline.severity_tier,
+          penaltyEstimateCents: deadline.penalty_estimate_cents,
+          statuteCitation: deadline.statute_citation,
+          sourceUrl: deadline.source_url,
+          unsubscribeUrl: unsubUrl,
         });
 
         toInsert.push({
@@ -174,15 +230,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Batch-insert all reminder log entries
   if (toInsert.length > 0) {
     await supabase.from("reminder_log").insert(toInsert);
   }
 
-  // Snapshot compliance scores for all active businesses
   await snapshotComplianceScores(supabase);
 
-  return NextResponse.json({ processed, errors, timestamp: now.toISOString() });
+  return NextResponse.json({ processed, errors, timestamp: nowIso });
 }
 
 async function snapshotComplianceScores(
@@ -208,16 +262,14 @@ async function snapshotComplianceScores(
   const pending = businesses.filter((b) => !alreadySnapshotted.has(b.id));
   if (!pending.length) return;
 
-  // Batch fetch all deadlines for all pending businesses in one query
   const pendingIds = pending.map((b) => b.id);
   const { data: allDeadlines } = await supabase
     .from("deadlines")
-    .select("business_id, status, due_date")
+    .select("business_id, status, due_date, severity_tier, penalty_estimate_cents")
     .in("business_id", pendingIds);
 
   if (!allDeadlines?.length) return;
 
-  // Group deadlines by business in memory
   const byBusiness = new Map<string, typeof allDeadlines>();
   for (const d of allDeadlines) {
     const arr = byBusiness.get(d.business_id) ?? [];
@@ -230,10 +282,9 @@ async function snapshotComplianceScores(
   for (const biz of pending) {
     const deadlines = byBusiness.get(biz.id);
     if (!deadlines?.length) continue;
-    // Use the same formula as the dashboard for consistency
     snapshots.push({
       business_id: biz.id,
-      score: computeComplianceScore(deadlines, computeAutoStatus),
+      score: computeRiskWeightedScore(deadlines, computeAutoStatus),
     });
   }
 

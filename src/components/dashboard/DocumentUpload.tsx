@@ -2,13 +2,15 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, FileText, Trash2, Download } from "lucide-react";
+import { Upload, FileText, X, Download, RotateCw, History } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
+import { Body, Caption, Index, Utility } from "@/components/doctrine";
 
 type Document = Database["public"]["Tables"]["documents"]["Row"];
+type DocumentVersion = Database["public"]["Tables"]["document_versions"]["Row"];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -23,6 +25,12 @@ interface Props {
   existingDocuments: Document[];
 }
 
+function formatBytes(file: Document): string {
+  // Documents table has no size column — show type instead as the "index" figure.
+  const ext = file.file_name.split(".").pop()?.toUpperCase();
+  return ext ?? file.file_type.split("/").pop()?.toUpperCase() ?? "FILE";
+}
+
 export default function DocumentUpload({
   deadlineId,
   businessId,
@@ -31,23 +39,32 @@ export default function DocumentUpload({
 }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<Document[]>(existingDocuments);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [versionsByDoc, setVersionsByDoc] = useState<Record<string, DocumentVersion[]>>({});
+  const [openVersions, setOpenVersions] = useState<string | null>(null);
+
+  function validateFile(file: File): string | null {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return "Only PDF, JPEG, PNG, and WebP files are supported.";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return "File must be under 10 MB.";
+    }
+    return null;
+  }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setError("");
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError("Only PDF, JPEG, PNG, and WebP files are supported.");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setError("File must be under 10 MB.");
+    const validation = validateFile(file);
+    if (validation) {
+      setError(validation);
       return;
     }
 
@@ -87,15 +104,97 @@ export default function DocumentUpload({
 
     setDocuments((prev) => [doc, ...prev]);
     setUploading(false);
-
     if (inputRef.current) inputRef.current.value = "";
 
-    // Trigger AI expiry extraction in the background — no await, non-blocking
     fetch(`/api/documents/${doc.id}/extract-expiry`, { method: "POST" }).then(
       (res) => res.ok && router.refresh()
     );
 
     router.refresh();
+  }
+
+  async function handleReplaceSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !replacingId) return;
+    setError("");
+
+    const validation = validateFile(file);
+    if (validation) {
+      setError(validation);
+      setReplacingId(null);
+      return;
+    }
+
+    setUploading(true);
+
+    const supabase = createClient();
+    const filePath = `${businessId}/${deadlineId}/${Date.now()}_${file.name}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("documents")
+      .upload(filePath, file);
+    if (uploadErr) {
+      setError("Upload failed. Please try again.");
+      setUploading(false);
+      setReplacingId(null);
+      return;
+    }
+
+    const res = await fetch(`/api/documents/${replacingId}/replace`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        file_path: filePath,
+        file_type: file.type,
+        file_name: file.name,
+      }),
+    });
+
+    if (!res.ok) {
+      setError("Replace failed. Please try again.");
+      setUploading(false);
+      setReplacingId(null);
+      return;
+    }
+
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === replacingId
+          ? {
+              ...d,
+              file_name: file.name,
+              file_path: filePath,
+              file_type: file.type,
+              uploaded_at: new Date().toISOString(),
+              expiry_date: null,
+            }
+          : d
+      )
+    );
+    setVersionsByDoc((prev) => {
+      const next = { ...prev };
+      delete next[replacingId];
+      return next;
+    });
+    setUploading(false);
+    setReplacingId(null);
+    if (replaceInputRef.current) replaceInputRef.current.value = "";
+
+    fetch(`/api/documents/${replacingId}/extract-expiry`, { method: "POST" }).then(
+      (res) => res.ok && router.refresh()
+    );
+    router.refresh();
+  }
+
+  async function loadVersions(docId: string) {
+    if (versionsByDoc[docId]) {
+      setOpenVersions(openVersions === docId ? null : docId);
+      return;
+    }
+    const res = await fetch(`/api/documents/${docId}/replace`);
+    if (!res.ok) return;
+    const data = (await res.json()) as { versions: DocumentVersion[] };
+    setVersionsByDoc((prev) => ({ ...prev, [docId]: data.versions }));
+    setOpenVersions(docId);
   }
 
   async function handleDelete(doc: Document) {
@@ -118,105 +217,220 @@ export default function DocumentUpload({
     }
   }
 
-  async function getDownloadUrl(doc: Document): Promise<string> {
+  async function getDownloadUrl(path: string): Promise<string> {
     const supabase = createClient();
     const { data } = await supabase.storage
       .from("documents")
-      .createSignedUrl(doc.file_path, 300); // 5 min
+      .createSignedUrl(path, 300);
     return data?.signedUrl ?? "";
   }
 
-  async function handleDownload(doc: Document) {
-    const url = await getDownloadUrl(doc);
+  async function downloadByPath(path: string) {
+    const url = await getDownloadUrl(path);
     if (url) window.open(url, "_blank");
   }
 
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-6">
-      <h2 className="text-base font-semibold text-slate-900 mb-4">
-        Documents
-      </h2>
+  // Hatched diagonal pattern at low opacity for the drop zone.
+  const hatchStyle: React.CSSProperties = {
+    backgroundImage:
+      "repeating-linear-gradient(45deg, var(--color-ground) 0 1px, transparent 1px 8px)",
+    backgroundColor: "var(--color-field)",
+  };
 
-      {/* Upload area */}
-      <label
-        htmlFor="doc-upload"
-        className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl p-6 cursor-pointer transition-colors group"
-      >
-        <Upload className="w-7 h-7 text-slate-400 group-hover:text-blue-500 transition-colors" />
-        <div className="text-center">
-          <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600">
-            {uploading ? "Uploading…" : "Click to upload"}
-          </span>
-          <p className="text-xs text-slate-400 mt-0.5">
-            PDF, JPEG, PNG · Max 10 MB
-          </p>
-        </div>
+  return (
+    <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)]">
+      {/* Header strip */}
+      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
+        <Utility className="!text-[var(--color-field)] !opacity-90">
+          DOCUMENTS · DOSSIER
+        </Utility>
+        <Index className="!text-[var(--color-field)] !text-[13px]">
+          {String(documents.length).padStart(3, "0")} ON FILE
+        </Index>
+      </div>
+
+      <div className="px-5 py-5">
+        {/* Drop zone */}
+        <label
+          htmlFor="doc-upload"
+          className="flex flex-col items-center justify-center gap-2 border-2 border-[var(--color-ground)] p-8 cursor-pointer hover:opacity-90 transition-opacity relative"
+          style={hatchStyle}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundColor: "var(--color-field)", opacity: 0.92 }}
+          />
+          <div className="relative flex flex-col items-center gap-3">
+            <Upload className="w-7 h-7 text-[var(--color-ground)]" />
+            <Utility>
+              {uploading ? "UPLOADING…" : "DROP DOCUMENTS HERE"}
+            </Utility>
+            <Caption className="!mt-0">
+              PDF · JPEG · PNG · WEBP — MAX 10 MB
+            </Caption>
+          </div>
+          <input
+            id="doc-upload"
+            ref={inputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp"
+            onChange={handleFileSelect}
+            disabled={uploading}
+            className="sr-only"
+          />
+        </label>
+
+        {/* Hidden replace input */}
         <input
-          id="doc-upload"
-          ref={inputRef}
+          ref={replaceInputRef}
           type="file"
           accept=".pdf,.jpg,.jpeg,.png,.webp"
-          onChange={handleFileSelect}
+          onChange={handleReplaceSelect}
           disabled={uploading}
           className="sr-only"
         />
-      </label>
 
-      {error && (
-        <p className="mt-3 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
-          {error}
-        </p>
-      )}
+        {error && (
+          <div className="mt-3 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-2">
+            <Utility className="!text-[var(--color-field)]">ERROR</Utility>
+            <span className="t-body !text-[var(--color-field)] block">
+              {error}
+            </span>
+          </div>
+        )}
 
-      {/* Document list */}
-      {documents.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2">
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-100"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-slate-700 truncate">
-                    {doc.file_name}
+        {documents.length > 0 && (
+          <ul className="mt-5 flex flex-col gap-2">
+            {documents.map((doc, idx) => {
+              const versions = versionsByDoc[doc.id];
+              return (
+                <li key={doc.id}>
+                  <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Index className="!text-[12px] opacity-60 shrink-0 w-8">
+                        {String(idx + 1).padStart(3, "0")}
+                      </Index>
+                      <FileText className="w-4 h-4 text-[var(--color-ground)] shrink-0" />
+                      <div className="min-w-0">
+                        <Body className="!font-bold truncate">
+                          {doc.file_name}
+                        </Body>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Index className="!text-[12px]">
+                            {formatBytes(doc)}
+                          </Index>
+                          <Caption className="!text-[12px] !mt-0">
+                            ·{" "}
+                            {new Date(doc.uploaded_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              }
+                            )}
+                            {doc.expiry_date && (
+                              <>
+                                {" · EXP "}
+                                {new Date(doc.expiry_date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )}
+                              </>
+                            )}
+                          </Caption>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => loadVersions(doc.id)}
+                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field-soft)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        title="Version history"
+                        aria-label="Version history"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReplacingId(doc.id);
+                          replaceInputRef.current?.click();
+                        }}
+                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field-soft)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        title="Replace"
+                        aria-label="Replace"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => downloadByPath(doc.file_path)}
+                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field-soft)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        title="Download"
+                        aria-label="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(doc)}
+                        className="p-2 text-[var(--color-mark)] hover:bg-[var(--color-mark)] hover:text-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-mark)]"
+                        title="Delete"
+                        aria-label="Delete"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400">
-                    {new Date(doc.uploaded_at).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0 ml-3">
-                <button
-                  onClick={() => handleDownload(doc)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
-                  title="Download"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(doc)}
-                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                  {openVersions === doc.id && versions && versions.length > 0 && (
+                    <ul className="ml-8 mt-1 mb-2 border-l-2 border-[var(--color-ground)] pl-4 flex flex-col gap-1">
+                      {versions.map((v) => (
+                        <li
+                          key={v.id}
+                          className="flex items-center justify-between py-1"
+                        >
+                          <Caption className="!mt-0">
+                            PREVIOUS · SUPERSEDED{" "}
+                            <Index className="!text-[12px]">
+                              {new Date(v.superseded_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )}
+                            </Index>
+                          </Caption>
+                          <button
+                            onClick={() => downloadByPath(v.file_path)}
+                            className="t-link"
+                          >
+                            Download
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {openVersions === doc.id && versions && versions.length === 0 && (
+                    <Caption className="ml-8 mt-1 mb-2">
+                      No previous versions.
+                    </Caption>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
-      {documents.length === 0 && !uploading && (
-        <p className="mt-3 text-xs text-slate-400 text-center">
-          No documents uploaded yet.
-        </p>
-      )}
+        {documents.length === 0 && !uploading && (
+          <Caption className="!mt-4 text-center">
+            No documents uploaded yet.
+          </Caption>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,21 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/stripe";
-import { CheckCircle } from "lucide-react";
 import BillingActions from "@/components/dashboard/BillingActions";
+import {
+  H1,
+  H2,
+  Caption,
+  Utility,
+  Index,
+  TagCard,
+} from "@/components/doctrine";
+
+const PLAN_CODES: Record<string, { code: string; sort: string }> = {
+  business: { code: "B-079", sort: "A" },
+  accountant: { code: "A-299", sort: "B" },
+  accountant_pro: { code: "A-499", sort: "C" },
+};
 
 export default async function BillingPage() {
   const supabase = await createClient();
@@ -27,31 +40,42 @@ export default async function BillingPage() {
     business.billing_status === "trialing";
 
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold text-slate-900 mb-2">Billing</h1>
-      <p className="text-slate-500 mb-8">Manage your subscription and plan.</p>
+    <div>
+      <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <Index className="!text-[15px]">PA-BILL</Index>
+          <Utility className="opacity-60">BILLING / SUBSCRIPTION</Utility>
+        </div>
+        <H1>Billing.</H1>
+        <Caption className="!mt-2">Manage your subscription and plan.</Caption>
+      </header>
 
       {/* Current plan */}
       {isActive && business.plan_tier !== "free" && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-8">
-          <div className="flex items-center justify-between">
+        <div className="border-2 border-[var(--color-mark)] mb-10">
+          <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+            <Utility className="!text-[var(--color-field)] !opacity-100">
+              CURRENT PLAN · {business.billing_status === "trialing" ? "TRIAL" : "ACTIVE"}
+            </Utility>
+            <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+              {PLAN_CODES[business.plan_tier]?.code ?? business.plan_tier.toUpperCase()}
+            </Index>
+          </div>
+          <div className="bg-[var(--color-field)] px-5 py-5 flex items-end justify-between flex-wrap gap-4">
             <div>
-              <p className="text-sm text-slate-500">Current plan</p>
-              <p className="text-xl font-bold text-slate-900 capitalize mt-0.5">
-                {business.plan_tier} —{" "}
-                {business.billing_status === "trialing"
-                  ? "Free trial"
-                  : "Active"}
-              </p>
+              <Utility className="opacity-60 mb-1">PLAN</Utility>
+              <H2 className="!capitalize">{business.plan_tier}</H2>
               {business.trial_ends_at &&
                 business.billing_status === "trialing" && (
-                  <p className="text-sm text-amber-600 mt-1">
+                  <Caption className="!mt-2 !text-[var(--color-mark)] !opacity-100">
                     Trial ends{" "}
-                    {new Date(business.trial_ends_at).toLocaleDateString(
-                      "en-US",
-                      { month: "long", day: "numeric", year: "numeric" }
-                    )}
-                  </p>
+                    <Index className="!text-[13px]">
+                      {new Date(business.trial_ends_at).toLocaleDateString(
+                        "en-US",
+                        { month: "long", day: "numeric", year: "numeric" }
+                      )}
+                    </Index>
+                  </Caption>
                 )}
             </div>
             <BillingActions hasCustomer={!!business.stripe_customer_id} />
@@ -60,72 +84,58 @@ export default async function BillingPage() {
       )}
 
       {/* Plan cards */}
-      <div className="grid md:grid-cols-3 gap-5">
+      <div className="grid md:grid-cols-2 gap-6 mb-10">
         {(Object.entries(PLANS) as [keyof typeof PLANS, (typeof PLANS)[keyof typeof PLANS]][]).map(
           ([key, plan]) => {
             const isCurrent = business.plan_tier === key && isActive;
-            const isHighlighted = key === "growth";
+            const codes = PLAN_CODES[key] ?? { code: key.toUpperCase(), sort: "C" };
+            const variant = key === "business" ? "ground" : "mark";
 
             return (
-              <div
+              <TagCard
                 key={key}
-                className={`relative bg-white rounded-2xl border p-6 flex flex-col ${
-                  isHighlighted
-                    ? "border-blue-500 ring-2 ring-blue-500"
-                    : "border-slate-200"
-                }`}
+                variant={variant}
+                topCode={codes.code}
+                topRight={`PA-${key.slice(0, 3).toUpperCase()}`}
+                tabLabel={codes.sort}
+                destination={`$${plan.amount}`}
+                subtitle={plan.name.toUpperCase()}
+                refNumber={`P-${codes.sort}, ${codes.code}`}
+                sortSymbol={codes.sort}
               >
-                {isHighlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                      Most popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {plan.name}
-                  </h3>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="text-3xl font-extrabold text-slate-900">
-                      ${plan.amount}
-                    </span>
-                    <span className="text-slate-500 text-sm">/month</span>
-                  </div>
-                </div>
-
-                <ul className="flex flex-col gap-2.5 mb-8 flex-1">
+                <Caption className="!mb-4 !opacity-70 !text-[12px]">
+                  PER MONTH · BILLED VIA STRIPE
+                </Caption>
+                <ul className="flex flex-col gap-2 mb-6">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                      <span className="text-slate-700">{f}</span>
+                    <li key={f} className="flex items-baseline gap-2.5">
+                      <Index className="!text-[12px] shrink-0">→</Index>
+                      <span className="t-body !text-[15px]">{f}</span>
                     </li>
                   ))}
                 </ul>
-
                 {isCurrent ? (
-                  <div className="text-center py-2.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-500">
-                    Current plan
+                  <div className="border-2 border-[var(--color-ground)] text-center py-3 t-utility">
+                    CURRENT PLAN ✓
                   </div>
                 ) : (
                   <BillingActions
                     plan={key}
                     hasCustomer={!!business.stripe_customer_id}
                     isSubscribed={isActive && business.plan_tier !== "free"}
-                    buttonLabel={isActive ? "Switch plan" : "Start free trial"}
-                    highlighted={isHighlighted}
+                    buttonLabel={isActive ? "Switch plan →" : "Start free trial →"}
+                    highlighted={key === "business"}
                   />
                 )}
-              </div>
+              </TagCard>
             );
           }
         )}
       </div>
 
-      <p className="text-xs text-slate-400 mt-6 text-center">
+      <Caption className="!opacity-60 text-center !text-[12px]">
         14-day free trial · No credit card required to start · Cancel anytime
-      </p>
+      </Caption>
     </div>
   );
 }

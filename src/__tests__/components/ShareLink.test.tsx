@@ -7,7 +7,7 @@ describe("ShareLink", () => {
     it("renders upgrade prompt", () => {
       render(<ShareLink canShare={false} />);
       expect(
-        screen.getByText(/Growth plan required/i)
+        screen.getByText(/paid plan required/i)
       ).toBeDefined();
     });
 
@@ -24,7 +24,7 @@ describe("ShareLink", () => {
 
     it("renders the generate button", () => {
       render(<ShareLink canShare={true} />);
-      expect(screen.getByRole("button", { name: /generate shareable link/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /generate link/i })).toBeDefined();
     });
 
     it("shows loading state while fetching", async () => {

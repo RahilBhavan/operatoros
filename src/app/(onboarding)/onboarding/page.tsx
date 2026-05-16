@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Shield, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type {
   Industry,
@@ -12,6 +12,15 @@ import type {
 } from "@/types/onboarding";
 import { employeeRangeToCount } from "@/lib/onboarding-utils";
 import { buildStarterDeadlines } from "@/lib/seed-deadlines";
+import {
+  Destination,
+  H2,
+  Body,
+  Caption,
+  Utility,
+  Index,
+  Button,
+} from "@/components/doctrine";
 
 const INDUSTRIES: { value: Industry; label: string }[] = [
   { value: "restaurant", label: "Restaurant / Food Service" },
@@ -51,16 +60,18 @@ const US_STATES = [
 ];
 
 const TOTAL_STEPS = 5;
+const SORT_LETTERS = ["A", "B", "C", "D", "E"] as const;
 
-function ProgressBar({ step }: { step: number }) {
+function ProgressLadder({ step }: { step: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-1.5 mb-8">
       {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
         <div
           key={i}
-          className={`h-1.5 rounded-full flex-1 transition-colors ${
-            i < step ? "bg-blue-600" : "bg-slate-200"
+          className={`flex-1 h-2 border border-[var(--color-ground)] ${
+            i < step ? "bg-[var(--color-mark)]" : "bg-transparent"
           }`}
+          aria-label={`Step ${i + 1} ${i < step ? "complete" : "pending"}`}
         />
       ))}
     </div>
@@ -115,7 +126,7 @@ export default function OnboardingPage() {
         .insert({
           owner_id: user.id,
           name: data.businessName.trim(),
-          industry_sic_code: data.industry ?? undefined,
+          industry_slug: data.industry ?? undefined,
           entity_type: data.entityType ?? undefined,
           employee_count: employeeRangeToCount(data.employeeRange),
           hires_contractors: data.hiresContractors ?? false,
@@ -129,7 +140,6 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Create the primary location
       const { error: locErr } = await supabase.from("locations").insert({
         business_id: business.id,
         state: data.state,
@@ -140,7 +150,6 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Seed starter deadlines based on industry/entity type
       await seedStarterDeadlines(supabase, business.id, data);
 
       router.push("/dashboard");
@@ -152,92 +161,97 @@ export default function OnboardingPage() {
     }
   }
 
+  const sortLetter = SORT_LETTERS[step - 1];
+
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Shield className="w-6 h-6 text-blue-600" />
-          <span className="font-bold text-xl text-slate-900">OperatorOS</span>
-        </div>
+    <div className="min-h-screen bg-[var(--color-field)] flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-[600px]">
+        <Link href="/" className="flex items-baseline gap-3 mb-10 justify-center">
+          <span className="t-h1 font-black tracking-tight">
+            OPERATOR<span className="text-[var(--color-mark)]">OS</span>
+          </span>
+        </Link>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <ProgressBar step={step} />
+        <div className="border-2 border-[var(--color-ground)]">
+          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-7 pt-6 pb-6">
+            <div className="flex items-center justify-between mb-5">
+              <Index className="!text-[12px] !text-[var(--color-field)] opacity-80">
+                ONB-{String(step).padStart(2, "0")}/{String(TOTAL_STEPS).padStart(2, "0")}
+              </Index>
+              <span className="tag-tab -mt-6">ONBOARD</span>
+              <Utility className="opacity-80">SORT · {sortLetter}</Utility>
+            </div>
+            <Utility className="!text-[var(--color-field)] !opacity-70 mb-2">
+              STEP {step} OF {TOTAL_STEPS}
+            </Utility>
+            <ProgressLadder step={step} />
+          </div>
 
-          <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">
-            Step {step} of {TOTAL_STEPS}
-          </p>
-
-          {step === 1 && (
-            <StepBusinessName
-              value={data.businessName}
-              onChange={(v) => update("businessName", v)}
-            />
-          )}
-          {step === 2 && (
-            <StepIndustry
-              value={data.industry}
-              onChange={(v) => update("industry", v)}
-            />
-          )}
-          {step === 3 && (
-            <StepLocation
-              state={data.state}
-              entityType={data.entityType}
-              onStateChange={(v) => update("state", v)}
-              onEntityChange={(v) => update("entityType", v)}
-            />
-          )}
-          {step === 4 && (
-            <StepEmployees
-              value={data.employeeRange}
-              onChange={(v) => update("employeeRange", v)}
-            />
-          )}
-          {step === 5 && (
-            <StepContractors
-              value={data.hiresContractors}
-              onChange={(v) => update("hiresContractors", v)}
-            />
-          )}
-
-          {error && (
-            <p className="mt-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
-
-          <div className="flex items-center justify-between mt-8">
-            {step > 1 ? (
-              <button
-                onClick={() => setStep((s) => s - 1)}
-                className="flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 font-medium"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-            ) : (
-              <div />
+          <div className="bg-[var(--color-field)] px-7 py-7">
+            {step === 1 && (
+              <StepBusinessName
+                value={data.businessName}
+                onChange={(v) => update("businessName", v)}
+              />
+            )}
+            {step === 2 && (
+              <StepIndustry
+                value={data.industry}
+                onChange={(v) => update("industry", v)}
+              />
+            )}
+            {step === 3 && (
+              <StepLocation
+                state={data.state}
+                entityType={data.entityType}
+                onStateChange={(v) => update("state", v)}
+                onEntityChange={(v) => update("entityType", v)}
+              />
+            )}
+            {step === 4 && (
+              <StepEmployees
+                value={data.employeeRange}
+                onChange={(v) => update("employeeRange", v)}
+              />
+            )}
+            {step === 5 && (
+              <StepContractors
+                value={data.hiresContractors}
+                onChange={(v) => update("hiresContractors", v)}
+              />
             )}
 
-            {step < TOTAL_STEPS ? (
-              <button
-                onClick={() => setStep((s) => s + 1)}
-                disabled={!canAdvance()}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
-              >
-                Continue
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                onClick={handleFinish}
-                disabled={!canAdvance() || saving}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
-              >
-                {saving ? "Setting up..." : "Build my calendar"}
-                {!saving && <Check className="w-4 h-4" />}
-              </button>
+            {error && (
+              <div className="mt-5 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
+                <Utility className="!opacity-100 mb-1">ERROR</Utility>
+                <Body className="!text-[var(--color-field)] !text-[15px]">
+                  {error}
+                </Body>
+              </div>
             )}
+
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--color-ground)]">
+              {step > 1 ? (
+                <button
+                  onClick={() => setStep((s) => s - 1)}
+                  className="t-utility hover:text-[var(--color-mark)]"
+                >
+                  ← BACK
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {step < TOTAL_STEPS ? (
+                <Button onClick={() => setStep((s) => s + 1)} disabled={!canAdvance()} variant="ground">
+                  Continue →
+                </Button>
+              ) : (
+                <Button onClick={handleFinish} disabled={!canAdvance() || saving} variant="mark">
+                  {saving ? "Building calendar…" : "Build my calendar →"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +259,16 @@ export default function OnboardingPage() {
   );
 }
 
-// ─── Step sub-components ────────────────────────────────────────────────────
+// ─── Step sub-components ─────────────────────────────────────────────
+
+function StepHeading({ kicker, title }: { kicker: string; title: string }) {
+  return (
+    <>
+      <Utility className="opacity-60 mb-2">{kicker}</Utility>
+      <Destination className="!text-[38px] !leading-[1.0] mb-4">{title}</Destination>
+    </>
+  );
+}
 
 function StepBusinessName({
   value,
@@ -256,19 +279,17 @@ function StepBusinessName({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
-        What&apos;s your business called?
-      </h2>
-      <p className="text-slate-500 text-sm mb-6">
-        This is how your compliance calendar will be labeled.
-      </p>
+      <StepHeading kicker="QUESTION 01" title="WHAT'S YOUR BUSINESS CALLED?" />
+      <Body className="!opacity-70 mb-6">
+        How your compliance calendar will be labeled.
+      </Body>
       <input
         autoFocus
         type="text"
         placeholder="e.g. Joe's HVAC LLC"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder:text-slate-400 text-lg"
+        className="t-input !text-[19px]"
       />
     </div>
   );
@@ -283,24 +304,25 @@ function StepIndustry({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
-        What industry are you in?
-      </h2>
-      <p className="text-slate-500 text-sm mb-6">
-        This determines which compliance deadlines apply to you.
-      </p>
+      <StepHeading kicker="QUESTION 02" title="WHAT INDUSTRY?" />
+      <Body className="!opacity-70 mb-6">
+        Determines which compliance deadlines apply to you.
+      </Body>
       <div className="flex flex-col gap-2">
-        {INDUSTRIES.map(({ value: v, label }) => (
+        {INDUSTRIES.map(({ value: v, label }, i) => (
           <button
             key={v}
             onClick={() => onChange(v)}
-            className={`text-left px-4 py-3 rounded-xl border-2 transition-colors text-sm font-medium ${
+            className={`text-left px-4 py-3 border-2 transition-colors flex items-center gap-4 ${
               value === v
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-slate-200 hover:border-slate-300 text-slate-700"
+                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
+                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
             }`}
           >
-            {label}
+            <Index className={`!text-[15px] shrink-0 ${value === v ? "!text-[var(--color-field)]" : ""}`}>
+              {String(i + 1).padStart(2, "0")}
+            </Index>
+            <span className="t-body">{label}</span>
           </button>
         ))}
       </div>
@@ -321,21 +343,17 @@ function StepLocation({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
-        Where do you operate?
-      </h2>
-      <p className="text-slate-500 text-sm mb-6">
+      <StepHeading kicker="QUESTION 03" title="WHERE DO YOU OPERATE?" />
+      <Body className="!opacity-70 mb-6">
         State determines your entity filing and licensing requirements.
-      </p>
-      <div className="flex flex-col gap-4">
+      </Body>
+      <div className="flex flex-col gap-5">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Primary state
-          </label>
+          <Utility className="block mb-2">PRIMARY STATE</Utility>
           <select
             value={state}
             onChange={(e) => onStateChange(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
+            className="t-input"
           >
             <option value="">Select a state…</option>
             {US_STATES.map((s) => (
@@ -346,18 +364,16 @@ function StepLocation({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Legal entity type
-          </label>
+          <Utility className="block mb-2">LEGAL ENTITY TYPE</Utility>
           <div className="grid grid-cols-2 gap-2">
             {ENTITY_TYPES.map(({ value: v, label }) => (
               <button
                 key={v}
                 onClick={() => onEntityChange(v)}
-                className={`text-left px-4 py-2.5 rounded-xl border-2 transition-colors text-sm font-medium ${
+                className={`text-left px-4 py-2.5 border-2 transition-colors t-body ${
                   entityType === v
-                    ? "border-blue-600 bg-blue-50 text-blue-700"
-                    : "border-slate-200 hover:border-slate-300 text-slate-700"
+                    ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
+                    : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
                 }`}
               >
                 {label}
@@ -379,24 +395,25 @@ function StepEmployees({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
-        How many employees do you have?
-      </h2>
-      <p className="text-slate-500 text-sm mb-6">
-        Employee count affects OSHA, workers&apos; comp, and payroll deadlines.
-      </p>
+      <StepHeading kicker="QUESTION 04" title="HOW MANY EMPLOYEES?" />
+      <Body className="!opacity-70 mb-6">
+        Affects OSHA, workers&apos; comp, and payroll deadlines.
+      </Body>
       <div className="flex flex-col gap-2">
         {EMPLOYEE_RANGES.map(({ value: v, label }) => (
           <button
             key={v}
             onClick={() => onChange(v)}
-            className={`text-left px-4 py-3 rounded-xl border-2 transition-colors text-sm font-medium ${
+            className={`text-left px-4 py-3 border-2 transition-colors flex items-center gap-4 ${
               value === v
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-slate-200 hover:border-slate-300 text-slate-700"
+                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
+                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
             }`}
           >
-            {label}
+            <Index className={`!text-[15px] shrink-0 ${value === v ? "!text-[var(--color-field)]" : ""}`}>
+              {v}
+            </Index>
+            <span className="t-body">{label}</span>
           </button>
         ))}
       </div>
@@ -413,51 +430,44 @@ function StepContractors({
 }) {
   return (
     <div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">
-        Do you hire contractors or subcontractors?
-      </h2>
-      <p className="text-slate-500 text-sm mb-6">
+      <StepHeading kicker="QUESTION 05" title="HIRE CONTRACTORS?" />
+      <Body className="!opacity-70 mb-6">
         If yes, we&apos;ll track COI and credential renewals for your subs.
-      </p>
+      </Body>
       <div className="flex flex-col gap-3">
-        <button
-          onClick={() => onChange(true)}
-          className={`text-left px-5 py-4 rounded-xl border-2 transition-colors ${
-            value === true
-              ? "border-blue-600 bg-blue-50"
-              : "border-slate-200 hover:border-slate-300"
-          }`}
-        >
-          <div className="font-semibold text-slate-900">
-            Yes, I hire contractors
-          </div>
-          <div className="text-sm text-slate-500 mt-0.5">
-            We&apos;ll track COI renewals, contractor license expiries, and
-            subcontractor credentials.
-          </div>
-        </button>
-        <button
-          onClick={() => onChange(false)}
-          className={`text-left px-5 py-4 rounded-xl border-2 transition-colors ${
-            value === false
-              ? "border-blue-600 bg-blue-50"
-              : "border-slate-200 hover:border-slate-300"
-          }`}
-        >
-          <div className="font-semibold text-slate-900">
-            No, employees only
-          </div>
-          <div className="text-sm text-slate-500 mt-0.5">
-            We&apos;ll focus on business licenses, employee certs, and entity
-            filings.
-          </div>
-        </button>
+        {[
+          {
+            v: true,
+            label: "Yes, I hire contractors",
+            desc: "We'll track COI renewals, contractor license expiries, and subcontractor credentials.",
+          },
+          {
+            v: false,
+            label: "No, employees only",
+            desc: "We'll focus on business licenses, employee certs, and entity filings.",
+          },
+        ].map(({ v, label, desc }) => (
+          <button
+            key={String(v)}
+            onClick={() => onChange(v)}
+            className={`text-left px-5 py-4 border-2 transition-colors ${
+              value === v
+                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
+                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
+            }`}
+          >
+            <div className="t-subhead font-bold">{label}</div>
+            <div className={`t-caption mt-1 ${value === v ? "!text-[var(--color-field)] !opacity-80" : ""}`}>
+              {desc}
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Deadline seeding ───────────────────────────────────────────────────────
+// ─── Deadline seeding ────────────────────────────────────────────────
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -471,4 +481,3 @@ async function seedStarterDeadlines(
     await supabase.from("deadlines").insert(deadlines);
   }
 }
-

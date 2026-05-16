@@ -31,7 +31,7 @@ describe("DeleteDeadlineButton", () => {
     render(<DeleteDeadlineButton deadlineId="dl-1" />);
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
     expect(screen.getByText(/delete this deadline/i)).toBeDefined();
-    expect(screen.getByRole("button", { name: /yes, delete/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /confirm delete/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /cancel/i })).toBeDefined();
   });
 
@@ -47,7 +47,7 @@ describe("DeleteDeadlineButton", () => {
 
     render(<DeleteDeadlineButton deadlineId="dl-1" />);
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /yes, delete/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm delete/i }));
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/deadlines");
@@ -60,7 +60,7 @@ describe("DeleteDeadlineButton", () => {
 
     render(<DeleteDeadlineButton deadlineId="dl-1" />);
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /yes, delete/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm delete/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to delete/i)).toBeDefined();
@@ -72,7 +72,7 @@ describe("DeleteDeadlineButton", () => {
 
     render(<DeleteDeadlineButton deadlineId="dl-1" />);
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /yes, delete/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm delete/i }));
 
     await waitFor(() => {
       const btn = screen.getByRole("button", { name: /deleting/i }) as HTMLButtonElement;

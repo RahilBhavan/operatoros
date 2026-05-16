@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Button, Utility, Body } from "@/components/doctrine";
 
 export default function DeleteDeadlineButton({
   deadlineId,
@@ -35,35 +36,40 @@ export default function DeleteDeadlineButton({
 
   if (confirming) {
     return (
-      <div className="flex flex-col items-start gap-1">
+      <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] p-4 inline-flex flex-col items-start gap-3 max-w-md">
+        <Utility className="!text-[var(--color-field)]">CONFIRM DELETE</Utility>
+        <Body className="!text-[var(--color-field)]">
+          Delete this deadline permanently? All attached documents will be
+          removed.
+        </Body>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-600">Delete this deadline?</span>
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="text-sm font-semibold text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-300 transition-colors"
+            className="btn btn-mark border-[var(--color-field)] !bg-[var(--color-field)] !text-[var(--color-mark)] hover:!bg-[var(--color-ground)] hover:!text-[var(--color-field)] hover:border-[var(--color-ground)]"
           >
-            {loading ? "Deleting…" : "Yes, delete"}
+            {loading ? "Deleting…" : "✕ Confirm Delete"}
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="text-sm text-slate-500 hover:text-slate-700 px-3 py-1.5"
+            className="btn btn-ghost !text-[var(--color-field)] !border-[var(--color-field)] hover:!bg-[var(--color-field)] hover:!text-[var(--color-mark)]"
           >
             Cancel
           </button>
         </div>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && (
+          <span className="t-caption !text-[var(--color-field)] opacity-90">
+            {error}
+          </span>
+        )}
       </div>
     );
   }
 
   return (
-    <button
-      onClick={() => setConfirming(true)}
-      className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 font-medium"
-    >
-      <Trash2 className="w-4 h-4" />
+    <Button variant="ghost" onClick={() => setConfirming(true)}>
+      <Trash2 className="w-4 h-4 inline-block mr-1.5 align-[-2px]" />
       Delete
-    </button>
+    </Button>
   );
 }

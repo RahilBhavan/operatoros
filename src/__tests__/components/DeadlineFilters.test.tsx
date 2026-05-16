@@ -52,6 +52,7 @@ describe("DeadlineFilters", () => {
   it("highlights the active status button", () => {
     render(<DeadlineFilters currentStatus="overdue" />);
     const overdueBtn = screen.getByRole("button", { name: /overdue/i });
-    expect(overdueBtn.className).toContain("bg-blue-600");
+    expect(overdueBtn.className).toContain("bg-[var(--color-ground)]");
+    expect(overdueBtn.getAttribute("aria-pressed")).toBe("true");
   });
 });

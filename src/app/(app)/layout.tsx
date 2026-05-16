@@ -27,9 +27,9 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[var(--color-field)]">
       <AppNav userEmail={user.email ?? ""} />
-      <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+      <main className="max-w-[1100px] mx-auto px-6 py-10">{children}</main>
     </div>
   );
 }

@@ -118,6 +118,10 @@ describe("DeadlineForm (edit mode)", () => {
     assigned_to: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    severity_tier: "medium" as const,
+    penalty_estimate_cents: null,
+    source_url: null,
+    statute_citation: null,
   };
 
   beforeEach(() => {

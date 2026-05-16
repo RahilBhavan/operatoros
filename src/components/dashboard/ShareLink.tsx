@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Link2, Copy, Check } from "lucide-react";
+import { Utility, Index, Caption, Button } from "@/components/doctrine";
 
 interface Props {
   canShare: boolean;
@@ -42,51 +43,86 @@ export default function ShareLink({ canShare }: Props) {
     }
   }
 
-  if (!canShare) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-slate-400">
-        <Link2 className="w-4 h-4" />
-        <span>Shareable link — Growth plan required</span>
-      </div>
-    );
-  }
-
-  if (shareUrl) {
-    return (
-      <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <input
-          value={shareUrl}
-          readOnly
-          className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 font-mono min-w-0"
-        />
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:border-blue-300 transition-colors shrink-0"
-        >
-          {copied ? (
-            <Check className="w-4 h-4 text-green-600" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-          {copied ? "Copied!" : "Copy"}
-        </button>
-      </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col items-start gap-1">
-      <button
-        onClick={handleGenerate}
-        disabled={loading}
-        className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
-      >
-        <Link2 className="w-4 h-4" />
-        {loading ? "Generating…" : "Generate shareable link"}
-      </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+    <div className="border-2 border-[var(--color-ground)]">
+      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link2 className="w-4 h-4 text-[var(--color-field)]" />
+          <Utility className="!text-[var(--color-field)] !opacity-100">
+            SHARE LINK
+          </Utility>
+        </div>
+        <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+          PA-SHR
+        </Index>
+      </div>
+
+      <div className="bg-[var(--color-field)] px-5 py-5">
+        {!canShare ? (
+          <div className="flex flex-col gap-2">
+            <Caption>
+              Shareable link — paid plan required.
+            </Caption>
+            <a
+              href="/billing"
+              className="t-link t-utility !text-[12px] text-[var(--color-mark)]"
+            >
+              UPGRADE TO ENABLE →
+            </a>
+          </div>
+        ) : shareUrl ? (
+          <div className="flex flex-col gap-3">
+            <Caption>
+              Live, read-only snapshot of your compliance calendar.
+            </Caption>
+            <div className="flex items-center gap-2">
+              <input
+                value={shareUrl}
+                readOnly
+                className="t-input flex-1 min-w-0 font-mono text-xs"
+              />
+              <Button
+                variant="ground"
+                onClick={handleCopy}
+                className="shrink-0"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-[var(--color-field)]" />
+                ) : (
+                  <Copy className="w-4 h-4 text-[var(--color-field)]" />
+                )}
+                <span>{copied ? "COPIED" : "COPY"}</span>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <Caption>
+              Generate a read-only URL anyone can open without an account.
+            </Caption>
+            <div>
+              <Button
+                variant="ground"
+                onClick={handleGenerate}
+                disabled={loading}
+              >
+                <Link2 className="w-4 h-4 text-[var(--color-field)]" />
+                <span>{loading ? "GENERATING…" : "GENERATE LINK"}</span>
+              </Button>
+            </div>
+            {error && (
+              <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
+                <Utility className="!text-[var(--color-field)] !opacity-100 !text-[12px]">
+                  ERROR
+                </Utility>
+                <p className="t-caption !text-[var(--color-field)] mt-1">
+                  {error}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Resend } from "resend";
 
-const ELIGIBLE_PLANS = ["growth", "scale"] as const;
+const ELIGIBLE_PLANS = ["business", "accountant"] as const;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   if (!isEligible) {
     return NextResponse.json(
-      { error: "Accountant portal requires Growth or Scale plan" },
+      { error: "Accountant portal requires a paid plan" },
       { status: 403 }
     );
   }

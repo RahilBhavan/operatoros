@@ -332,6 +332,75 @@ describe("NY LLC construction — 31-50 employees, hires contractors", () => {
   });
 });
 
+// ─── Severity metadata + source URLs (moat upgrade) ──────────────────────────
+describe("severity + sourcing metadata", () => {
+  const deadlines = build({
+    state: "CA",
+    entityType: "llc",
+    industry: "restaurant",
+    employeeRange: "6-15",
+    hiresContractors: false,
+  });
+
+  it("CA Minimum Franchise Tax is critical severity with source URL and statute", () => {
+    const d = deadlines.find((d) => d.name === "California Minimum Franchise Tax ($800)")!;
+    expect(d.severity_tier).toBe("critical");
+    expect(d.source_url).toMatch(/ftb\.ca\.gov/);
+    expect(d.statute_citation).toMatch(/§17941/);
+    expect(d.penalty_estimate_cents).toBe(80000);
+  });
+
+  it("Form 941 quarterly payroll is critical severity", () => {
+    const d = deadlines.find((d) => d.name === "Quarterly Payroll Tax Filing (Form 941)")!;
+    expect(d.severity_tier).toBe("critical");
+    expect(d.source_url).toMatch(/irs\.gov/);
+  });
+
+  it("Food service health permit is critical with non-null penalty", () => {
+    const d = deadlines.find((d) => d.name === "Food Service / Health Permit Renewal")!;
+    expect(d.severity_tier).toBe("critical");
+    expect(d.penalty_estimate_cents).not.toBeNull();
+  });
+
+  it("every seeded deadline has a defined severity_tier", () => {
+    for (const d of deadlines) {
+      expect(d.severity_tier).toBeDefined();
+      expect(["critical", "high", "medium", "low", "info"]).toContain(d.severity_tier);
+    }
+  });
+});
+
+// ─── 50-state fallback coverage ──────────────────────────────────────────────
+describe("50-state fallback rule table", () => {
+  it("MO LLC gets a Missouri-specific entity report", () => {
+    const ds = build({ state: "MO", entityType: "llc", industry: "other", employeeRange: "1" });
+    const moEntity = ds.find((d) => d.governing_agency?.startsWith("Missouri"));
+    expect(moEntity).toBeDefined();
+  });
+
+  it("WA C-Corp gets a Washington-specific entity report", () => {
+    const ds = build({ state: "WA", entityType: "c_corp", industry: "other", employeeRange: "1" });
+    const wa = ds.find((d) => d.governing_agency?.includes("Washington"));
+    expect(wa).toBeDefined();
+  });
+
+  it("DC LLC gets DC-specific entity coverage", () => {
+    const ds = build({ state: "DC", entityType: "llc", industry: "other", employeeRange: "1" });
+    expect(ds.some((d) => d.governing_agency?.includes("DC"))).toBe(true);
+  });
+
+  it("Sole proprietors do not get the fallback entity report (no entity to file)", () => {
+    const ds = build({
+      state: "MO",
+      entityType: "sole_proprietor",
+      industry: "other",
+      employeeRange: "1",
+    });
+    const moEntity = ds.find((d) => d.governing_agency?.startsWith("Missouri"));
+    expect(moEntity).toBeUndefined();
+  });
+});
+
 // ─── Cross-cutting: all due dates are valid future dates ──────────────────────
 describe("due date validity", () => {
   const combos: OnboardingData[] = [

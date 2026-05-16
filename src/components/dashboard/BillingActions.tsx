@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { PlanTier } from "@/lib/stripe";
+import type { PaidPlanTier } from "@/lib/stripe";
+import { Button, Caption } from "@/components/doctrine";
 
 interface Props {
-  plan?: PlanTier;
+  plan?: PaidPlanTier;
   hasCustomer: boolean;
   isSubscribed?: boolean;
   buttonLabel?: string;
@@ -16,7 +17,7 @@ export default function BillingActions({
   plan,
   hasCustomer,
   isSubscribed,
-  buttonLabel = "Get started",
+  buttonLabel = "Get started →",
   highlighted = false,
 }: Props) {
   const router = useRouter();
@@ -67,55 +68,58 @@ export default function BillingActions({
   // Manage subscription button (no plan = portal only)
   if (!plan && hasCustomer) {
     return (
-      <div className="flex flex-col items-start gap-1">
-        <button
-          onClick={handlePortal}
-          disabled={loading}
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Loading…" : "Manage subscription"}
-        </button>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex flex-col gap-1">
+        <Button onClick={handlePortal} disabled={loading} variant="ghost">
+          {loading ? "Loading…" : "Reroute plan →"}
+        </Button>
+        {error && (
+          <Caption className="!text-[var(--color-mark)] !opacity-100">
+            {error}
+          </Caption>
+        )}
       </div>
     );
   }
 
   if (!plan) return null;
 
-  // Switch plan via portal
+  const variant = highlighted ? "mark" : "ground";
+
   if (isSubscribed && hasCustomer) {
     return (
-      <div className="flex flex-col gap-1">
-        <button
+      <div className="flex flex-col gap-1 w-full">
+        <Button
           onClick={handlePortal}
           disabled={loading}
-          className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-            highlighted
-              ? "bg-blue-600 hover:bg-blue-700 text-white"
-              : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-          } disabled:opacity-50`}
+          variant={variant}
+          className="w-full justify-center"
         >
           {loading ? "Loading…" : buttonLabel}
-        </button>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        </Button>
+        {error && (
+          <Caption className="!text-[var(--color-mark)] !opacity-100">
+            {error}
+          </Caption>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <button
+    <div className="flex flex-col gap-1 w-full">
+      <Button
         onClick={handleCheckout}
         disabled={loading}
-        className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-          highlighted
-            ? "bg-blue-600 hover:bg-blue-700 text-white"
-            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-        } disabled:opacity-50`}
+        variant={variant}
+        className="w-full justify-center"
       >
         {loading ? "Loading…" : buttonLabel}
-      </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      </Button>
+      {error && (
+        <Caption className="!text-[var(--color-mark)] !opacity-100">
+          {error}
+        </Caption>
+      )}
     </div>
   );
 }

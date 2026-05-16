@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeadlineForm from "@/components/dashboard/DeadlineForm";
+import {
+  H1,
+  Caption,
+  Utility,
+  Index,
+  LinkButton,
+} from "@/components/doctrine";
 
 export default async function NewDeadlinePage() {
   const supabase = await createClient();
@@ -20,12 +27,21 @@ export default async function NewDeadlinePage() {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Add Deadline</h1>
-        <p className="text-slate-500 mt-1 text-sm">
-          Add a compliance deadline to track and receive reminders for.
-        </p>
-      </div>
+      <header className="flex items-end justify-between border-b-2 border-[var(--color-ground)] pb-6 mb-8 flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <Index className="!text-[15px]">PA-DL-NEW</Index>
+            <Utility className="opacity-60">REGISTRY · INTAKE</Utility>
+          </div>
+          <H1>Add deadline.</H1>
+          <Caption className="!mt-2">
+            File a compliance deadline for tracking and reminders.
+          </Caption>
+        </div>
+        <LinkButton href="/deadlines" variant="ghost">
+          ← All deadlines
+        </LinkButton>
+      </header>
       <DeadlineForm businessId={business.id} />
     </div>
   );

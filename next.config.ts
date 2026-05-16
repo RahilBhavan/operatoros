@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+// 'unsafe-eval' is needed for Next.js dev HMR; it is dropped in production.
+const scriptSrc = isProd
+  ? "script-src 'self' 'unsafe-inline'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -10,7 +15,7 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  scriptSrc,
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.anthropic.com",
 ].join("; ");
 

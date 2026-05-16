@@ -1,15 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Plus,
-  FileText,
-  Calendar,
-  Download,
-} from "lucide-react";
 import type { Database } from "@/types/supabase";
 import ShareLink from "@/components/dashboard/ShareLink";
 import AccountantInvite from "@/components/dashboard/AccountantInvite";
@@ -18,44 +9,30 @@ import ProactiveInsights from "@/components/dashboard/ProactiveInsights";
 import {
   formatDueDate,
   computeAutoStatus,
-  computeComplianceScore,
+  computeRiskWeightedScore,
+  computeExposureCents,
+  topActions,
+  formatCents,
 } from "@/lib/deadline-utils";
+import {
+  Destination,
+  H2,
+  Body,
+  Caption,
+  Utility,
+  Index,
+  LinkButton,
+} from "@/components/doctrine";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
 
-const STATUS_CONFIG = {
-  overdue: {
-    label: "Overdue",
-    color: "text-red-700",
-    bg: "bg-red-50",
-    border: "border-red-200",
-    dot: "bg-red-500",
-    icon: AlertTriangle,
-  },
-  in_progress: {
-    label: "In Progress",
-    color: "text-yellow-700",
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    dot: "bg-yellow-500",
-    icon: Clock,
-  },
-  upcoming: {
-    label: "Upcoming",
-    color: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    dot: "bg-blue-500",
-    icon: Calendar,
-  },
-  compliant: {
-    label: "Compliant",
-    color: "text-green-700",
-    bg: "bg-green-50",
-    border: "border-green-200",
-    dot: "bg-green-500",
-    icon: CheckCircle,
-  },
+type StatusKey = "overdue" | "in_progress" | "upcoming" | "compliant";
+
+const STATUS: Record<StatusKey, { label: string; sort: string; rule: string }> = {
+  overdue: { label: "OVERDUE — ACTION REQUIRED", sort: "X", rule: "border-[var(--color-mark)]" },
+  in_progress: { label: "DUE WITHIN 30 DAYS", sort: "A", rule: "border-[var(--color-ground)]" },
+  upcoming: { label: "UPCOMING", sort: "B", rule: "border-[var(--color-ground)]" },
+  compliant: { label: "COMPLIANT", sort: "C", rule: "border-[var(--color-ground)]" },
 };
 
 export default async function DashboardPage() {
@@ -99,38 +76,71 @@ export default async function DashboardPage() {
   const upcoming = deadlines.filter((d) => computeAutoStatus(d) === "upcoming");
   const compliant = deadlines.filter((d) => d.status === "compliant");
 
-  const complianceScore = computeComplianceScore(deadlines, computeAutoStatus);
+  const complianceScore = computeRiskWeightedScore(deadlines);
+  const exposureCents = computeExposureCents(deadlines);
+  const actions = topActions(deadlines, 3);
   const isPremium =
     (business.billing_status === "active" ||
       business.billing_status === "trialing") &&
-    (business.plan_tier === "growth" || business.plan_tier === "scale");
+    (business.plan_tier === "business" || business.plan_tier === "accountant");
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{business.name}</h1>
-          <p className="text-slate-500 mt-1">Compliance Dashboard</p>
+      {/* Header — the master luggage tag for this business */}
+      <header className="border-2 border-[var(--color-ground)] mb-8">
+        <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 pt-5 pb-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+              PA-{business.id.slice(0, 6).toUpperCase()}
+            </Index>
+            <span className="tag-tab -mt-6">DASHBOARD</span>
+            <Utility className="opacity-80">SECTOR · A</Utility>
+          </div>
+          <div className="flex items-end justify-between flex-wrap gap-6">
+            <div>
+              <Utility className="!text-[var(--color-field)] opacity-70 mb-2">
+                FINAL DESTINATION
+              </Utility>
+              <Destination className="!text-[var(--color-field)] !text-[60px] !leading-[0.95]">
+                {business.name.toUpperCase()}
+              </Destination>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="/api/export/pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost !text-[var(--color-field)] !border-[var(--color-field)] hover:!bg-[var(--color-field)] hover:!text-[var(--color-ground)]"
+              >
+                Export PDF
+              </a>
+              <LinkButton href="/deadlines/new" variant="mark">
+                + File new deadline
+              </LinkButton>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/api/export/pdf"
-            target="_blank"
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </a>
-          <Link
-            href="/deadlines/new"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-xl transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Deadline
-          </Link>
+
+        {/* Score strip */}
+        <div className="bg-[var(--color-field)] grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-[var(--color-ground)]">
+          <ScoreCell
+            label="RISK-WEIGHTED SCORE"
+            value={`${complianceScore}`}
+            suffix="/100"
+            extra={
+              exposureCents > 0 ? (
+                <Caption className="!text-[var(--color-mark)] !text-[12px] !mt-1">
+                  {formatCents(exposureCents)} exposure
+                </Caption>
+              ) : null
+            }
+            big
+          />
+          <ScoreCell label="OVERDUE" value={`${overdue.length}`} mark={overdue.length > 0} />
+          <ScoreCell label="DUE SOON" value={`${inProgress.length}`} />
+          <ScoreCell label="UPCOMING" value={`${upcoming.length}`} />
         </div>
-      </div>
+      </header>
 
       {/* Share + accountant tools */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
@@ -138,51 +148,54 @@ export default async function DashboardPage() {
         <AccountantInvite canInvite={isPremium} />
       </div>
 
-      {/* Score + stats */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:col-span-2 lg:col-span-1">
-          <p className="text-sm text-slate-500 mb-1">Compliance Score</p>
-          <div
-            className={`text-4xl font-extrabold ${
-              complianceScore >= 80
-                ? "text-green-600"
-                : complianceScore >= 60
-                ? "text-yellow-600"
-                : "text-red-600"
-            }`}
-          >
-            {complianceScore}
-            <span className="text-xl font-medium text-slate-400">/100</span>
+      {/* Top actions */}
+      {actions.length > 0 && (
+        <section className="border-2 border-[var(--color-ground)] mb-8">
+          <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+            <Utility className="!text-[var(--color-field)] !opacity-100">
+              TOP {actions.length} ACTION{actions.length === 1 ? "" : "S"} TO RECOVER SCORE
+            </Utility>
+            <Caption className="!text-[var(--color-field)] !opacity-80 !text-[12px]">
+              SEVERITY × URGENCY
+            </Caption>
           </div>
-        </div>
+          <ol className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
+            {actions.map((a, i) => (
+              <li key={a.id ?? a.name}>
+                <Link
+                  href={a.id ? `/deadlines/${a.id}` : "/deadlines"}
+                  className="flex items-center gap-5 px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors"
+                >
+                  <Index className="!text-[24px] shrink-0 w-10">
+                    {String(i + 1).padStart(2, "0")}
+                  </Index>
+                  <div className="flex-1 min-w-0">
+                    <Body className="!font-bold truncate">{a.name}</Body>
+                    <Caption className="!mt-1 !text-[12px]">
+                      {a.status === "overdue" ? "OVERDUE" : "DUE SOON"} ·{" "}
+                      {a.severity_tier?.toUpperCase()} SEVERITY
+                      {a.penalty_estimate_cents > 0 ? (
+                        <>
+                          {" "}
+                          ·{" "}
+                          <Index className="!text-[12px]">
+                            {formatCents(a.penalty_estimate_cents)}
+                          </Index>{" "}
+                          POTENTIAL PENALTY
+                        </>
+                      ) : null}
+                    </Caption>
+                  </div>
+                  <Utility className="opacity-60 shrink-0">→</Utility>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
-        {(
-          [
-            { label: "Overdue", count: overdue.length, color: "text-red-600" },
-            {
-              label: "Due Soon",
-              count: inProgress.length,
-              color: "text-yellow-600",
-            },
-            {
-              label: "Upcoming",
-              count: upcoming.length,
-              color: "text-blue-600",
-            },
-          ] as const
-        ).map(({ label, count, color }) => (
-          <div
-            key={label}
-            className="bg-white rounded-2xl border border-slate-200 p-5"
-          >
-            <p className="text-sm text-slate-500 mb-1">{label}</p>
-            <div className={`text-4xl font-extrabold ${color}`}>{count}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Score trend + AI insights */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-8">
+      {/* Score chart + insights */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-10">
         <ComplianceScoreChart history={history} currentScore={complianceScore} />
         <ProactiveInsights />
       </div>
@@ -191,34 +204,18 @@ export default async function DashboardPage() {
       {deadlines.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-10">
           {overdue.length > 0 && (
-            <DeadlineGroup
-              title="Overdue — Action Required"
-              deadlines={overdue}
-              statusKey="overdue"
-            />
+            <DeadlineGroup statusKey="overdue" deadlines={overdue} />
           )}
           {inProgress.length > 0 && (
-            <DeadlineGroup
-              title="Due Within 30 Days"
-              deadlines={inProgress}
-              statusKey="in_progress"
-            />
+            <DeadlineGroup statusKey="in_progress" deadlines={inProgress} />
           )}
           {upcoming.length > 0 && (
-            <DeadlineGroup
-              title="Upcoming"
-              deadlines={upcoming}
-              statusKey="upcoming"
-            />
+            <DeadlineGroup statusKey="upcoming" deadlines={upcoming} />
           )}
           {compliant.length > 0 && (
-            <DeadlineGroup
-              title="Compliant"
-              deadlines={compliant}
-              statusKey="compliant"
-            />
+            <DeadlineGroup statusKey="compliant" deadlines={compliant} />
           )}
         </div>
       )}
@@ -226,77 +223,108 @@ export default async function DashboardPage() {
   );
 }
 
-function DeadlineGroup({
-  title,
-  deadlines,
-  statusKey,
+function ScoreCell({
+  label,
+  value,
+  suffix,
+  extra,
+  big,
+  mark,
 }: {
-  title: string;
-  deadlines: Deadline[];
-  statusKey: keyof typeof STATUS_CONFIG;
+  label: string;
+  value: string;
+  suffix?: string;
+  extra?: React.ReactNode;
+  big?: boolean;
+  mark?: boolean;
 }) {
-  const config = STATUS_CONFIG[statusKey];
-  const Icon = config.icon;
+  return (
+    <div className="px-5 py-5">
+      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <div className={big ? "t-display !text-[38px]" : "t-h1"}>
+        <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
+        {suffix && (
+          <span className="t-h3 !opacity-50 ml-1">{suffix}</span>
+        )}
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+function DeadlineGroup({
+  statusKey,
+  deadlines,
+}: {
+  statusKey: StatusKey;
+  deadlines: Deadline[];
+}) {
+  const conf = STATUS[statusKey];
+  const overdue = statusKey === "overdue";
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className={`w-4 h-4 ${config.color}`} />
-        <h2 className="text-sm font-semibold text-slate-700">
-          {title} ({deadlines.length})
-        </h2>
-      </div>
-      <div className="flex flex-col gap-2">
+    <section className={`border-2 ${conf.rule}`}>
+      <header
+        className={`flex items-center justify-between px-5 py-3 ${
+          overdue
+            ? "bg-[var(--color-mark)] text-[var(--color-field)]"
+            : "bg-[var(--color-ground)] text-[var(--color-field)]"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <Utility className="!text-[var(--color-field)] !opacity-100">
+            {conf.label}
+          </Utility>
+          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+            ({deadlines.length})
+          </Index>
+        </div>
+        <span className="inline-flex items-stretch border-2 border-[var(--color-field)]">
+          <span className="px-2 py-0.5 border-r-2 border-[var(--color-field)] t-utility !text-[12px]">
+            SORT
+          </span>
+          <span className="px-2 py-0.5 t-h3 leading-none">{conf.sort}</span>
+        </span>
+      </header>
+      <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
         {deadlines.map((d) => (
-          <Link
-            key={d.id}
-            href={`/deadlines/${d.id}`}
-            className={`flex items-center justify-between p-4 rounded-xl border ${config.border} ${config.bg} hover:opacity-90 transition-opacity`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className={`w-2 h-2 rounded-full shrink-0 ${config.dot}`}
-              />
-              <div className="min-w-0">
-                <div className={`font-medium ${config.color} truncate`}>
-                  {d.name}
-                </div>
+          <li key={d.id}>
+            <Link
+              href={`/deadlines/${d.id}`}
+              className="flex items-center justify-between px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors gap-4"
+            >
+              <div className="min-w-0 flex-1">
+                <Body className="!font-bold truncate">{d.name}</Body>
                 {d.governing_agency && (
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    {d.governing_agency}
-                  </div>
+                  <Caption className="!mt-0.5 !text-[12px]">
+                    {d.governing_agency.toUpperCase()}
+                  </Caption>
                 )}
               </div>
-            </div>
-            <div
-              className={`text-sm font-semibold ${config.color} shrink-0 ml-4`}
-            >
-              {formatDueDate(d.due_date)}
-            </div>
-          </Link>
+              <Index className={`shrink-0 ${overdue ? "" : "!text-[var(--color-ground)]"}`}>
+                {formatDueDate(d.due_date)}
+              </Index>
+            </Link>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
-      <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-slate-700 mb-1">
-        No deadlines yet
-      </h3>
-      <p className="text-slate-500 text-sm mb-5">
+    <div className="border-2 border-[var(--color-ground)] py-16 px-6 text-center">
+      <Index className="!text-[48px] !text-[var(--color-ground)] opacity-30 mb-3">
+        000
+      </Index>
+      <H2 className="mb-2">No deadlines yet.</H2>
+      <Body className="!opacity-70 mb-6">
         Add your first compliance deadline to start tracking.
-      </p>
-      <Link
-        href="/deadlines/new"
-        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
-      >
-        <Plus className="w-4 h-4" />
-        Add your first deadline
-      </Link>
+      </Body>
+      <LinkButton href="/deadlines/new" variant="ground">
+        + File your first deadline
+      </LinkButton>
     </div>
   );
 }

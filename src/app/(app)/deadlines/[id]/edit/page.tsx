@@ -1,9 +1,14 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ArrowLeft } from "lucide-react";
 import DeadlineForm from "@/components/dashboard/DeadlineForm";
 import DeleteDeadlineButton from "@/components/dashboard/DeleteDeadlineButton";
+import {
+  H1,
+  Caption,
+  Utility,
+  Index,
+  LinkButton,
+} from "@/components/doctrine";
 
 export default async function EditDeadlinePage({
   params,
@@ -37,22 +42,31 @@ export default async function EditDeadlinePage({
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Link
-          href={`/deadlines/${id}`}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Edit Deadline</h1>
-        <DeleteDeadlineButton deadlineId={deadline.id} />
-      </div>
+      <header className="flex items-end justify-between border-b-2 border-[var(--color-ground)] pb-6 mb-8 flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <Index className="!text-[15px]">PA-DL-EDIT</Index>
+            <Utility className="opacity-60">REGISTRY · AMEND</Utility>
+          </div>
+          <H1>Edit deadline.</H1>
+          <Caption className="!mt-2">{deadline.name}</Caption>
+        </div>
+        <LinkButton href={`/deadlines/${id}`} variant="ghost">
+          ← Back
+        </LinkButton>
+      </header>
 
       <DeadlineForm businessId={business.id} existing={deadline} />
+
+      <div className="mt-8 pt-6 border-t-2 border-[var(--color-ground)] flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <Utility>DANGER ZONE</Utility>
+          <Caption className="!mt-1">
+            Removing a deadline also deletes its attached documents.
+          </Caption>
+        </div>
+        <DeleteDeadlineButton deadlineId={deadline.id} />
+      </div>
     </div>
   );
 }
