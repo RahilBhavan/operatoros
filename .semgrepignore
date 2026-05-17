@@ -1,0 +1,13 @@
+# Vendor / skill packages — third-party code, not part of our production graph.
+.agents/
+OperatorOS Design System/
+
+# Build + dependency output (semgrep already skips most of these by default,
+# but listing them keeps local runs honest).
+node_modules/
+.next/
+out/
+build/
+coverage/
+.fleet-logs/
+.fleet-state/
