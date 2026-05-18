@@ -63,13 +63,13 @@ export default async function ProjectDetail({
           </div>
           <h1
             style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(30px, 4vw, 44px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
+              fontFamily: "var(--font-destination)",
+              fontWeight: 900,
+              fontSize: "clamp(30px, 4vw, 44px)",
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+            }}
           >
             {project.name}
           </h1>

@@ -13,6 +13,8 @@ export default function ServiceWorkerRegister() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
     if (process.env.NODE_ENV !== "production") return;
+    // Off by default — enable after domain + deploy are verified (stale SW can break navigation).
+    if (process.env.NEXT_PUBLIC_ENABLE_PWA !== "true") return;
 
     async function setup() {
       const check = await fetch(SW_URL, { method: "HEAD", cache: "no-store" });

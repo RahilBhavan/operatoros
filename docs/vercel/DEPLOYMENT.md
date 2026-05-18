@@ -33,6 +33,12 @@ Expected JSON:
 
 Landing page should mention **compliance deadlines**, waitlist / sign-in — not “AI agents” or “Voice Agent”.
 
+View page source on `/` and confirm `<html … data-app="operatoros-compliance">`.
+
+### PWA / service worker
+
+`NEXT_PUBLIC_ENABLE_PWA` defaults to **off**. Set it to `true` in Vercel env only after `/api/health` and the homepage look correct — a stale service worker from an old deploy can make navigation feel like a broken download.
+
 ---
 
 ## Project settings (Build & Development)

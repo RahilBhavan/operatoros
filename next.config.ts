@@ -20,9 +20,6 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: __dirname,
-  },
   async rewrites() {
     // Guarantee PWA assets on Vercel when public/ static serving is skipped.
     return [

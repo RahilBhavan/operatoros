@@ -93,6 +93,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-app="operatoros-compliance"
       className={`h-full antialiased ${inter.variable} ${robotoSlab.variable} ${atkinson.variable}`}
     >
       <body className="min-h-full bg-field text-ground font-destination">
