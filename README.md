@@ -40,19 +40,32 @@ The compliance score penalizes overdue items heavily (−20 pts each) and distin
 ```
 src/
 ├── app/
-│   ├── (app)/          # Authenticated app routes (dashboard, deadlines, billing)
+│   ├── (app)/          # Authenticated app routes (dashboard, deadlines, billing, settings)
 │   ├── (auth)/         # Auth routes (sign-in, sign-up, callback)
 │   ├── (onboarding)/   # First-run onboarding — seeds jurisdiction-aware deadlines
-│   ├── accountant/     # Accountant portal (magic-link, no login required)
-│   ├── api/            # API routes (billing, cron, export, share, ai, accountant)
-│   └── share/[token]/  # Public read-only share pages for auditors
+│   ├── accountant/     # Accountant portal (token-gated, no login required)
+│   ├── admin/          # Platform-admin control plane (CEO/staff)
+│   ├── admin-accept/   # Platform-admin invite claim page
+│   ├── api/            # API routes (billing, cron, export, share, ai, accountant, admin)
+│   ├── invite/         # Team member invite acceptance
+│   ├── share/[token]/  # Public read-only share pages for auditors
+│   └── unsubscribe/    # Reminder unsubscribe via token
 ├── components/
-│   └── dashboard/      # UI components (score chart, AI insights, accountant invite)
+│   ├── admin/          # Admin-only UI (rule editor, revoke buttons, audit views)
+│   ├── dashboard/      # Customer app UI (score chart, AI insights, accountant invite)
+│   ├── doctrine/       # Design-system primitives (typography, PanAmTag, TagCard, Button)
+│   └── marketing/      # Landing-page UI (nav, waitlist form, portfolio preview)
 ├── lib/
+│   ├── admin/          # Platform-admin loaders + audit helpers
+│   ├── security/       # Auth + token gates (share, accountant, admin, rate limits)
 │   ├── supabase/       # Supabase clients (server, client, admin)
-│   ├── deadline-utils.ts  # Scoring algorithm + status helpers
+│   ├── regulatory-graph.ts # Declarative federal/state rule definitions (single source of truth)
+│   ├── seed-deadlines.ts   # Thin wrapper over regulatory-graph for onboarding
+│   ├── benchmarks.ts   # Peer-cohort percentile math (k-anon ≥10)
+│   ├── deadline-utils.ts   # Scoring algorithm + status helpers
 │   └── email.ts        # Resend email helpers
-└── types/              # TypeScript types
+├── types/              # TypeScript types (hand-curated supabase Database)
+└── proxy.ts            # Next 16 proxy (formerly middleware.ts)
 ```
 
 ---

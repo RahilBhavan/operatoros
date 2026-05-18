@@ -41,7 +41,7 @@ export default function DeadlineNote({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="t-utility !text-[12px] !text-[var(--color-ground)] opacity-60 hover:opacity-100 hover:text-[var(--color-mark)] mt-2 transition-colors"
+        className="t-utility !text-[12px] !text-[var(--color-ground)]  hover:opacity-100 hover:text-[var(--color-mark)] mt-2 transition-colors"
       >
         + ADD NOTE
       </button>
@@ -59,7 +59,7 @@ export default function DeadlineNote({
         className="t-input !text-[15px] resize-none"
       />
       <div className="flex items-center justify-between mt-2">
-        <span className="t-utility !text-[12px] opacity-60">
+        <span className="t-utility !text-[12px] ">
           {note.length}/1000
         </span>
         <button

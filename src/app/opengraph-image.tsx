@@ -17,7 +17,7 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 72,
-          background: "#F4EDE0",
+          background: "#FFFFFF",
           color: "#14213D",
           fontFamily: "sans-serif",
         }}
@@ -38,7 +38,7 @@ export default async function OpengraphImage() {
               width: 44,
               height: 44,
               background: "#C8102E",
-              color: "#F4EDE0",
+              color: "#FFFFFF",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

@@ -4,6 +4,24 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-17 — UX audit fix pass: deltas to earlier session notes
+
+What: Read the design rollout note dated 2026-05-16 below. A few items it left as "deferred / quirks" have actually moved since — recording the deltas so the log stays accurate.
+
+- **`--color-field-soft` shim**: already retired. `globals.css` now aliases it to `var(--color-field)`. The quirk ("technically a tint, refusal violation") no longer applies because there is no tint.
+- **`PanAmTag` migration**: the deadline detail page has already migrated from the v1 `TagCard` to `PanAmTag`. The 2026-05-16 note treated this as deferred.
+- **`TagCard` footprint**: now in 4 files (share portal, accountant portal, invite-accept, billing success), not 12. The mechanical per-screen migration the note expected is mostly done.
+- **`MarketingNav` red "O" mark**: already removed; the nav uses a single `<Wordmark>` matching the bundle. The "deferred — touches every consumer" quirk is closed.
+
+Also in this pass:
+- AdminNav swapped from full Ink panel + 6px Mark bottom border to the post-pivot pattern (4px Ink top stripe, 1px hairline bottom, Mark underline for active tab) — matches `MarketingNav` and `AppNav` so all three navs now speak the same language.
+- Cream backgrounds (`#F4EDE0`) removed from PWA manifest, viewport theme color, apple-icon, and OG/twitter images — these were the last surfaces still leaking the pre-pivot color into off-app chrome.
+- Public token portals (`/share/[token]`, `/accountant/[token]`, `/invite/[token]/accept`) now share a single `<PublicNav>` component instead of three near-duplicate inline navs.
+- Deleted three dead doctrine primitives (`Field.tsx`, `SortingArrow.tsx`, `SectionHead.tsx`) — zero JSX usages across `src/**/*.tsx`.
+- Status page replaced hardcoded "all ok" list with real lightweight checks (Supabase `select limit 1`, Stripe `accounts.retrieve` if key present, Resend / Anthropic skipped if no key) wrapped in 3s timeouts.
+
+---
+
 ## 2026-05-16 — Design system rollout: cream → white pivot + Pan Am tag artifact
 
 What: Implemented the `OperatorOS Design System` bundle exported from `claude.ai/design` (handoff at `https://api.anthropic.com/v1/design/h/5tiRP8CPFVXbCMH4D1BJaQ`). Two load-bearing changes — the **cream → white pivot** that flips the dominant surface, and the **`PanAmTag`** artifact that gives the deadline its own physical-feeling object. Plus nav consolidation and a doctrine-doc update so the vocabulary in code matches the vocabulary on the page.

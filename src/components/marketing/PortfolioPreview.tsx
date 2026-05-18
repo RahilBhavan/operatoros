@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { StampChip } from "@/components/doctrine/StampChip";
 
 type Client = {
   name: string;
@@ -28,14 +29,10 @@ function prefersReducedMotion() {
 
 export function PortfolioPreview() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  // Hydrates to 0 on SSR; client first paint sets the final state for
-  // reduced-motion users without a cascading effect render.
   const [progress, setProgress] = useState<number>(() =>
     prefersReducedMotion() ? 1 : 0,
   );
-  const [started, setStarted] = useState<boolean>(() =>
-    prefersReducedMotion(),
-  );
+  const [started, setStarted] = useState<boolean>(() => prefersReducedMotion());
 
   useEffect(() => {
     if (started) return;
@@ -74,40 +71,68 @@ export function PortfolioPreview() {
   return (
     <div
       ref={containerRef}
-      className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] p-6"
+      className="border-2 border-[var(--color-ground)] bg-[var(--color-field)]"
       aria-label="Sample accountant client portfolio"
     >
-      <p className="t-utility text-[var(--color-ground)] opacity-70 mb-4">
-        Client portfolio · sample
-      </p>
-      <div className="flex flex-col gap-3">
-        {CLIENTS.map((client) => {
+      <div className="flex items-center justify-between p-5 border-b-2 border-[var(--color-ground)]">
+        <span className="t-utility text-[var(--color-ground)]">
+          Portfolio · sample
+        </span>
+        <StampChip tone="field">04 · clients</StampChip>
+      </div>
+      <div className="flex flex-col">
+        {CLIENTS.map((client, i) => {
           const displayScore = Math.round(client.score * progress);
           const reachedAlert = client.alert && progress > 0.5;
-          const tone = reachedAlert
-            ? "text-[var(--color-mark)]"
-            : "text-[var(--color-ground)]";
+          const last = i === CLIENTS.length - 1;
           return (
             <div
               key={client.name}
-              className="flex items-center justify-between border-b border-[var(--color-ground)]/20 last:border-0 pb-3 last:pb-0"
+              className={`grid grid-cols-[1fr_auto] items-center px-5 py-4 ${
+                last ? "" : "border-b border-[var(--color-ground)]"
+              }`}
             >
-              <span className="text-[15px] font-semibold text-[var(--color-ground)]">
-                {client.name}
-              </span>
+              <div>
+                <div
+                  className="text-[15px] font-bold"
+                  style={{ fontFamily: "var(--font-index)" }}
+                >
+                  {client.name}
+                </div>
+                {reachedAlert ? (
+                  <div className="t-utility text-[var(--color-mark)] mt-1 !text-[10px]">
+                    Action required
+                  </div>
+                ) : null}
+              </div>
               <span
-                className={`text-[15px] font-bold tabular-nums transition-colors duration-200 ${tone}`}
+                className="font-black leading-none tabular-nums"
+                style={{
+                  fontFamily: "var(--font-destination)",
+                  fontWeight: 900,
+                  fontSize: 28,
+                  color: reachedAlert
+                    ? "var(--color-mark)"
+                    : "var(--color-ground)",
+                  letterSpacing: "-0.01em",
+                }}
                 aria-label={`Score ${client.score} out of 100`}
               >
-                {displayScore}/100
+                {displayScore}
+                <span
+                  className="text-[13px] font-medium"
+                  style={{ fontFamily: "var(--font-index)" }}
+                >
+                  /100
+                </span>
               </span>
             </div>
           );
         })}
       </div>
-      <p className="mt-4 text-[12px] uppercase tracking-widest text-[var(--color-ground)] opacity-50">
-        Illustrative — sample data, not real clients
-      </p>
+      <div className="border-t-2 border-[var(--color-ground)] px-5 py-3 t-utility text-[var(--color-ground)]">
+        Illustrative · not real clients
+      </div>
     </div>
   );
 }

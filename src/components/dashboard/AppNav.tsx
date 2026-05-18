@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Utility, Caption } from "@/components/doctrine";
+import { Wordmark } from "@/components/doctrine/Wordmark";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "DASHBOARD", code: "A" },
-  { href: "/deadlines", label: "DEADLINES", code: "B" },
-  { href: "/billing", label: "BILLING", code: "C" },
-  { href: "/settings/team", label: "TEAM", code: "D" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/deadlines", label: "Deadlines" },
+  { href: "/billing", label: "Billing" },
+  { href: "/settings/team", label: "Team" },
 ];
 
 export default function AppNav({ userEmail }: { userEmail: string }) {
@@ -24,45 +24,44 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <nav className="bg-[var(--color-field)] border-t-4 border-b border-t-[var(--color-ground)] border-b-[var(--color-ground)]/15">
-      <div className="max-w-[1100px] mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-8 flex-wrap">
-          <Link href="/dashboard" className="flex items-baseline gap-3">
-            <span className="t-h3 font-black tracking-tight leading-none">
-              OPERATOR<span className="text-[var(--color-mark)]">OS</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-1 flex-wrap">
-            {NAV_ITEMS.map(({ href, label, code }) => {
-              const active = pathname === href || pathname?.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`inline-flex items-stretch border-2 ${
-                    active
-                      ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
-                      : "border-transparent text-[var(--color-ground)] hover:border-[var(--color-ground)]"
-                  }`}
-                >
-                  <span className="px-3 py-1.5 border-r-2 border-current opacity-70 t-utility !text-[12px]">
-                    {code}
-                  </span>
-                  <span className="px-3 py-1.5 t-utility">{label}</span>
-                </Link>
-              );
-            })}
-          </div>
+    <nav
+      aria-label="App navigation"
+      className="w-full bg-[var(--color-field)] border-t-4 border-b-2 border-t-[var(--color-ground)] border-b-[var(--color-ground)]"
+    >
+      <div className="max-w-[1160px] mx-auto flex items-center gap-6 px-6 h-16">
+        <Wordmark href="/dashboard" size={18} />
+
+        <div className="flex items-stretch self-stretch ml-4 -mb-[2px]">
+          {NAV_ITEMS.map(({ href, label }) => {
+            const active =
+              pathname === href || pathname?.startsWith(href + "/");
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`px-4 flex items-center t-utility no-underline text-[var(--color-ground)] border-b-4 ${
+                  active ? "border-[var(--color-mark)]" : "border-transparent"
+                } hover:text-[var(--color-mark)] transition-colors`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-4">
-          <Caption className="hidden sm:block !opacity-70 !text-[12px]">
+
+        <div className="ml-auto flex items-center gap-4">
+          <span
+            className="hidden sm:inline text-[13px]"
+            style={{ fontFamily: "var(--font-index)" }}
+          >
             {userEmail}
-          </Caption>
+          </span>
           <button
             onClick={handleSignOut}
-            className="t-utility hover:text-[var(--color-mark)]"
+            className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
           >
-            SIGN OUT →
+            Sign out →
           </button>
         </div>
       </div>

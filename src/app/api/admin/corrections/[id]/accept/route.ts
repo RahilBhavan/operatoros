@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendCorrectionStatusEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -9,11 +9,15 @@ export const runtime = "nodejs";
 //
 // Calls accept_correction(p_correction_id) which runs FOR UPDATE on the
 // correction row + forks v+1 of the underlying rule via
-// version_regulatory_rule. The accept RPC runs as the calling user
-// (security definer + auth.uid()) so the is_platform_admin() guard inside
-// resolves correctly. After commit we kick off a refresh of the
-// rule_confidence materialized view via the service-role refresh function
-// so the dashboard badge reflects the change within the next request.
+// version_regulatory_rule. The accept RPC is granted to service_role only
+// (per the audit-remediation migration's defence-in-depth GRANT lockdown),
+// so we call it through the admin client AFTER requirePlatformAdminForRoute
+// has verified the caller is a platform admin. The is_platform_admin()
+// guard inside the RPC still resolves correctly because the admin client
+// passes through auth.uid() via the request JWT.
+//
+// After commit we kick off a refresh of the rule_confidence materialized
+// view so the dashboard badge reflects the change within the next request.
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,8 +30,8 @@ export async function POST(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  const admin = createAdminClient();
+  const rpc = admin.rpc as unknown as (
     fn: "accept_correction",
     params: { p_correction_id: string }
   ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;
@@ -54,7 +58,6 @@ export async function POST(
 
   // Audit — same shape the verify/edit routes use. The accept RPC has
   // already committed; audit failure shouldn't roll back the user action.
-  const admin = createAdminClient();
   const { error: auditError } = await admin.from("audit_events").insert({
     business_id: null,
     actor_user_id: auth.user.id,
@@ -79,5 +82,50 @@ export async function POST(
     console.error("[corrections] refresh_rule_confidence failed", refreshError.message);
   }
 
+  // Fire-and-forget email to the accountant who proposed the correction.
+  void notifyProposer(admin, id, "accepted");
+
   return NextResponse.json({ ok: true, new_rule_id: newRuleId });
+}
+
+async function notifyProposer(
+  admin: ReturnType<typeof createAdminClient>,
+  correctionId: string,
+  status: "accepted" | "rejected",
+  reviewNote?: string | null
+) {
+  try {
+    const { data: correction } = await admin
+      .from("rule_corrections")
+      .select("proposed_by_connection_id, rule_id")
+      .eq("id", correctionId)
+      .maybeSingle();
+    if (!correction?.proposed_by_connection_id) return;
+
+    const { data: connection } = await admin
+      .from("accountant_connections")
+      .select("accountant_email")
+      .eq("id", correction.proposed_by_connection_id)
+      .maybeSingle();
+    if (!connection?.accountant_email) return;
+
+    const { data: rule } = await admin
+      .from("regulatory_rules")
+      .select("name")
+      .eq("id", correction.rule_id)
+      .maybeSingle();
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://operatoros.com";
+    if (!process.env.RESEND_API_KEY) return;
+
+    await sendCorrectionStatusEmail({
+      to: connection.accountant_email,
+      ruleName: rule?.name ?? "(rule)",
+      status,
+      reviewNote,
+      appUrl,
+    });
+  } catch (err) {
+    console.error("[corrections] correction-status email failed", err);
+  }
 }

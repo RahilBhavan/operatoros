@@ -6,6 +6,7 @@ import {
   computeExposureCents,
 } from "@/lib/deadline-utils";
 import { createHash } from "node:crypto";
+import { hashToken } from "@/lib/security/token-hash";
 
 // regulatory_rule_id was added in migration 20260516000004 but the generated
 // supabase types haven't regenerated yet; widen the row shape here so the
@@ -16,7 +17,11 @@ type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
 };
 
 export type AccountantPortfolioLink = {
-  token: string;
+  // `token` here is intentionally absent — the plaintext share token is
+  // dropped from accountant_connections in 20260517000002_audit_remediation.
+  // Portfolio links can no longer be reconstructed from the DB; emit the
+  // connection id instead and let UI fall back to "no link available".
+  connection_id: string;
   business_id: string;
   business_name: string;
   score: number;
@@ -61,7 +66,10 @@ export async function loadAccountantPortalByToken(
   const { data: connection } = await supabase
     .from("accountant_connections")
     .select("id, business_id, accountant_email, accountant_name, created_at, expires_at, revoked_at")
-    .eq("token", rawToken)
+    // token_hash replaces the plaintext token column dropped in
+    // 20260517000002_audit_remediation; lookup is by sha256(rawToken).
+    // Cast: generated supabase types haven't regenerated for new column.
+    .eq("token_hash" as never, hashToken(rawToken))
     .maybeSingle();
 
   if (!connection) return null;
@@ -92,7 +100,8 @@ export async function loadAccountantPortalByToken(
       .order("due_date", { ascending: true }),
     supabase
       .from("accountant_connections")
-      .select("id, token, business_id, last_accessed_at, businesses!inner(name)")
+      // token column dropped; emit id only — UI links use connection_id now.
+      .select("id, business_id, last_accessed_at, businesses!inner(name)")
       .eq("accountant_email", connection.accountant_email)
       .is("revoked_at", null)
       .gt("expires_at", nowIso)
@@ -100,7 +109,12 @@ export async function loadAccountantPortalByToken(
     supabase
       .from("accountant_deadline_notes")
       .select("deadline_id, note")
-      .eq("accountant_token", rawToken),
+      // Notes were keyed by raw token (accountant_token column). With plaintext
+      // tokens dropped, lookup must shift to connection_id. The schema column
+      // rename is in the parallel audit_remediation migration; if that lands as
+      // `connection_id`, this filter is correct. TODO: confirm column name once
+      // migration is applied and supabase types regenerate.
+      .eq("connection_id" as never, connection.id),
     supabase.from("accountant_access_log").insert({
       connection_id: connection.id,
       ip_hash: hashIp(viewer?.ip ?? null),
@@ -113,7 +127,6 @@ export async function loadAccountantPortalByToken(
 
   type OtherRow = {
     id: string;
-    token: string;
     business_id: string;
     last_accessed_at: string | null;
     businesses: { name: string } | { name: string }[];
@@ -138,7 +151,7 @@ export async function loadAccountantPortalByToken(
       ).length;
       const exposure_cents = computeExposureCents(rows);
       return {
-        token: row.token,
+        connection_id: row.id,
         business_id: row.business_id,
         business_name: nm ?? "Unknown",
         score,

@@ -41,29 +41,37 @@ export default function InviteMemberForm() {
         <Utility className="!text-[var(--color-field)] !opacity-100">
           INVITE TEAMMATE
         </Utility>
-        <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+        <Index className="!text-[var(--color-field)] !text-[12px] ">
           PA-INV
         </Index>
       </div>
-      <div className="bg-[var(--color-field)] px-5 py-5 flex flex-col sm:flex-row gap-3 items-stretch">
-        <input
-          type="email"
-          required
-          placeholder="email@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={submitting}
-          className="t-input flex-1"
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as "member" | "admin")}
-          disabled={submitting}
-          className="t-input sm:w-40"
-        >
-          <option value="member">Member</option>
-          <option value="admin">Admin</option>
-        </select>
+      <div className="bg-[var(--color-field)] px-5 py-5 flex flex-col sm:flex-row gap-3 sm:items-end">
+        <label htmlFor="invite-email" className="flex-1 flex flex-col gap-1">
+          <Utility className="!text-[12px]">EMAIL</Utility>
+          <input
+            id="invite-email"
+            type="email"
+            required
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+            className="t-input"
+          />
+        </label>
+        <label htmlFor="invite-role" className="sm:w-40 flex flex-col gap-1">
+          <Utility className="!text-[12px]">ROLE</Utility>
+          <select
+            id="invite-role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as "member" | "admin")}
+            disabled={submitting}
+            className="t-input"
+          >
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
         <Button type="submit" disabled={submitting || !email} variant="ground">
           {submitting ? "Sending…" : "Send invite →"}
         </Button>
@@ -85,7 +93,7 @@ export default function InviteMemberForm() {
         </div>
       )}
       <div className="bg-[var(--color-field)] px-5 pb-4">
-        <Caption className="!text-[12px] !opacity-60">
+        <Caption className="!text-[12px] ">
           Invites expire after 14 days. Members view the dashboard; admins manage billing and the team.
         </Caption>
       </div>

@@ -19,13 +19,13 @@ export default async function AdminAuditPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               AUDIT · STREAM
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">AUDIT STREAM</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">
+            <Utility className="!text-[var(--color-field)] ">
               EVENTS
             </Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">
@@ -91,7 +91,7 @@ export default async function AdminAuditPage({
             {events.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-5 py-10 text-center">
-                  <Caption className="!opacity-60">
+                  <Caption className="">
                     No events yet. Activity from invites, plan changes, and
                     revokes will appear here.
                   </Caption>
@@ -129,7 +129,7 @@ export default async function AdminAuditPage({
                       </Body>
                     </Link>
                   ) : (
-                    <Caption className="!opacity-50">—</Caption>
+                    <Caption className="">—</Caption>
                   )}
                 </td>
                 <td className="px-5 py-3 align-top">

@@ -1,8 +1,18 @@
 # OperatorOS — Full Project Plan
+
+> ⚠️ **HISTORICAL — do not rely on this.** Predates the 2026-05-15 VC consensus
+> loop that collapsed pricing from 4 tiers to 2 (Business $79 / Accountant $299)
+> and reframed the AI as a "suggestion engine, not auto-discovery." Every
+> concrete number (pricing, tier features, AI scope) below is the v1 model.
+> Kept for the strategic scaffolding (unit-economics framing, GTM, roadmap
+> structure), NOT as a source of truth.
+>
+> For current facts see `README.md`; for shipped state see `MEMORY.md`.
+
 ## A Compliance Deadline OS for Small Businesses (1–50 Employees)
 ### From Zero to Scale: Agent-Driven, Continuously Improving
 
-> **Document type:** Master project bible  
+> **Document type:** Master project bible (archived)  
 > **Methodology:** Synthetic 1,000,000-business survey framework + agentic continuous improvement loop  
 > **Version:** 1.0 — May 2026  
 

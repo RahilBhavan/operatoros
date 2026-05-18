@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hashToken } from "@/lib/security/token-hash";
 import { Resend } from "resend";
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
@@ -50,14 +51,25 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
   const inviteToken = randomBytes(24).toString("hex");
+  const inviteTokenHash = hashToken(inviteToken);
   const expiresAt = new Date(
     Date.now() + ACCEPT_WINDOW_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  // Use placeholder user_id since the invited user hasn't accepted yet.
-  // The accept endpoint will set the real user_id when they sign in.
-  // memberships.user_id has a NOT NULL constraint, so we point it at the
-  // inviter for now and flip to status='pending' to make the intent explicit.
+  // Security: never store the requested role on the pending row.
+  //
+  // memberships_admin_all RLS keys off role='admin' AND user_id=auth.uid().
+  // Previously this route set user_id = inviter.id as a NOT-NULL placeholder
+  // AND wrote the intended role, which meant a demoted inviter could still
+  // satisfy that policy via the orphan pending row (the M-series audit
+  // finding). Workaround in app code: pin pending rows to role='member' and
+  // promote at accept time. The intended role rides along in audit_events
+  // metadata so the accept handler can read it back.
+  //
+  // FIXME: when memberships.user_id is allowed NULL (parallel migration),
+  // drop the placeholder entirely and stop pinning the role.
+  const pendingRole = "member" as const;
+
   const { data: existing } = await admin
     .from("memberships")
     .select("id")
@@ -68,14 +80,16 @@ export async function POST(req: NextRequest) {
 
   let membershipId: string | null = existing?.id ?? null;
 
+  // Casts: generated supabase types haven't regenerated for the new
+  // invite_token_hash column added in 20260517000002_audit_remediation.
   if (existing) {
     const { error: upErr } = await admin
       .from("memberships")
       .update({
-        invite_token: inviteToken,
+        invite_token_hash: inviteTokenHash,
         invite_expires_at: expiresAt,
-        role,
-      })
+        role: pendingRole,
+      } as never)
       .eq("id", existing.id);
     if (upErr) return NextResponse.json({ error: "Failed to refresh invite" }, { status: 500 });
   } else {
@@ -83,13 +97,13 @@ export async function POST(req: NextRequest) {
       .from("memberships")
       .insert({
         business_id: business.id,
-        user_id: user.id, // placeholder; accept flips this
+        user_id: user.id, // placeholder until accept; safe because role!='admin'
         invited_email: normalized,
-        role,
+        role: pendingRole,
         status: "pending",
-        invite_token: inviteToken,
+        invite_token_hash: inviteTokenHash,
         invite_expires_at: expiresAt,
-      })
+      } as never)
       .select("id")
       .single();
     if (insErr || !inserted) {
@@ -173,7 +187,7 @@ export async function DELETE(req: NextRequest) {
   const admin = createAdminClient();
   const { error } = await admin
     .from("memberships")
-    .update({ status: "revoked", invite_token: null })
+    .update({ status: "revoked", invite_token_hash: null } as never)
     .eq("id", id)
     .eq("business_id", business.id)
     .eq("status", "pending");

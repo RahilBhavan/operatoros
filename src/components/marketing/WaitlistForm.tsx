@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/doctrine/Button";
+import { StampChip } from "@/components/doctrine/StampChip";
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
@@ -75,36 +77,46 @@ export function WaitlistForm() {
 
   if (submitted) {
     return (
-      <div className="max-w-md mx-auto flex flex-col gap-4">
-        <div className="inline-flex items-center gap-3 bg-[var(--color-field-soft)] border-2 border-[var(--color-ground)] text-[var(--color-ground)] px-6 py-4 font-semibold justify-center">
-          <span aria-hidden className="t-utility text-[var(--color-mark)]">
-            ON LIST →
-          </span>
-          You&apos;re on the list. Check your email for confirmation.
+      <div className="max-w-[520px] flex flex-col gap-5">
+        <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-5 py-4 flex items-center gap-3">
+          <StampChip tone="mark">On list</StampChip>
+          <p
+            className="t-body"
+            style={{ fontFamily: "var(--font-index)" }}
+          >
+            You&apos;re on the list. Check your email for confirmation.
+          </p>
         </div>
-        {referralCode && (
-          <div className="bg-[var(--color-field)] border-2 border-[var(--color-ground)] p-5 text-left">
-            <p className="t-utility text-[var(--color-ground)] opacity-70 mb-2">
+        {referralCode ? (
+          <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] p-5">
+            <div className="t-utility text-[var(--color-ground)] mb-2">
               Skip the line
-            </p>
-            <p className="text-[15px] text-[var(--color-ground)] mb-3 leading-relaxed">
+            </div>
+            <p
+              className="t-body mb-4"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
               Share your invite link. Each signup using it bumps you forward in
               the queue for your state.
             </p>
             <div className="flex gap-2">
-              <code className="flex-1 px-3 py-2 bg-[var(--color-field-soft)] border-2 border-[var(--color-ground)] text-[12px] font-mono text-[var(--color-ground)] truncate flex items-center">
+              <code
+                className="flex-1 px-3 py-2 border-2 border-[var(--color-ground)] text-[12px] font-mono text-[var(--color-ground)] truncate flex items-center bg-[var(--color-field)]"
+                style={{ fontFamily: "var(--font-index)" }}
+              >
                 {`${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${referralCode}`}
               </code>
-              <button
+              <Button
                 type="button"
+                variant="mark"
                 onClick={copyReferralLink}
-                className="btn btn-mark whitespace-nowrap"
+                className="whitespace-nowrap"
               >
                 {copied ? "Copied" : "Copy"}
-              </button>
+              </Button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -112,7 +124,7 @@ export function WaitlistForm() {
   return (
     <form
       onSubmit={handleWaitlist}
-      className="flex flex-col gap-3 max-w-md mx-auto"
+      className="flex flex-col gap-3 max-w-[520px]"
       aria-label="Join the waitlist"
     >
       <label htmlFor="waitlist-email" className="sr-only">
@@ -138,29 +150,30 @@ export function WaitlistForm() {
           onChange={(e) => setState(e.target.value)}
           className="t-input flex-1"
         >
-          <option value="">Your state (optional)</option>
+          <option value="">Your state · optional</option>
           {US_STATES.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
           ))}
         </select>
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="btn whitespace-nowrap"
+          variant="mark"
+          className="whitespace-nowrap"
         >
           {loading ? "Joining…" : "Join waitlist →"}
-        </button>
+        </Button>
       </div>
-      {error && (
+      {error ? (
         <p
           role="alert"
-          className="text-[15px] text-[var(--color-mark)] font-semibold"
+          className="t-utility text-[var(--color-mark)] !text-[11px]"
         >
           {error}
         </p>
-      )}
+      ) : null}
     </form>
   );
 }

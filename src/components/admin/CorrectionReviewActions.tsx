@@ -104,7 +104,7 @@ export default function CorrectionReviewActions({
     return (
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="t-utility opacity-60">REVIEWER NOTE</span>
+          <span className="t-utility ">REVIEWER NOTE</span>
           <textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
@@ -147,7 +147,7 @@ export default function CorrectionReviewActions({
           type="button"
           onClick={() => setMode("confirm_accept")}
           disabled={mode === "busy"}
-          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility disabled:opacity-50"
+          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility"
         >
           ACCEPT
         </button>
@@ -155,7 +155,7 @@ export default function CorrectionReviewActions({
           type="button"
           onClick={() => setMode("reject_form")}
           disabled={mode === "busy"}
-          className="border-2 border-[var(--color-mark)] text-[var(--color-mark)] bg-[var(--color-field)] px-4 py-2 t-utility disabled:opacity-50"
+          className="border-2 border-[var(--color-mark)] text-[var(--color-mark)] bg-[var(--color-field)] px-4 py-2 t-utility"
         >
           REJECT
         </button>

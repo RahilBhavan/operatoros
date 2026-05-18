@@ -48,13 +48,13 @@ export default async function AdminBusinessesPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               BUSINESSES · ALL TENANTS
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">BUSINESSES</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">
+            <Utility className="!text-[var(--color-field)] ">
               ROSTER
             </Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">
@@ -153,7 +153,7 @@ export default async function AdminBusinessesPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-5 py-10 text-center">
-                  <Caption className="!opacity-60">
+                  <Caption className="">
                     No businesses match these filters.
                   </Caption>
                 </td>
@@ -164,7 +164,7 @@ export default async function AdminBusinessesPage({
               return (
                 <tr
                   key={b.id}
-                  className="border-t-2 border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
+                  className="border-t-2 border-[var(--color-ground)] hover:bg-[var(--color-field)]"
                 >
                   <td className="px-5 py-3 align-top">
                     <Link
@@ -173,7 +173,7 @@ export default async function AdminBusinessesPage({
                     >
                       <Body className="!font-bold">{b.name}</Body>
                     </Link>
-                    <Caption className="!text-[12px] !opacity-60 !mt-0">
+                    <Caption className="!text-[12px]  !mt-0">
                       {b.state ?? "—"} · {b.industry_slug ?? "—"} ·{" "}
                       {b.entity_type ?? "—"} ·{" "}
                       {b.employee_count ? `${b.employee_count} emp` : "—"}
@@ -208,7 +208,7 @@ export default async function AdminBusinessesPage({
                       className={`!text-[15px] ${
                         b.overdue_count > 0
                           ? "!text-[var(--color-mark)]"
-                          : "!opacity-50"
+                          : ""
                       }`}
                     >
                       {b.overdue_count}
@@ -217,7 +217,7 @@ export default async function AdminBusinessesPage({
                   <td className="px-5 py-3 text-right align-top">
                     <Index
                       className={`!text-[15px] ${
-                        b.exposure_cents > 0 ? "" : "!opacity-50"
+                        b.exposure_cents > 0 ? "" : ""
                       }`}
                     >
                       {formatCents(b.exposure_cents)}

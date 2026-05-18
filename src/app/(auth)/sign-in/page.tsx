@@ -5,14 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { checkAuthRateLimit } from "@/lib/security/auth-rate-limit";
-import {
-  Destination,
-  Body,
-  Caption,
-  Utility,
-  Index,
-  Button,
-} from "@/components/doctrine";
+import { Wordmark } from "@/components/doctrine/Wordmark";
+import { Button } from "@/components/doctrine/Button";
+import { StampChip } from "@/components/doctrine/StampChip";
+import { FormField } from "@/components/doctrine/FormField";
 
 const RATE_LIMITED_MESSAGE =
   "Too many attempts. Wait 15 minutes before trying again, or reset your password.";
@@ -68,104 +64,141 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-field)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[480px]">
-        <Link href="/" className="flex items-baseline gap-3 mb-10 justify-center">
-          <span className="t-h1 font-black tracking-tight">
-            OPERATOR<span className="text-[var(--color-mark)]">OS</span>
-          </span>
-        </Link>
+    <div className="min-h-screen bg-[var(--color-field)] flex flex-col">
+      <header className="border-b border-[var(--color-ground)] px-6 py-5">
+        <div className="max-w-[1160px] mx-auto">
+          <Wordmark size={20} />
+        </div>
+      </header>
 
-        <div className="border-2 border-[var(--color-ground)]">
-          {/* Top color block */}
-          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-7 pt-6 pb-7">
-            <div className="flex items-center justify-between mb-6">
-              <Index className="!text-[12px] !text-[var(--color-field)] opacity-80">
-                ACCESS / RETURN
-              </Index>
-              <span className="tag-tab -mt-6">SIGN-IN</span>
-              <Utility className="opacity-80">SECTOR · A</Utility>
+      <main className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[480px]">
+          <div className="border-2 border-[var(--color-ground)]">
+            <div className="panel-ink px-7 pt-6 pb-7">
+              <div className="flex items-center justify-between mb-5">
+                <StampChip tone="mark">Access · return</StampChip>
+                <span
+                  className="t-utility"
+                  style={{ color: "var(--color-field)" }}
+                >
+                  Sector · A
+                </span>
+              </div>
+              <h1
+                style={{
+                  fontFamily: "var(--font-destination)",
+                  fontWeight: 900,
+                  fontSize: 60,
+                  lineHeight: 1,
+                  letterSpacing: "-0.02em",
+                  textTransform: "uppercase",
+                  color: "var(--color-field)",
+                }}
+              >
+                Sign in.
+              </h1>
+              <div
+                className="mt-3 text-[15px]"
+                style={{
+                  fontFamily: "var(--font-index)",
+                  color: "var(--color-field)",
+                }}
+              >
+                No account?{" "}
+                <Link
+                  href="/sign-up"
+                  className="underline decoration-[var(--color-mark)] underline-offset-4 hover:text-[var(--color-mark)]"
+                  style={{ color: "var(--color-field)" }}
+                >
+                  Start free trial →
+                </Link>
+              </div>
             </div>
-            <Destination className="!text-[60px] !text-[var(--color-field)] !leading-none">
-              SIGN IN.
-            </Destination>
-            <Caption className="!text-[var(--color-field)] !opacity-80 !mt-3">
-              No account?{" "}
-              <Link href="/sign-up" className="t-link !text-[var(--color-field)] !decoration-[var(--color-mark)]">
-                Start free trial →
-              </Link>
-            </Caption>
+
+            <div className="bg-[var(--color-field)] text-[var(--color-ground)] px-7 py-7">
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={googleLoading || loading}
+                className="w-full btn btn-ghost mb-5"
+              >
+                <GoogleIcon />
+                {googleLoading ? "Redirecting…" : "Continue with Google"}
+              </button>
+
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 border-t border-[var(--color-ground)]" />
+                <span className="t-utility text-[var(--color-ground)]">Or</span>
+                <div className="flex-1 border-t border-[var(--color-ground)]" />
+              </div>
+
+              <form onSubmit={handleSignIn} className="flex flex-col gap-5">
+                <FormField label="Email" htmlFor="email">
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@business.com"
+                    className="t-input"
+                    autoComplete="email"
+                  />
+                </FormField>
+
+                <FormField label="Password" htmlFor="password">
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="t-input"
+                    autoComplete="current-password"
+                  />
+                </FormField>
+
+                {error ? (
+                  <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
+                    <div
+                      className="t-utility mb-1"
+                      style={{ color: "var(--color-field)" }}
+                    >
+                      Error
+                    </div>
+                    <p
+                      className="text-[14px]"
+                      style={{
+                        fontFamily: "var(--font-index)",
+                        color: "var(--color-field)",
+                      }}
+                    >
+                      {error}
+                    </p>
+                  </div>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  variant="ground"
+                  size="lg"
+                  disabled={loading || googleLoading}
+                  className="w-full"
+                >
+                  {loading ? "Signing in…" : "Sign in →"}
+                </Button>
+              </form>
+            </div>
           </div>
 
-          {/* Ground / form block */}
-          <div className="bg-[var(--color-field)] text-[var(--color-ground)] px-7 py-7">
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={googleLoading || loading}
-              className="w-full btn btn-ghost mb-5 justify-center"
-            >
-              <GoogleIcon />
-              {googleLoading ? "Redirecting…" : "Continue with Google"}
-            </button>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex-1 border-t border-[var(--color-ground)] opacity-30" />
-              <Utility className="opacity-50">OR</Utility>
-              <div className="flex-1 border-t border-[var(--color-ground)] opacity-30" />
-            </div>
-
-            <form onSubmit={handleSignIn} className="flex flex-col gap-4">
-              <div>
-                <label htmlFor="email" className="block t-utility mb-2">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@business.com"
-                  className="t-input"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block t-utility mb-2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="t-input"
-                />
-              </div>
-
-              {error && (
-                <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
-                  <Utility className="!opacity-100 mb-1">ERROR</Utility>
-                  <Body className="!text-[var(--color-field)] !text-[15px]">
-                    {error}
-                  </Body>
-                </div>
-              )}
-
-              <Button type="submit" variant="ground" disabled={loading || googleLoading} className="w-full justify-center">
-                {loading ? "Signing in…" : "Sign in →"}
-              </Button>
-            </form>
+          <div className="mt-6 t-utility text-[var(--color-ground)]">
+            <Link href="/" className="t-link">
+              ← Back to home
+            </Link>
           </div>
         </div>
-
-        <Caption className="!mt-6 text-center !opacity-60">
-          <Link href="/" className="t-link">← Back to home</Link>
-        </Caption>
-      </div>
+      </main>
     </div>
   );
 }

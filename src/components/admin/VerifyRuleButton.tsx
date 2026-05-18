@@ -42,7 +42,7 @@ export default function VerifyRuleButton({ ruleId }: { ruleId: string }) {
       type="button"
       onClick={verify}
       disabled={state === "busy"}
-      className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility disabled:opacity-50"
+      className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility"
     >
       {label}
     </button>

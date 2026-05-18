@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { hashToken } from "@/lib/security/token-hash";
 
 function createRawAdmin() {
   return createSupabaseClient(
@@ -27,11 +28,12 @@ export async function POST(req: NextRequest) {
   const { token, deadlineId, note } = parsed.data;
   const admin = createRawAdmin();
 
-  // Verify the token grants access to the business that owns this deadline
+  // Verify the token grants access to the business that owns this deadline.
+  // token_hash replaces the dropped plaintext token column.
   const { data: connection } = await admin
     .from("accountant_connections")
     .select("id, business_id")
-    .eq("token", token)
+    .eq("token_hash", hashToken(token))
     .single();
 
   if (!connection) {
@@ -49,14 +51,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Deadline not found" }, { status: 404 });
   }
 
+  // Upsert by (deadline_id, connection_id) — the accountant_token column was
+  // dropped in 20260517000002_audit_remediation. TODO: confirm the migration
+  // renamed the unique index to (deadline_id, connection_id).
   const { error } = await admin.from("accountant_deadline_notes").upsert(
     {
       deadline_id: deadlineId,
-      accountant_token: token,
+      connection_id: connection.id,
       note: note.trim(),
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "deadline_id,accountant_token" }
+    { onConflict: "deadline_id,connection_id" }
   );
 
   if (error) {

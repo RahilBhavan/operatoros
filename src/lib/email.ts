@@ -153,3 +153,66 @@ export async function sendReminderEmail(params: ReminderEmailParams) {
 
   if (error) throw new Error(`Email send failed: ${error.message}`);
 }
+
+export interface CorrectionStatusEmailParams {
+  to: string;
+  ruleName: string;
+  status: "accepted" | "rejected";
+  reviewNote?: string | null;
+  appUrl: string;
+}
+
+// Sent to the accountant who proposed a rule correction once an admin accepts
+// or rejects it. Failure to send is logged at the call site (fire-and-forget)
+// — the correction state has already been committed.
+export async function sendCorrectionStatusEmail(params: CorrectionStatusEmailParams) {
+  const { to, ruleName, status, reviewNote, appUrl } = params;
+  const safeRule = escapeHtml(ruleName);
+  const safeNote = reviewNote ? escapeHtml(reviewNote) : null;
+  const safeAppUrl = appUrl.replace(/\/$/, "");
+
+  const headline =
+    status === "accepted"
+      ? "Your correction was accepted"
+      : "Your correction was reviewed";
+  const subject = `${headline}: ${ruleName}`;
+
+  const body =
+    status === "accepted"
+      ? `An OperatorOS admin accepted your correction to <strong>${safeRule}</strong>. A new version of the rule is now live, and businesses on the affected deadline see the updated guidance on their dashboard.`
+      : `An OperatorOS admin reviewed your correction to <strong>${safeRule}</strong> and decided not to apply it.`;
+
+  const noteBlock = safeNote
+    ? `<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 16px 0;">
+         <p style="margin: 0 0 4px; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Reviewer note</p>
+         <p style="margin: 0; font-size: 14px; color: #0f172a; line-height: 1.55;">${safeNote}</p>
+       </div>`
+    : "";
+
+  const { error } = await getResend().emails.send({
+    from: process.env.EMAIL_FROM ?? "noreply@operatoros.com",
+    to,
+    subject,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+        <div style="margin-bottom: 20px;">
+          <span style="font-weight: 700; font-size: 18px; color: #1e293b;">OperatorOS</span>
+        </div>
+
+        <p style="color: #0f172a; font-size: 18px; font-weight: 600; margin: 0 0 12px;">${headline}</p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 12px;">${body}</p>
+        ${noteBlock}
+
+        <a href="${safeAppUrl}" style="display: inline-block; background: #2563eb; color: white; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; margin: 8px 0 16px;">
+          Open OperatorOS →
+        </a>
+
+        <p style="font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; margin: 16px 0 0;">
+          This email is sent automatically when an OperatorOS admin reviews a correction you proposed. Reply to this email if anything looks wrong.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) throw new Error(`Correction-status email send failed: ${error.message}`);
+}

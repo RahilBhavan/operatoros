@@ -43,7 +43,7 @@ export default function MarkCompliantButton({
       year: "numeric",
     });
     return (
-      <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)] px-4 py-3 inline-flex flex-col items-start gap-1">
+      <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3 inline-flex flex-col items-start gap-1">
         <Utility>MARKED COMPLIANT</Utility>
         <Index className="!text-[19px]">{ts}</Index>
       </div>

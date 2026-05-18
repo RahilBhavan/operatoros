@@ -5,17 +5,9 @@ import DeadlineFilters from "@/components/dashboard/DeadlineFilters";
 import ConfidenceBadge from "@/components/dashboard/ConfidenceBadge";
 import { loadRuleConfidence } from "@/lib/admin/data";
 import type { Database } from "@/types/supabase";
-import {
-  H1,
-  Body,
-  Caption,
-  Utility,
-  Index,
-  LinkButton,
-} from "@/components/doctrine";
+import { LinkButton } from "@/components/doctrine/Button";
+import { StampChip } from "@/components/doctrine/StampChip";
 
-// regulatory_rule_id added in workstream A; supabase types haven't
-// regenerated yet, so widen the runtime row here.
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
   regulatory_rule_id?: string | null;
 };
@@ -30,23 +22,20 @@ const DEADLINE_TYPE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-const STATUS_BADGE: Record<Deadline["status"], { label: string; classes: string }> = {
-  overdue: {
-    label: "OVERDUE",
-    classes: "bg-[var(--color-mark)] text-[var(--color-field)] border-[var(--color-mark)]",
-  },
-  in_progress: {
-    label: "DUE SOON",
-    classes: "bg-[var(--color-ground)] text-[var(--color-field)] border-[var(--color-ground)]",
-  },
-  upcoming: {
-    label: "UPCOMING",
-    classes: "bg-transparent text-[var(--color-ground)] border-[var(--color-ground)]",
-  },
-  compliant: {
-    label: "COMPLIANT",
-    classes: "bg-[var(--color-field-soft)] text-[var(--color-ground)] border-[var(--color-ground)]",
-  },
+type StatusKey = Deadline["status"];
+
+const STATUS_CHIP: Record<StatusKey, "mark" | "ground" | "field"> = {
+  overdue: "mark",
+  in_progress: "ground",
+  upcoming: "field",
+  compliant: "field",
+};
+
+const STATUS_LABEL: Record<StatusKey, string> = {
+  overdue: "Overdue",
+  in_progress: "Due ≤ 30d",
+  upcoming: "Upcoming",
+  compliant: "Compliant",
 };
 
 export default async function DeadlinesPage({
@@ -76,8 +65,16 @@ export default async function DeadlinesPage({
     .eq("business_id", business.id)
     .order("due_date", { ascending: true });
 
-  const VALID_STATUSES: Deadline["status"][] = ["overdue", "in_progress", "upcoming", "compliant"];
-  if (params.status && VALID_STATUSES.includes(params.status as Deadline["status"])) {
+  const VALID_STATUSES: Deadline["status"][] = [
+    "overdue",
+    "in_progress",
+    "upcoming",
+    "compliant",
+  ];
+  if (
+    params.status &&
+    VALID_STATUSES.includes(params.status as Deadline["status"])
+  ) {
     query = query.eq("status", params.status as Deadline["status"]);
   }
   if (params.type) {
@@ -92,18 +89,28 @@ export default async function DeadlinesPage({
   const confidenceMap = await loadRuleConfidence([...new Set(ruleIds)]);
 
   return (
-    <div>
-      <header className="flex items-end justify-between border-b-2 border-[var(--color-ground)] pb-6 mb-8 flex-wrap gap-4">
+    <div className="flex flex-col gap-8">
+      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-5 flex-wrap gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <Index className="!text-[15px]">PA-DEADLINES</Index>
-            <Utility className="opacity-60">REGISTRY</Utility>
-          </div>
-          <H1>All Deadlines.</H1>
-          <Caption className="!mt-2 !text-[15px]">
-            <Index className="!text-[15px]">{deadlines?.length ?? 0}</Index> total
+          <div className="t-utility mb-2">Manifest · all routes</div>
+          <h1
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontWeight: 900,
+              fontSize: "clamp(36px, 5vw, 56px)",
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+            }}
+          >
+            Deadlines
+          </h1>
+          <div className="t-utility mt-3">
+            <span className="text-[var(--color-mark)]">
+              {String(deadlineRows.length).padStart(3, "0")}
+            </span>{" "}
             entries on file
-          </Caption>
+          </div>
         </div>
         <LinkButton href="/deadlines/new" variant="mark">
           + File new deadline
@@ -114,57 +121,84 @@ export default async function DeadlinesPage({
 
       {deadlineRows.length > 0 ? (
         <div className="border-2 border-[var(--color-ground)]">
-          {/* Column header */}
-          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
-            <Utility className="!text-[var(--color-field)] !opacity-80">DEADLINE / AGENCY</Utility>
-            <Utility className="!text-[var(--color-field)] !opacity-80">STATUS</Utility>
-            <Utility className="!text-[var(--color-field)] !opacity-80 hidden sm:block">DUE</Utility>
+          <div className="panel-ink px-5 py-3 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
+            <span
+              className="t-utility"
+              style={{ color: "var(--color-field)" }}
+            >
+              Deadline · agency
+            </span>
+            <span
+              className="t-utility"
+              style={{ color: "var(--color-field)" }}
+            >
+              Status
+            </span>
+            <span
+              className="t-utility hidden sm:block"
+              style={{ color: "var(--color-field)" }}
+            >
+              Due
+            </span>
           </div>
 
-          <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
+          <ul className="bg-[var(--color-field)]">
             {deadlineRows.map((d, idx) => {
-              const badge = STATUS_BADGE[d.status];
               const confidence = d.regulatory_rule_id
                 ? confidenceMap.get(d.regulatory_rule_id) ?? null
                 : null;
+              const last = idx === deadlineRows.length - 1;
               return (
-                <li key={d.id}>
+                <li
+                  key={d.id}
+                  className={last ? "" : "border-b border-[var(--color-ground)]"}
+                >
                   <Link
                     href={`/deadlines/${d.id}`}
-                    className="grid grid-cols-[1fr_auto_auto] gap-4 items-center px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors"
+                    className="grid grid-cols-[1fr_auto_auto] gap-4 items-center px-5 py-4 hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] no-underline group"
                   >
                     <div className="min-w-0 flex items-baseline gap-3">
-                      <Index className="!text-[12px] opacity-60 shrink-0 w-8">
+                      <span
+                        className="t-utility shrink-0 w-10 text-[var(--color-mark)] group-hover:text-[var(--color-field)]"
+                      >
                         {String(idx + 1).padStart(3, "0")}
-                      </Index>
+                      </span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Body className="!font-bold truncate">{d.name}</Body>
+                          <span
+                            className="font-bold text-[15px] truncate"
+                            style={{ fontFamily: "var(--font-index)" }}
+                          >
+                            {d.name}
+                          </span>
                           <ConfidenceBadge confidence={confidence} />
                         </div>
-                        <Caption className="!mt-0.5 !text-[12px]">
-                          {(DEADLINE_TYPE_LABELS[d.deadline_type] ?? d.deadline_type).toUpperCase()}
+                        <div className="t-utility mt-1">
+                          {(
+                            DEADLINE_TYPE_LABELS[d.deadline_type] ??
+                            d.deadline_type
+                          ).toUpperCase()}
                           {d.governing_agency ? (
-                            <>
-                              {" · "}
-                              {d.governing_agency.toUpperCase()}
-                            </>
+                            <> · {d.governing_agency.toUpperCase()}</>
                           ) : null}
-                        </Caption>
+                        </div>
                       </div>
                     </div>
+                    <StampChip tone={STATUS_CHIP[d.status]}>
+                      {STATUS_LABEL[d.status]}
+                    </StampChip>
                     <span
-                      className={`border-2 px-2.5 py-1 t-utility !text-[12px] !tracking-[0.1em] shrink-0 ${badge.classes}`}
+                      className="hidden sm:block shrink-0 font-bold text-[15px]"
+                      style={{
+                        fontFamily: "var(--font-index)",
+                      }}
                     >
-                      {badge.label}
-                    </span>
-                    <Index className="!text-[15px] shrink-0 hidden sm:block">
                       {new Date(d.due_date).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
                       })}
-                    </Index>
+                    </span>
                   </Link>
                 </li>
               );
@@ -172,22 +206,44 @@ export default async function DeadlinesPage({
           </ul>
         </div>
       ) : (
-        <div className="border-2 border-[var(--color-ground)] py-16 px-6 text-center">
-          <Index className="!text-[38px] !text-[var(--color-ground)] opacity-30 mb-3">
-            000
-          </Index>
-          <Body className="mb-4">
+        <div className="border-2 border-[var(--color-ground)] p-10 flex flex-col gap-4 items-start">
+          <StampChip tone="field">No matches</StampChip>
+          <h2
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontWeight: 800,
+              fontSize: 32,
+              lineHeight: 1.05,
+              letterSpacing: "-0.015em",
+              textTransform: "uppercase",
+            }}
+          >
             {params.status || params.type
-              ? "No deadlines match your filters."
-              : "No deadlines yet."}
-          </Body>
-          {!params.status && !params.type && (
+              ? "No deadlines match these filters."
+              : "Empty manifest."}
+          </h2>
+          {!params.status && !params.type ? (
             <LinkButton href="/deadlines/new" variant="ground">
               + File your first deadline
             </LinkButton>
+          ) : (
+            <Link href="/deadlines" className="t-link">
+              Clear filters →
+            </Link>
           )}
         </div>
       )}
+
+      <div className="t-utility text-[var(--color-ground)] flex items-center justify-between">
+        <span>Showing {deadlineRows.length} of {deadlineRows.length}</span>
+        <span>
+          Last verified · {new Date().toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
     </div>
   );
 }

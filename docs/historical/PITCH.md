@@ -1,5 +1,9 @@
 # OperatorOS
 
+> ⚠️ **HISTORICAL — do not rely on this.** Predates the 2026-05-15 VC consensus
+> loop that collapsed pricing from 4 tiers to 2 (Business $79 / Accountant $299).
+> For current facts see `README.md`.
+
 **The Compliance Operating System for Small Business.**
 The way QuickBooks owns accounting, OperatorOS owns regulatory life.
 

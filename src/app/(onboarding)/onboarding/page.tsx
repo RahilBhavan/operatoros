@@ -9,15 +9,10 @@ import type {
   EmployeeRange,
   OnboardingData,
 } from "@/types/onboarding";
-import {
-  Destination,
-  H2,
-  Body,
-  Caption,
-  Utility,
-  Index,
-  Button,
-} from "@/components/doctrine";
+import { Button } from "@/components/doctrine/Button";
+import { StampChip } from "@/components/doctrine/StampChip";
+import { FormField } from "@/components/doctrine/FormField";
+import { Wordmark } from "@/components/doctrine/Wordmark";
 import { completeOnboarding } from "./actions";
 
 const INDUSTRIES: { value: Industry; label: string }[] = [
@@ -42,12 +37,12 @@ const ENTITY_TYPES: { value: EntityType; label: string }[] = [
   { value: "nonprofit", label: "Nonprofit" },
 ];
 
-const EMPLOYEE_RANGES: { value: EmployeeRange; label: string }[] = [
-  { value: "1", label: "Just me (sole proprietor)" },
-  { value: "2-5", label: "2–5 employees" },
-  { value: "6-15", label: "6–15 employees" },
-  { value: "16-30", label: "16–30 employees" },
-  { value: "31-50", label: "31–50 employees" },
+const EMPLOYEE_RANGES: { value: EmployeeRange; label: string; sub: string }[] = [
+  { value: "1", label: "Just me", sub: "Sole proprietor" },
+  { value: "2-5", label: "2 — 5", sub: "Micro team" },
+  { value: "6-15", label: "6 — 15", sub: "OSHA reporting triggers begin" },
+  { value: "16-30", label: "16 — 30", sub: "Multi-state payroll likely" },
+  { value: "31-50", label: "31 — 50", sub: "Workers' comp audits annual" },
 ];
 
 const US_STATES = [
@@ -58,18 +53,18 @@ const US_STATES = [
 ];
 
 const TOTAL_STEPS = 5;
-const SORT_LETTERS = ["A", "B", "C", "D", "E"] as const;
+const STEP_LABELS = ["Business", "Industry", "Location", "Employees", "Contractors"] as const;
 
 function ProgressLadder({ step }: { step: number }) {
   return (
-    <div className="flex items-center gap-1.5 mb-8">
+    <div className="flex items-stretch gap-1.5">
       {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
         <div
           key={i}
-          className={`flex-1 h-2 border border-[var(--color-ground)] ${
-            i < step ? "bg-[var(--color-mark)]" : "bg-transparent"
-          }`}
           aria-label={`Step ${i + 1} ${i < step ? "complete" : "pending"}`}
+          className={`flex-1 h-2 border-2 border-[var(--color-ground)] ${
+            i < step ? "bg-[var(--color-ground)]" : "bg-transparent"
+          }`}
         />
       ))}
     </div>
@@ -127,112 +122,195 @@ export default function OnboardingPage() {
     }
   }
 
-  const sortLetter = SORT_LETTERS[step - 1];
-
   return (
-    <div className="min-h-screen bg-[var(--color-field)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[600px]">
-        <Link href="/" className="flex items-baseline gap-3 mb-10 justify-center">
-          <span className="t-h1 font-black tracking-tight">
-            OPERATOR<span className="text-[var(--color-mark)]">OS</span>
+    <div className="min-h-screen bg-[var(--color-field)] flex flex-col">
+      <header className="border-b-2 border-[var(--color-ground)] px-6 py-5">
+        <div className="max-w-[1160px] mx-auto flex items-center justify-between">
+          <Wordmark size={20} />
+          <span className="t-utility text-[var(--color-ground)]">
+            Manifest · build your calendar
           </span>
-        </Link>
+        </div>
+      </header>
 
-        <div className="border-2 border-[var(--color-ground)]">
-          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-7 pt-6 pb-6">
-            <div className="flex items-center justify-between mb-5">
-              <Index className="!text-[12px] !text-[var(--color-field)] opacity-80">
-                ONB-{String(step).padStart(2, "0")}/{String(TOTAL_STEPS).padStart(2, "0")}
-              </Index>
-              <span className="tag-tab -mt-6">ONBOARD</span>
-              <Utility className="opacity-80">SORT · {sortLetter}</Utility>
-            </div>
-            <Utility className="!text-[var(--color-field)] !opacity-70 mb-2">
-              STEP {step} OF {TOTAL_STEPS}
-            </Utility>
-            <ProgressLadder step={step} />
+      <main className="flex-1 flex items-start justify-center px-6 py-12">
+        <div className="w-full max-w-[680px]">
+          <ProgressLadder step={step} />
+
+          <div className="flex items-center justify-between mt-6 mb-8">
+            <span className="t-utility text-[var(--color-ground)]">
+              Step {String(step).padStart(2, "0")} / {String(TOTAL_STEPS).padStart(2, "0")}
+            </span>
+            <StampChip tone="ground">{STEP_LABELS[step - 1]}</StampChip>
           </div>
 
-          <div className="bg-[var(--color-field)] px-7 py-7">
-            {step === 1 && (
-              <StepBusinessName
-                value={data.businessName}
-                onChange={(v) => update("businessName", v)}
-              />
-            )}
-            {step === 2 && (
-              <StepIndustry
-                value={data.industry}
-                onChange={(v) => update("industry", v)}
-              />
-            )}
-            {step === 3 && (
-              <StepLocation
-                state={data.state}
-                entityType={data.entityType}
-                onStateChange={(v) => update("state", v)}
-                onEntityChange={(v) => update("entityType", v)}
-              />
-            )}
-            {step === 4 && (
-              <StepEmployees
-                value={data.employeeRange}
-                onChange={(v) => update("employeeRange", v)}
-              />
-            )}
-            {step === 5 && (
-              <StepContractors
-                value={data.hiresContractors}
-                onChange={(v) => update("hiresContractors", v)}
-              />
-            )}
+          {step === 1 && (
+            <StepBusinessName
+              value={data.businessName}
+              onChange={(v) => update("businessName", v)}
+            />
+          )}
+          {step === 2 && (
+            <StepIndustry
+              value={data.industry}
+              onChange={(v) => update("industry", v)}
+            />
+          )}
+          {step === 3 && (
+            <StepLocation
+              state={data.state}
+              entityType={data.entityType}
+              onStateChange={(v) => update("state", v)}
+              onEntityChange={(v) => update("entityType", v)}
+            />
+          )}
+          {step === 4 && (
+            <StepEmployees
+              value={data.employeeRange}
+              onChange={(v) => update("employeeRange", v)}
+            />
+          )}
+          {step === 5 && (
+            <StepContractors
+              value={data.hiresContractors}
+              onChange={(v) => update("hiresContractors", v)}
+            />
+          )}
 
-            {error && (
-              <div className="mt-5 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
-                <Utility className="!opacity-100 mb-1">ERROR</Utility>
-                <Body className="!text-[var(--color-field)] !text-[15px]">
-                  {error}
-                </Body>
+          {error ? (
+            <div className="mt-6 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
+              <div
+                className="t-utility mb-1"
+                style={{ color: "var(--color-field)" }}
+              >
+                Error
               </div>
+              <p
+                className="text-[14px]"
+                style={{
+                  fontFamily: "var(--font-index)",
+                  color: "var(--color-field)",
+                }}
+              >
+                {error}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between mt-10 pt-6 border-t-2 border-[var(--color-ground)]">
+            {step > 1 ? (
+              <button
+                onClick={() => setStep((s) => s - 1)}
+                className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)]"
+              >
+                ← Back
+              </button>
+            ) : (
+              <span />
             )}
 
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--color-ground)]">
-              {step > 1 ? (
-                <button
-                  onClick={() => setStep((s) => s - 1)}
-                  className="t-utility hover:text-[var(--color-mark)]"
-                >
-                  ← BACK
-                </button>
-              ) : (
-                <div />
-              )}
+            {step < TOTAL_STEPS ? (
+              <Button
+                onClick={() => setStep((s) => s + 1)}
+                disabled={!canAdvance()}
+                variant="ground"
+              >
+                Continue →
+              </Button>
+            ) : (
+              <Button
+                onClick={handleFinish}
+                disabled={!canAdvance() || saving}
+                variant="mark"
+                size="lg"
+              >
+                {saving ? "Building calendar…" : "Build my calendar →"}
+              </Button>
+            )}
+          </div>
 
-              {step < TOTAL_STEPS ? (
-                <Button onClick={() => setStep((s) => s + 1)} disabled={!canAdvance()} variant="ground">
-                  Continue →
-                </Button>
-              ) : (
-                <Button onClick={handleFinish} disabled={!canAdvance() || saving} variant="mark">
-                  {saving ? "Building calendar…" : "Build my calendar →"}
-                </Button>
-              )}
-            </div>
+          <div className="mt-10 t-utility text-[var(--color-ground)]">
+            <Link href="/" className="t-link">
+              ← Back to home
+            </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-// ─── Step sub-components ─────────────────────────────────────────────
-
-function StepHeading({ kicker, title }: { kicker: string; title: string }) {
+function StepHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <>
-      <Utility className="opacity-60 mb-2">{kicker}</Utility>
-      <Destination className="!text-[38px] !leading-[1.0] mb-4">{title}</Destination>
-    </>
+    <div className="mb-6">
+      <h1
+        style={{
+          fontFamily: "var(--font-destination)",
+          fontWeight: 900,
+          fontSize: 44,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
+          textTransform: "uppercase",
+          color: "var(--color-ground)",
+        }}
+      >
+        {title}
+      </h1>
+      <p
+        className="mt-4 text-[17px]"
+        style={{ fontFamily: "var(--font-index)", color: "var(--color-ground)" }}
+      >
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+function OptionRow({
+  active,
+  onClick,
+  code,
+  label,
+  sub,
+}: {
+  active: boolean;
+  onClick: () => void;
+  code?: string;
+  label: string;
+  sub?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      className={`text-left w-full flex items-center gap-4 px-4 py-4 border-2 border-[var(--color-ground)] -mb-[2px] ${
+        active
+          ? "bg-[var(--color-ground)] text-[var(--color-field)]"
+          : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+      }`}
+    >
+      {code ? (
+        <span
+          className="t-utility shrink-0 w-12"
+          style={{ color: "inherit" }}
+        >
+          {code}
+        </span>
+      ) : null}
+      <div className="flex-1 min-w-0">
+        <div
+          className="text-[16px] font-bold"
+          style={{ fontFamily: "var(--font-index)" }}
+        >
+          {label}
+        </div>
+        {sub ? (
+          <div className="t-utility mt-1" style={{ color: "inherit" }}>
+            {sub}
+          </div>
+        ) : null}
+      </div>
+    </button>
   );
 }
 
@@ -245,18 +323,21 @@ function StepBusinessName({
 }) {
   return (
     <div>
-      <StepHeading kicker="QUESTION 01" title="WHAT'S YOUR BUSINESS CALLED?" />
-      <Body className="!opacity-70 mb-6">
-        How your compliance calendar will be labeled.
-      </Body>
-      <input
-        autoFocus
-        type="text"
-        placeholder="e.g. Joe's HVAC LLC"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="t-input !text-[19px]"
+      <StepHeading
+        title="What's the business called?"
+        subtitle="It will appear on every compliance export."
       />
+      <FormField label="Business name" htmlFor="business-name">
+        <input
+          id="business-name"
+          autoFocus
+          type="text"
+          placeholder="e.g. Joe's HVAC LLC"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="t-input"
+        />
+      </FormField>
     </div>
   );
 }
@@ -270,26 +351,19 @@ function StepIndustry({
 }) {
   return (
     <div>
-      <StepHeading kicker="QUESTION 02" title="WHAT INDUSTRY?" />
-      <Body className="!opacity-70 mb-6">
-        Determines which compliance deadlines apply to you.
-      </Body>
-      <div className="flex flex-col gap-2">
-        {INDUSTRIES.map(({ value: v, label }, i) => (
-          <button
-            key={v}
-            onClick={() => onChange(v)}
-            className={`text-left px-4 py-3 border-2 transition-colors flex items-center gap-4 ${
-              value === v
-                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
-                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
-            }`}
-          >
-            <Index className={`!text-[15px] shrink-0 ${value === v ? "!text-[var(--color-field)]" : ""}`}>
-              {String(i + 1).padStart(2, "0")}
-            </Index>
-            <span className="t-body">{label}</span>
-          </button>
+      <StepHeading
+        title="What industry?"
+        subtitle="This determines which deadlines apply to you."
+      />
+      <div className="border-t-2 border-[var(--color-ground)]">
+        {INDUSTRIES.map((opt, i) => (
+          <OptionRow
+            key={opt.value}
+            active={value === opt.value}
+            onClick={() => onChange(opt.value)}
+            code={String(i + 1).padStart(2, "0")}
+            label={opt.label}
+          />
         ))}
       </div>
     </div>
@@ -309,14 +383,14 @@ function StepLocation({
 }) {
   return (
     <div>
-      <StepHeading kicker="QUESTION 03" title="WHERE DO YOU OPERATE?" />
-      <Body className="!opacity-70 mb-6">
-        State determines your entity filing and licensing requirements.
-      </Body>
-      <div className="flex flex-col gap-5">
-        <div>
-          <Utility className="block mb-2">PRIMARY STATE</Utility>
+      <StepHeading
+        title="Where do you operate?"
+        subtitle="State and entity type set the entity-filing and licensing requirements."
+      />
+      <div className="flex flex-col gap-6">
+        <FormField label="Primary state" htmlFor="state">
           <select
+            id="state"
             value={state}
             onChange={(e) => onStateChange(e.target.value)}
             className="t-input"
@@ -328,25 +402,27 @@ function StepLocation({
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <Utility className="block mb-2">LEGAL ENTITY TYPE</Utility>
-          <div className="grid grid-cols-2 gap-2">
-            {ENTITY_TYPES.map(({ value: v, label }) => (
+        </FormField>
+        <FormField label="Legal entity type">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-0 border-2 border-[var(--color-ground)]">
+            {ENTITY_TYPES.map((opt, i) => (
               <button
-                key={v}
-                onClick={() => onEntityChange(v)}
-                className={`text-left px-4 py-2.5 border-2 transition-colors t-body ${
-                  entityType === v
-                    ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
-                    : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
+                key={opt.value}
+                type="button"
+                onClick={() => onEntityChange(opt.value)}
+                className={`px-4 py-3 t-utility border-[var(--color-ground)] ${
+                  i % 3 < 2 ? "border-r-2" : ""
+                } ${i < 3 ? "border-b-2" : ""} ${
+                  entityType === opt.value
+                    ? "bg-[var(--color-ground)] text-[var(--color-field)]"
+                    : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
                 }`}
               >
-                {label}
+                {opt.label}
               </button>
             ))}
           </div>
-        </div>
+        </FormField>
       </div>
     </div>
   );
@@ -361,26 +437,20 @@ function StepEmployees({
 }) {
   return (
     <div>
-      <StepHeading kicker="QUESTION 04" title="HOW MANY EMPLOYEES?" />
-      <Body className="!opacity-70 mb-6">
-        Affects OSHA, workers&apos; comp, and payroll deadlines.
-      </Body>
-      <div className="flex flex-col gap-2">
-        {EMPLOYEE_RANGES.map(({ value: v, label }) => (
-          <button
-            key={v}
-            onClick={() => onChange(v)}
-            className={`text-left px-4 py-3 border-2 transition-colors flex items-center gap-4 ${
-              value === v
-                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
-                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
-            }`}
-          >
-            <Index className={`!text-[15px] shrink-0 ${value === v ? "!text-[var(--color-field)]" : ""}`}>
-              {v}
-            </Index>
-            <span className="t-body">{label}</span>
-          </button>
+      <StepHeading
+        title="How many employees?"
+        subtitle="Headcount triggers OSHA, payroll, and workers' comp deadlines."
+      />
+      <div className="border-t-2 border-[var(--color-ground)]">
+        {EMPLOYEE_RANGES.map((opt) => (
+          <OptionRow
+            key={opt.value}
+            active={value === opt.value}
+            onClick={() => onChange(opt.value)}
+            code={opt.value}
+            label={opt.label}
+            sub={opt.sub}
+          />
         ))}
       </div>
     </div>
@@ -394,37 +464,51 @@ function StepContractors({
   value: boolean | null;
   onChange: (v: boolean) => void;
 }) {
+  const opts = [
+    {
+      v: true,
+      label: "Yes, I hire contractors",
+      sub: "We'll track COI renewals, contractor license expiries, and sub credentials.",
+    },
+    {
+      v: false,
+      label: "No, employees only",
+      sub: "We'll focus on business licenses, employee certs, and entity filings.",
+    },
+  ];
   return (
     <div>
-      <StepHeading kicker="QUESTION 05" title="HIRE CONTRACTORS?" />
-      <Body className="!opacity-70 mb-6">
-        If yes, we&apos;ll track COI and credential renewals for your subs.
-      </Body>
-      <div className="flex flex-col gap-3">
-        {[
-          {
-            v: true,
-            label: "Yes, I hire contractors",
-            desc: "We'll track COI renewals, contractor license expiries, and subcontractor credentials.",
-          },
-          {
-            v: false,
-            label: "No, employees only",
-            desc: "We'll focus on business licenses, employee certs, and entity filings.",
-          },
-        ].map(({ v, label, desc }) => (
+      <StepHeading
+        title="Do you hire contractors?"
+        subtitle="If yes, we route COI and credential renewals for your subs."
+      />
+      <div className="border-t-2 border-[var(--color-ground)]">
+        {opts.map((opt) => (
           <button
-            key={String(v)}
-            onClick={() => onChange(v)}
-            className={`text-left px-5 py-4 border-2 transition-colors ${
-              value === v
-                ? "border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)]"
-                : "border-[var(--color-ground)] hover:bg-[var(--color-field-soft)]"
+            key={String(opt.v)}
+            type="button"
+            onClick={() => onChange(opt.v)}
+            className={`text-left w-full px-5 py-5 border-2 border-[var(--color-ground)] -mb-[2px] ${
+              value === opt.v
+                ? "bg-[var(--color-ground)] text-[var(--color-field)]"
+                : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
             }`}
           >
-            <div className="t-subhead font-bold">{label}</div>
-            <div className={`t-caption mt-1 ${value === v ? "!text-[var(--color-field)] !opacity-80" : ""}`}>
-              {desc}
+            <div
+              className="text-[20px] font-bold mb-1"
+              style={{
+                fontFamily: "var(--font-destination)",
+                textTransform: "uppercase",
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {opt.label}
+            </div>
+            <div
+              className="text-[14px]"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
+              {opt.sub}
             </div>
           </button>
         ))}
@@ -432,4 +516,3 @@ function StepContractors({
     </div>
   );
 }
-

@@ -18,7 +18,7 @@ export default function PromoteWaitlistButton({
 
   if (invited) {
     return (
-      <span className="t-utility !text-[12px] !text-[var(--color-ground)] opacity-50">
+      <span className="t-utility !text-[12px] !text-[var(--color-ground)] ">
         INVITED
       </span>
     );
@@ -55,7 +55,7 @@ export default function PromoteWaitlistButton({
       <button
         onClick={handlePromote}
         disabled={stage === "busy"}
-        className="t-utility !text-[12px] !text-[var(--color-mark)] hover:opacity-70 disabled:opacity-50"
+        className="t-utility !text-[12px] !text-[var(--color-mark)]"
       >
         {stage === "busy" ? "SENDING…" : "SEND"}
       </button>
@@ -65,7 +65,7 @@ export default function PromoteWaitlistButton({
           setError("");
         }}
         disabled={stage === "busy"}
-        className="t-utility !text-[12px] !text-[var(--color-ground)] opacity-60 hover:opacity-100 disabled:opacity-30"
+        className="t-utility !text-[12px] !text-[var(--color-ground)]  hover:opacity-100"
       >
         CANCEL
       </button>

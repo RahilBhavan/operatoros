@@ -1,44 +1,30 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import MarkCompliantButton from "@/components/dashboard/MarkCompliantButton";
 import DocumentUpload from "@/components/dashboard/DocumentUpload";
 import type { Database } from "@/types/supabase";
-import {
-  Destination,
-  Body,
-  Caption,
-  Utility,
-  Index,
-  LinkButton,
-  SortingArrow,
-} from "@/components/doctrine";
+import { LinkButton } from "@/components/doctrine/Button";
+import { StampChip } from "@/components/doctrine/StampChip";
+import { PanAmTag } from "@/components/doctrine/PanAmTag";
+import { panAmPropsForDeadline } from "@/lib/pan-am-tag";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"];
 
-const STATUS_CONFIG: Record<
-  Deadline["status"],
-  { label: string; classes: string }
-> = {
-  overdue: {
-    label: "OVERDUE",
-    classes:
-      "bg-[var(--color-mark)] text-[var(--color-field)] border-[var(--color-mark)]",
-  },
-  in_progress: {
-    label: "DUE SOON",
-    classes:
-      "bg-[var(--color-ground)] text-[var(--color-field)] border-[var(--color-ground)]",
-  },
-  upcoming: {
-    label: "UPCOMING",
-    classes:
-      "bg-transparent text-[var(--color-ground)] border-[var(--color-ground)]",
-  },
-  compliant: {
-    label: "COMPLIANT",
-    classes:
-      "bg-[var(--color-field-soft)] text-[var(--color-ground)] border-[var(--color-ground)]",
-  },
+type StatusKey = Deadline["status"];
+
+const STATUS_CHIP: Record<StatusKey, "mark" | "ground" | "field"> = {
+  overdue: "mark",
+  in_progress: "ground",
+  upcoming: "field",
+  compliant: "field",
+};
+
+const STATUS_LABEL: Record<StatusKey, string> = {
+  overdue: "Overdue",
+  in_progress: "Due ≤ 30d",
+  upcoming: "Upcoming",
+  compliant: "Compliant",
 };
 
 const FREQ_LABELS: Record<string, string> = {
@@ -48,7 +34,6 @@ const FREQ_LABELS: Record<string, string> = {
   one_time: "One-time",
 };
 
-// 3-letter top-block category code from deadline_type.
 const TYPE_CODE: Record<string, string> = {
   tax: "TAX",
   business_license: "LIC",
@@ -57,17 +42,6 @@ const TYPE_CODE: Record<string, string> = {
   entity_filing: "ENT",
   equipment_inspection: "INS",
   other: "OPS",
-};
-
-const SEVERITY_LETTER: Record<
-  Deadline["severity_tier"],
-  { letter: string; tone: "mark" | "ground" }
-> = {
-  critical: { letter: "X", tone: "mark" },
-  high: { letter: "A", tone: "ground" },
-  medium: { letter: "B", tone: "ground" },
-  low: { letter: "C", tone: "ground" },
-  info: { letter: "—", tone: "ground" },
 };
 
 function formatPenalty(cents: number | null): string | null {
@@ -114,233 +88,270 @@ export default async function DeadlineDetailPage({
     .eq("deadline_id", id)
     .order("uploaded_at", { ascending: false });
 
-  const statusConfig = STATUS_CONFIG[deadline.status];
-  const dueDate = new Date(deadline.due_date).toLocaleDateString("en-US", {
+  const due = new Date(deadline.due_date);
+  const dueLong = due.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  const dueRef = new Date(deadline.due_date).toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-  });
-  const dueShort = new Date(deadline.due_date).toLocaleDateString("en-US", {
+  const dueShort = due.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-
-  // Top color block: red for overdue or due-soon, navy otherwise.
-  const urgent =
-    deadline.status === "overdue" || deadline.status === "in_progress";
-  const topBlockClasses = urgent
-    ? "bg-[var(--color-mark)] text-[var(--color-field)]"
-    : "bg-[var(--color-ground)] text-[var(--color-field)]";
-
-  const typeCode = TYPE_CODE[deadline.deadline_type] ?? "DOC";
-  const sev = SEVERITY_LETTER[deadline.severity_tier];
+  const typeCode = TYPE_CODE[deadline.deadline_type] ?? "OPS";
+  const isOverdue = deadline.status === "overdue";
+  const isUrgent = isOverdue || deadline.status === "in_progress";
   const penalty = formatPenalty(deadline.penalty_estimate_cents);
-  // Short numeric reference for the top-left code: yymmdd from due_date plus id slice.
   const idCode = deadline.id.slice(0, 8).toUpperCase();
 
   return (
-    <div className="max-w-2xl">
-      {/* Page header */}
-      <header className="flex items-end justify-between border-b-2 border-[var(--color-ground)] pb-6 mb-8 flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-3">
-            <Index className="!text-[15px]">PA-DL-{idCode}</Index>
-            <Utility className="opacity-60">REGISTRY · ENTRY</Utility>
-          </div>
-          <Caption className="!mt-2">Deadline manifest</Caption>
-        </div>
-        <LinkButton href="/deadlines" variant="ghost">
-          ← All deadlines
-        </LinkButton>
-      </header>
+    <div className="flex flex-col gap-8">
+      {/* Crumb */}
+      <div className="t-utility text-[var(--color-ground)]">
+        <Link href="/deadlines" className="t-link">
+          ← Deadlines
+        </Link>
+        {" · "}Detail · PA-DL-{idCode}
+      </div>
 
-      {/* THE TAG — luggage-tag visualization of the deadline */}
-      <article className="relative border-2 border-[var(--color-ground)] tag-perforated mb-6">
-        {/* Top saturated block */}
-        <div className={`relative px-5 pt-5 pb-7 ${topBlockClasses}`}>
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex-1">
-              <Index className="!text-[13px] opacity-90 !text-current">
-                {idCode}
-              </Index>
-              <div className="mt-1">
-                <Utility className="!text-current !opacity-90 !text-[12px]">
-                  FINAL DESTINATION
-                </Utility>
-              </div>
-            </div>
-
-            <span className="tag-tab -mt-5">{typeCode}</span>
-
-            <div className="flex-1 text-right">
-              <Utility className="!text-current !opacity-90 !text-[12px]">
-                {(deadline.governing_agency ?? "OPERATOROS").toUpperCase()}
-              </Utility>
-            </div>
+      <div className="grid lg:grid-cols-[1.3fr_1fr] gap-8 items-start">
+        {/* Left: the destination card */}
+        <article className="border-2 border-[var(--color-ground)] p-6 sm:p-8">
+          <div className="flex items-center justify-between pb-5 border-b border-[var(--color-ground)] flex-wrap gap-3">
+            <StampChip tone={STATUS_CHIP[deadline.status]}>
+              {STATUS_LABEL[deadline.status]}
+            </StampChip>
+            <span className="t-utility text-[var(--color-ground)]">
+              {typeCode} · {dueShort}
+            </span>
           </div>
 
-          <Destination className="!text-current leading-none mb-2">
+          <div className="flex justify-center py-8">
+            <PanAmTag {...panAmPropsForDeadline(deadline)} scale={1} shadow />
+          </div>
+
+          <h1
+            className="text-center"
+            style={{
+              fontFamily: "var(--font-index)",
+              fontWeight: 700,
+              fontSize: 22,
+              lineHeight: 1.2,
+              color: "var(--color-ground)",
+            }}
+          >
             {deadline.name}
-          </Destination>
-
-          <Utility className="!text-current !opacity-80">
-            {(FREQ_LABELS[deadline.frequency] ?? deadline.frequency).toUpperCase()}
-            {" · "}
-            {deadline.deadline_type.replace(/_/g, " ").toUpperCase()}
-          </Utility>
-
-          {/* Reference number — red slab serif date */}
-          <div className="mt-6">
-            <Index
-              className={
-                urgent
-                  ? "!text-current !text-[30px] leading-none"
-                  : "!text-[var(--color-mark)] !text-[30px] leading-none"
-              }
-            >
-              {dueRef}
-            </Index>
-          </div>
-        </div>
-
-        {/* Bottom cream block — metadata + actions */}
-        <div className="bg-[var(--color-field)] text-[var(--color-ground)] px-5 pt-6 pb-8">
-          {/* Status row */}
-          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span
-                className={`border-2 px-2.5 py-1 t-utility !text-[12px] !tracking-[0.1em] ${statusConfig.classes}`}
-              >
-                {statusConfig.label}
-              </span>
-              <SortingArrow
-                letter={sev.letter}
-                label={`Severity ${deadline.severity_tier.toUpperCase()}`}
-                className={
-                  sev.tone === "mark"
-                    ? "!border-[var(--color-mark)] [&_*]:!text-[var(--color-mark)]"
-                    : ""
-                }
-              />
+          </h1>
+          {deadline.governing_agency ? (
+            <div className="t-utility text-center mt-2 text-[var(--color-ground)]">
+              {deadline.governing_agency}
             </div>
-            {penalty && (
-              <div className="text-right">
-                <Utility className="block !text-[12px] opacity-70">
-                  PENALTY EXPOSURE
-                </Utility>
-                <Index className="!text-[var(--color-mark)] !text-[24px] leading-none">
-                  {penalty}
-                </Index>
-              </div>
-            )}
-          </div>
+          ) : null}
 
-          {/* Detail grid */}
-          <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 mb-6">
-            <DTerm>DUE</DTerm>
-            <DDef>
-              <Body className="!font-bold">{dueDate}</Body>
-              <Caption className="!mt-0.5">{dueShort}</Caption>
-            </DDef>
+          <div
+            className={`mt-8 mb-6 ${
+              isOverdue ? "rule-stamp rule-mark" : "rule-stamp"
+            }`}
+            style={{
+              borderTopColor: isOverdue
+                ? "var(--color-mark)"
+                : "var(--color-ground)",
+            }}
+          />
 
-            {deadline.governing_agency && (
-              <>
-                <DTerm>AGENCY</DTerm>
-                <DDef>
-                  <Body>{deadline.governing_agency}</Body>
-                </DDef>
-              </>
-            )}
-
-            {deadline.statute_citation && (
-              <>
-                <DTerm>STATUTE</DTerm>
-                <DDef>
-                  <Index className="!text-[15px]">
-                    {deadline.statute_citation}
-                  </Index>
-                </DDef>
-              </>
-            )}
-
-            {deadline.source_url && (
-              <>
-                <DTerm>SOURCE</DTerm>
-                <DDef>
+          {/* Metadata grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-0 border-2 border-[var(--color-ground)]">
+            <MetaCell label="Due" value={dueLong} />
+            <MetaCell label="Frequency" value={FREQ_LABELS[deadline.frequency] ?? deadline.frequency} />
+            <MetaCell label="Severity" value={deadline.severity_tier.toUpperCase()} />
+            <MetaCell
+              label="Penalty"
+              value={penalty ?? "—"}
+              mark={!!penalty}
+            />
+            <MetaCell
+              label="Statute"
+              value={deadline.statute_citation ?? "—"}
+            />
+            <MetaCell
+              label="Source"
+              value={
+                deadline.source_url ? (
                   <a
                     href={deadline.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="t-link break-all"
                   >
-                    {deadline.source_url}
+                    Link →
                   </a>
-                </DDef>
-              </>
-            )}
+                ) : (
+                  "—"
+                )
+              }
+            />
+          </div>
 
-            {deadline.description && (
-              <>
-                <DTerm>NOTES</DTerm>
-                <DDef>
-                  <Body className="leading-relaxed">
-                    {deadline.description}
-                  </Body>
-                </DDef>
-              </>
-            )}
-          </dl>
+          {deadline.description ? (
+            <div className="mt-6 border-2 border-[var(--color-ground)] p-4">
+              <div className="t-utility mb-2">Notes</div>
+              <p
+                className="text-[15px] leading-relaxed"
+                style={{ fontFamily: "var(--font-index)" }}
+              >
+                {deadline.description}
+              </p>
+            </div>
+          ) : null}
 
-          {/* Action row */}
-          <div className="border-t-2 border-[var(--color-ground)] pt-5 flex items-center gap-3 flex-wrap">
-            {deadline.status !== "compliant" && (
+          {/* Documents */}
+          <div className="mt-8">
+            <DocumentUpload
+              deadlineId={deadline.id}
+              businessId={business.id}
+              userId={user.id}
+              existingDocuments={documents ?? []}
+            />
+          </div>
+        </article>
+
+        {/* Right: actions + activity */}
+        <aside className="flex flex-col gap-4">
+          <div className="panel-ink p-5">
+            <div
+              className="t-utility mb-4"
+              style={{ color: "var(--color-field)" }}
+            >
+              Route summary
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              <DTerm inverse>Status</DTerm>
+              <DDef inverse>{STATUS_LABEL[deadline.status]}</DDef>
+              <DTerm inverse>Due in</DTerm>
+              <DDef inverse>
+                {dueShort}
+              </DDef>
+              {penalty ? (
+                <>
+                  <DTerm inverse>Exposure</DTerm>
+                  <DDef inverse className="text-[var(--color-mark)]">
+                    {penalty}
+                  </DDef>
+                </>
+              ) : null}
+              {deadline.governing_agency ? (
+                <>
+                  <DTerm inverse>Agency</DTerm>
+                  <DDef inverse>{deadline.governing_agency}</DDef>
+                </>
+              ) : null}
+            </dl>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {deadline.status !== "compliant" ? (
               <MarkCompliantButton deadlineId={deadline.id} />
-            )}
-            {deadline.status === "compliant" && (
-              <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)] px-4 py-3 inline-flex flex-col items-start gap-1">
-                <Utility>MARKED COMPLIANT</Utility>
-                <Index className="!text-[15px]">
+            ) : (
+              <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3 flex flex-col gap-1">
+                <span className="t-utility">Marked compliant</span>
+                <span
+                  className="text-[15px] font-bold"
+                  style={{ fontFamily: "var(--font-index)" }}
+                >
                   {new Date(deadline.updated_at).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}
-                </Index>
+                </span>
               </div>
             )}
             <LinkButton href={`/deadlines/${id}/edit`} variant="ghost">
-              ✎ Edit
+              ✎ Edit deadline
             </LinkButton>
+            {isUrgent ? (
+              <div className="border-2 border-[var(--color-mark)] p-4">
+                <div className="t-utility text-[var(--color-mark)] mb-2">
+                  Alarm bar
+                </div>
+                <p
+                  className="text-[14px] leading-relaxed"
+                  style={{ fontFamily: "var(--font-index)" }}
+                >
+                  This deadline is{" "}
+                  {isOverdue ? "overdue" : "due within 30 days"}. File it now
+                  or document an extension to recover your score.
+                </p>
+              </div>
+            ) : null}
           </div>
-        </div>
-      </article>
-
-      {/* Documents dossier */}
-      <DocumentUpload
-        deadlineId={deadline.id}
-        businessId={business.id}
-        userId={user.id}
-        existingDocuments={documents ?? []}
-      />
+        </aside>
+      </div>
     </div>
   );
 }
 
-function DTerm({ children }: { children: React.ReactNode }) {
+function MetaCell({
+  label,
+  value,
+  mark,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mark?: boolean;
+}) {
   return (
-    <dt className="pt-0.5">
-      <Utility className="opacity-70 !text-[12px]">{children}</Utility>
+    <div className="px-4 py-3 border-r border-b border-[var(--color-ground)] last:border-r-0">
+      <div className="t-utility mb-1">{label}</div>
+      <div
+        className={`text-[15px] font-bold ${
+          mark ? "text-[var(--color-mark)]" : "text-[var(--color-ground)]"
+        }`}
+        style={{ fontFamily: "var(--font-index)" }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DTerm({
+  children,
+  inverse,
+}: {
+  children: React.ReactNode;
+  inverse?: boolean;
+}) {
+  return (
+    <dt
+      className="t-utility py-1"
+      style={{ color: inverse ? "var(--color-field)" : "var(--color-ground)" }}
+    >
+      {children}
     </dt>
   );
 }
 
-function DDef({ children }: { children: React.ReactNode }) {
-  return <dd className="min-w-0">{children}</dd>;
+function DDef({
+  children,
+  inverse,
+  className,
+}: {
+  children: React.ReactNode;
+  inverse?: boolean;
+  className?: string;
+}) {
+  return (
+    <dd
+      className={`text-[14px] font-bold py-1 ${className ?? ""}`}
+      style={{
+        fontFamily: "var(--font-index)",
+        color: inverse ? "var(--color-field)" : "var(--color-ground)",
+      }}
+    >
+      {children}
+    </dd>
+  );
 }

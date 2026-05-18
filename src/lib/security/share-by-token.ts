@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/supabase";
 import { createHash } from "node:crypto";
+import { hashToken } from "@/lib/security/token-hash";
 
 type DeadlineRow = Pick<
   Database["public"]["Tables"]["deadlines"]["Row"],
@@ -43,7 +44,10 @@ export async function loadShareViewByToken(
   const { data: shareToken } = await supabase
     .from("share_tokens")
     .select("business_id, expires_at, label, view_count, revoked_at")
-    .eq("token", rawToken)
+    // token_hash replaces the plaintext token column dropped in
+    // 20260517000002_audit_remediation; lookup is by sha256(rawToken).
+    // Cast: supabase types haven't been regenerated for the new column yet.
+    .eq("token_hash" as never, hashToken(rawToken))
     .gt("expires_at", nowIso)
     .is("revoked_at", null)
     .maybeSingle();

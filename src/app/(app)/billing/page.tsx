@@ -44,7 +44,7 @@ export default async function BillingPage() {
       <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
         <div className="flex items-center gap-3 mb-3">
           <Index className="!text-[15px]">PA-BILL</Index>
-          <Utility className="opacity-60">BILLING / SUBSCRIPTION</Utility>
+          <Utility className="">BILLING / SUBSCRIPTION</Utility>
         </div>
         <H1>Billing.</H1>
         <Caption className="!mt-2">Manage your subscription and plan.</Caption>
@@ -57,13 +57,13 @@ export default async function BillingPage() {
             <Utility className="!text-[var(--color-field)] !opacity-100">
               CURRENT PLAN · {business.billing_status === "trialing" ? "TRIAL" : "ACTIVE"}
             </Utility>
-            <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[12px] ">
               {PLAN_CODES[business.plan_tier]?.code ?? business.plan_tier.toUpperCase()}
             </Index>
           </div>
           <div className="bg-[var(--color-field)] px-5 py-5 flex items-end justify-between flex-wrap gap-4">
             <div>
-              <Utility className="opacity-60 mb-1">PLAN</Utility>
+              <Utility className=" mb-1">PLAN</Utility>
               <H2 className="!capitalize">{business.plan_tier}</H2>
               {business.trial_ends_at &&
                 business.billing_status === "trialing" && (
@@ -103,7 +103,7 @@ export default async function BillingPage() {
                 refNumber={`P-${codes.sort}, ${codes.code}`}
                 sortSymbol={codes.sort}
               >
-                <Caption className="!mb-4 !opacity-70 !text-[12px]">
+                <Caption className="!mb-4  !text-[12px]">
                   PER MONTH · BILLED VIA STRIPE
                 </Caption>
                 <ul className="flex flex-col gap-2 mb-6">
@@ -133,7 +133,7 @@ export default async function BillingPage() {
         )}
       </div>
 
-      <Caption className="!opacity-60 text-center !text-[12px]">
+      <Caption className=" text-center !text-[12px]">
         14-day free trial · No credit card required to start · Cancel anytime
       </Caption>
     </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hashToken } from "@/lib/security/token-hash";
 import {
   validateProposedChanges,
   validateRationale,
@@ -66,7 +67,9 @@ export async function POST(req: NextRequest) {
   const { data: connection } = await admin
     .from("accountant_connections")
     .select("id, business_id, expires_at, revoked_at")
-    .eq("token", token)
+    // token_hash replaces the dropped plaintext token column.
+    // Cast: generated supabase types haven't regenerated for new column.
+    .eq("token_hash" as never, hashToken(token))
     .maybeSingle();
 
   if (

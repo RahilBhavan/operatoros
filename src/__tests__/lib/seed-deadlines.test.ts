@@ -22,10 +22,6 @@ function names(deadlines: ReturnType<typeof build>) {
   return deadlines.map((d) => d.name);
 }
 
-function agencies(deadlines: ReturnType<typeof build>) {
-  return deadlines.map((d) => d.governing_agency);
-}
-
 // ─── Combo 1: California LLC Restaurant (6-15 employees) ──────────────────
 describe("CA LLC restaurant — 6-15 employees", () => {
   const deadlines = build({

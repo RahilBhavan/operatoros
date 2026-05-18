@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReminderEmail } from "@/lib/email";
 import { computeRiskWeightedScore, computeAutoStatus } from "@/lib/deadline-utils";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+function safeBearerCompare(authHeader: string | null, secret: string): boolean {
+  const expected = `Bearer ${secret}`;
+  const provided = authHeader ?? "";
+  // Early-out on length mismatch — timingSafeEqual throws on unequal lengths
+  // and the length difference itself isn't sensitive.
+  if (provided.length !== expected.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
 
 const REMINDER_WINDOWS = [
   { days: 90, type: "90_day" },
@@ -22,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
   }
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!safeBearerCompare(authHeader, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -235,6 +249,15 @@ export async function GET(req: NextRequest) {
   }
 
   await snapshotComplianceScores(supabase);
+
+  // Daily housekeeping: refresh the rule_confidence materialised view (kept
+  // fresh by admin moderation, but a once-a-day backstop covers rules that
+  // haven't been touched) and prune old auth-rate-limit rows so the table
+  // doesn't grow without bound under credential-stuffing attacks.
+  await Promise.allSettled([
+    (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("refresh_rule_confidence"),
+    (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("cleanup_auth_rate_limits"),
+  ]);
 
   return NextResponse.json({ processed, errors, timestamp: nowIso });
 }

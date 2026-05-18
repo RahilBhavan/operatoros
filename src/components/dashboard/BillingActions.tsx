@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { PaidPlanTier } from "@/lib/stripe";
 import { Button, Caption } from "@/components/doctrine";
 
@@ -20,7 +19,6 @@ export default function BillingActions({
   buttonLabel = "Get started →",
   highlighted = false,
 }: Props) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

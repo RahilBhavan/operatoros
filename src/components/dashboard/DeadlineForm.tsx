@@ -120,7 +120,7 @@ export default function DeadlineForm({ businessId, existing }: Props) {
     >
       {/* FORM header strip */}
       <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-        <Utility className="!text-[var(--color-field)] !opacity-90">
+        <Utility className="!text-[var(--color-field)] ">
           {isEdit ? "FORM · EDIT DEADLINE" : "FORM · NEW DEADLINE"}
         </Utility>
         <Index className="!text-[var(--color-field)] !text-[13px]">
@@ -280,19 +280,20 @@ function FormField({
 }: {
   label: string;
   required?: boolean;
+  /** Wraps the control as a child so the surrounding <label> becomes its programmatic label. */
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="block mb-2">
+    <label className="block">
+      <span className="block mb-2">
         <Utility>
           {label}
           {required && (
             <span className="text-[var(--color-mark)] ml-1">*</span>
           )}
         </Utility>
-      </label>
+      </span>
       {children}
-    </div>
+    </label>
   );
 }

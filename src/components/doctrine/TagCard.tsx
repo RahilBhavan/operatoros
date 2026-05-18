@@ -61,7 +61,7 @@ export function TagCard({
 }: TagCardProps) {
   const fieldBg = {
     ground: "bg-[var(--color-ground)] text-[var(--color-field)]",
-    field: "bg-[var(--color-field-soft)] text-[var(--color-ground)]",
+    field: "bg-[var(--color-field)] text-[var(--color-ground)]",
     mark: "bg-[var(--color-mark)] text-[var(--color-field)]",
   }[variant];
 
@@ -81,7 +81,7 @@ export function TagCard({
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1">
             {topCode ? (
-              <span className="t-index text-current opacity-90 text-[13px]">
+              <span className="t-index text-current  text-[13px]">
                 {topCode}
               </span>
             ) : null}
@@ -93,7 +93,7 @@ export function TagCard({
 
           <div className="flex-1 text-right">
             {topRight ? (
-              <span className="t-utility opacity-90 text-[11px]">
+              <span className="t-utility  text-[11px]">
                 {topRight}
               </span>
             ) : null}
@@ -120,7 +120,7 @@ export function TagCard({
         ) : null}
 
         {subtitle ? (
-          <div className="t-h2 text-current opacity-95 -mt-1">{subtitle}</div>
+          <div className="t-h2 text-current  -mt-1">{subtitle}</div>
         ) : null}
 
         {/* Reference number — straddles the split */}

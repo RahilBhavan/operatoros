@@ -31,7 +31,7 @@ export default async function NewDeadlinePage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <Index className="!text-[15px]">PA-DL-NEW</Index>
-            <Utility className="opacity-60">REGISTRY · INTAKE</Utility>
+            <Utility className="">REGISTRY · INTAKE</Utility>
           </div>
           <H1>Add deadline.</H1>
           <Caption className="!mt-2">

@@ -31,13 +31,13 @@ export default async function AdminWaitlistPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               WAITLIST · MANIFEST
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">WAITLIST</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">
+            <Utility className="!text-[var(--color-field)] ">
               SIGNUPS LOGGED
             </Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">
@@ -116,7 +116,7 @@ export default async function AdminWaitlistPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center">
-                  <Caption className="!opacity-60">
+                  <Caption className="">
                     No waitlist signups match these filters.
                   </Caption>
                 </td>
@@ -136,7 +136,7 @@ export default async function AdminWaitlistPage({
                   <Body className="!font-bold !text-[15px] truncate max-w-[220px]">
                     {w.email}
                   </Body>
-                  <Caption className="!text-[12px] !opacity-60 !mt-0">
+                  <Caption className="!text-[12px]  !mt-0">
                     ref{" "}
                     <span className="font-mono">
                       {w.referral_code.slice(0, 8)}…
@@ -205,7 +205,7 @@ function Breakdown({
       </div>
       <div className="px-5 py-4">
         {data.length === 0 ? (
-          <Caption className="!opacity-60">{empty ?? "No data yet."}</Caption>
+          <Caption className="">{empty ?? "No data yet."}</Caption>
         ) : (
           <ul className="flex flex-col divide-y divide-[var(--color-ground)]">
             {data.map(([k, v]) => (

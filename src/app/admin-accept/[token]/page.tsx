@@ -3,10 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hashToken } from "@/lib/security/token-hash";
 import {
   Destination,
   Body,
-  Caption,
   Utility,
   Index,
   LinkButton,
@@ -34,7 +34,9 @@ export default async function AcceptAdminInvitePage({
   const { data: invite } = await admin
     .from("platform_admin_invites")
     .select("id, invited_email, expires_at, used_at, revoked_at")
-    .eq("token", token)
+    // token_hash replaces the dropped plaintext token column.
+    // Cast: generated supabase types haven't regenerated for new column.
+    .eq("token_hash" as never, hashToken(token))
     .maybeSingle();
 
   if (!invite) return renderShell("INVALID.", "This invite link is not valid.", null);
@@ -87,7 +89,7 @@ function renderShell(heading: string, message: string, action: React.ReactNode |
           <Link href="/" className="t-h3 font-black tracking-tight">
             OPERATOR<span className="text-[var(--color-mark)]">OS</span>
           </Link>
-          <Utility className="opacity-60">PLATFORM ADMIN · INVITE</Utility>
+          <Utility className="">PLATFORM ADMIN · INVITE</Utility>
         </div>
       </nav>
 
@@ -95,11 +97,11 @@ function renderShell(heading: string, message: string, action: React.ReactNode |
         <div className="w-full max-w-[520px] border-2 border-[var(--color-ground)]">
           <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-7 pt-6 pb-7">
             <div className="flex items-center justify-between mb-5">
-              <Index className="!text-[12px] !text-[var(--color-field)] opacity-80">
+              <Index className="!text-[12px] !text-[var(--color-field)] ">
                 PA-ADMIN
               </Index>
               <span className="tag-tab -mt-6">INVITE</span>
-              <Utility className="opacity-80">SECTOR · X</Utility>
+              <Utility className="">SECTOR · X</Utility>
             </div>
             <Destination className="!text-[var(--color-field)] !text-[60px] !leading-none">
               {heading}

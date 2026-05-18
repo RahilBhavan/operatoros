@@ -1,7 +1,5 @@
 "use client";
 
-import { Utility, Index, Caption } from "@/components/doctrine";
-
 interface ScorePoint {
   score: number;
   recorded_at: string;
@@ -13,25 +11,37 @@ interface Props {
 }
 
 const WIDTH = 400;
-const HEIGHT = 80;
+const HEIGHT = 90;
 const PADDING = { top: 8, bottom: 8, left: 4, right: 4 };
 
-export default function ComplianceScoreChart({ history, currentScore }: Props) {
+export default function ComplianceScoreChart({
+  history,
+  currentScore,
+}: Props) {
   if (history.length < 2) {
     return (
       <div className="border-2 border-[var(--color-ground)]">
-        <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
-            SCORE TREND · 90 DAYS
-          </Utility>
-          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+          <span
+            className="t-utility"
+            style={{ color: "var(--color-field)" }}
+          >
+            Score trend · 90 days
+          </span>
+          <span
+            className="t-utility"
+            style={{ color: "var(--color-field)" }}
+          >
             PA-SCR
-          </Index>
+          </span>
         </div>
         <div className="bg-[var(--color-field)] px-5 py-5">
-          <Caption>
+          <p
+            className="text-[14px]"
+            style={{ fontFamily: "var(--font-index)" }}
+          >
             Trend data builds up over time as daily snapshots are recorded.
-          </Caption>
+          </p>
         </div>
       </div>
     );
@@ -54,13 +64,7 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
   }
 
   const points = history.map((p, i) => `${toX(i)},${toY(p.score)}`).join(" ");
-  const areaPoints = [
-    `${PADDING.left},${PADDING.top + chartHeight}`,
-    ...history.map((p, i) => `${toX(i)},${toY(p.score)}`),
-    `${WIDTH - PADDING.right},${PADDING.top + chartHeight}`,
-  ].join(" ");
 
-  // Doctrine: navy when healthy (>=80), red Mark when warning (<80). No traffic lights.
   const isWarning = currentScore < 80;
   const strokeColor = isWarning ? "var(--color-mark)" : "var(--color-ground)";
 
@@ -71,15 +75,25 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
 
   return (
     <div className="border-2 border-[var(--color-ground)]">
-      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-        <Utility className="!text-[var(--color-field)] !opacity-100">
-          SCORE TREND · 90 DAYS
-        </Utility>
-        {delta !== 0 && (
-          <Index className="!text-[var(--color-field)] !text-[15px]">
-            {deltaLabel} PTS
-          </Index>
-        )}
+      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <span
+          className="t-utility"
+          style={{ color: "var(--color-field)" }}
+        >
+          Score trend · 90 days
+        </span>
+        {delta !== 0 ? (
+          <span
+            className="font-bold tabular-nums"
+            style={{
+              fontFamily: "var(--font-index)",
+              color: isWarning ? "var(--color-mark)" : "var(--color-field)",
+              fontSize: 15,
+            }}
+          >
+            {deltaLabel} pts
+          </span>
+        ) : null}
       </div>
 
       <div className="bg-[var(--color-field)] px-5 py-5">
@@ -89,15 +103,14 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
           style={{ height: HEIGHT }}
           aria-label="Compliance score trend over 90 days"
         >
-          {/* Min/max gridlines */}
           <line
             x1={PADDING.left}
             x2={WIDTH - PADDING.right}
             y1={PADDING.top}
             y2={PADDING.top}
             stroke="var(--color-ground)"
-            strokeOpacity={0.15}
             strokeWidth={1}
+            strokeDasharray="2 4"
           />
           <line
             x1={PADDING.left}
@@ -105,14 +118,9 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
             y1={PADDING.top + chartHeight}
             y2={PADDING.top + chartHeight}
             stroke="var(--color-ground)"
-            strokeOpacity={0.15}
             strokeWidth={1}
+            strokeDasharray="2 4"
           />
-
-          {/* Area under curve at 12% opacity of the stroke color */}
-          <polygon points={areaPoints} fill={strokeColor} fillOpacity={0.12} />
-
-          {/* Line */}
           <polyline
             points={points}
             fill="none"
@@ -121,8 +129,6 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
             strokeLinejoin="miter"
             strokeLinecap="square"
           />
-
-          {/* Last-point marker — sharp square, not round */}
           <rect
             x={toX(history.length - 1) - 3}
             y={toY(last.score) - 3}
@@ -132,14 +138,14 @@ export default function ComplianceScoreChart({ history, currentScore }: Props) {
           />
         </svg>
 
-        <div className="flex justify-between mt-2">
-          <Caption className="!text-[12px]">
+        <div className="flex justify-between mt-2 t-utility text-[var(--color-ground)]">
+          <span>
             {new Date(first.recorded_at).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
             })}
-          </Caption>
-          <Caption className="!text-[12px]">TODAY</Caption>
+          </span>
+          <span>Today</span>
         </div>
       </div>
     </div>

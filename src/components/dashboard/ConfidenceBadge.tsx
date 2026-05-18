@@ -32,17 +32,17 @@ const VARIANTS: Record<
   community_validated: {
     label: "VERIFIED",
     className:
-      "border-[var(--color-ground)] bg-[var(--color-field-soft)] text-[var(--color-ground)]",
+      "border-[var(--color-ground)] bg-[var(--color-field)] text-[var(--color-ground)]",
     Icon: Check,
   },
   unverified: {
     label: "UNVERIFIED",
-    className: "border-[var(--color-ground)] bg-[var(--color-field)] opacity-60",
+    className: "border-[var(--color-ground)] bg-[var(--color-field)] ",
     Icon: AlertTriangle,
   },
   stale: {
     label: "STALE",
-    className: "border-[var(--color-ground)] bg-[var(--color-field)] opacity-70",
+    className: "border-[var(--color-ground)] bg-[var(--color-field)] ",
     Icon: Clock,
   },
   low: {

@@ -17,7 +17,7 @@ describe("DeadlineFilters", () => {
     render(<DeadlineFilters />);
     expect(screen.getByRole("button", { name: /^all$/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /overdue/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /due soon/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /due ≤ 30d/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /upcoming/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /compliant/i })).toBeDefined();
   });
@@ -26,7 +26,7 @@ describe("DeadlineFilters", () => {
     render(<DeadlineFilters />);
     const select = document.querySelector("select") as HTMLSelectElement;
     expect(select).toBeDefined();
-    expect(select.options[0].text).toBe("All Types");
+    expect(select.options[0].text).toBe("All types");
   });
 
   it("navigates with status param when a status button is clicked", () => {

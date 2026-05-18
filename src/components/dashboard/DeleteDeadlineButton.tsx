@@ -58,7 +58,7 @@ export default function DeleteDeadlineButton({
           </button>
         </div>
         {error && (
-          <span className="t-caption !text-[var(--color-field)] opacity-90">
+          <span className="t-caption !text-[var(--color-field)] ">
             {error}
           </span>
         )}

@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "The compliance operating system for the 1–50 employee business.",
     start_url: "/",
     display: "standalone",
-    background_color: "#F4EDE0",
-    theme_color: "#F4EDE0",
+    background_color: "#FFFFFF",
+    theme_color: "#FFFFFF",
     icons: [
       {
         src: "/icon.svg",

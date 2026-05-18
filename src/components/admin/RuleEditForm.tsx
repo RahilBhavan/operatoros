@@ -234,7 +234,7 @@ export default function RuleEditForm({ ruleId, initial }: RuleEditFormProps) {
           className="t-input font-mono text-xs min-h-[120px]"
           spellCheck={false}
         />
-        <Caption className="!text-[11px] mt-1 opacity-70">
+        <Caption className="!text-[11px] mt-1 ">
           Shape: <code>{`{"kind": "next_md" | "next_year_md" | "months_from_today" | "years_from_today" | "years_from_today_first_of_month" | "next_month_day" | "quarterly_941", ...}`}</code>
         </Caption>
       </Row>
@@ -245,7 +245,7 @@ export default function RuleEditForm({ ruleId, initial }: RuleEditFormProps) {
           className="t-input font-mono text-xs min-h-[120px]"
           spellCheck={false}
         />
-        <Caption className="!text-[11px] mt-1 opacity-70">
+        <Caption className="!text-[11px] mt-1 ">
           Filter shape: <code>{`{ state?, state_in?, state_not_in?, entity_in?, industry?, hires_contractors?, has_employees?, osha_required? }`}</code>
         </Caption>
       </Row>
@@ -261,7 +261,7 @@ export default function RuleEditForm({ ruleId, initial }: RuleEditFormProps) {
         <button
           type="submit"
           disabled={state === "busy"}
-          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 t-utility disabled:opacity-50"
+          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 t-utility"
         >
           {state === "busy" ? "Saving new version…" : "Save as new version"}
         </button>
@@ -276,7 +276,7 @@ export default function RuleEditForm({ ruleId, initial }: RuleEditFormProps) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <Utility className="opacity-60 mb-1.5 block">{label}</Utility>
+      <Utility className=" mb-1.5 block">{label}</Utility>
       {children}
     </label>
   );

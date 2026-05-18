@@ -40,13 +40,13 @@ export default async function AdminRulesPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               RULES · GRAPH
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">REGULATORY RULES</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">CANONICAL ROWS</Utility>
+            <Utility className="!text-[var(--color-field)] ">CANONICAL ROWS</Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">{stats.total}</div>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default async function AdminRulesPage({
             {rules.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center">
-                  <Body className="opacity-60">No rules match. Try resetting filters.</Body>
+                  <Body className="">No rules match. Try resetting filters.</Body>
                 </td>
               </tr>
             )}
@@ -170,7 +170,7 @@ export default async function AdminRulesPage({
                 </td>
                 <td className="px-4 py-3">
                   <Body className="!text-[14px]">{r.name}</Body>
-                  <Caption className="!text-[11px] opacity-70">{r.governing_agency}</Caption>
+                  <Caption className="!text-[11px] ">{r.governing_agency}</Caption>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <code className="text-xs">{r.jurisdiction_type}</code>
@@ -203,7 +203,7 @@ function StatCell({
 }) {
   return (
     <div className="px-5 py-5">
-      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <Utility className=" mb-2">{label}</Utility>
       <div className="t-h1">
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
       </div>
@@ -225,7 +225,7 @@ function FilterSelect({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <Utility className="opacity-60">{label}</Utility>
+      <Utility className="">{label}</Utility>
       <select
         name={name}
         defaultValue={current}

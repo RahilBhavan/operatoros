@@ -74,6 +74,23 @@ export async function POST(
     return NextResponse.json({ error: "Replace failed" }, { status: 500 });
   }
 
+  // Fire-and-forget cleanup of the now-archived storage object. The metadata
+  // row is preserved in document_versions for the audit trail; the underlying
+  // file is no longer reachable from the canonical documents row, so deleting
+  // it prevents per-tenant storage bloat and invalidates any leaked signed
+  // URL that pointed at the previous version. We don't fail the request on
+  // cleanup error — the metadata transition is the source of truth.
+  void admin.storage
+    .from("documents")
+    .remove([doc.file_path])
+    .catch((err: unknown) => {
+      console.error("[replace] orphan cleanup failed", {
+        documentId: doc.id,
+        oldPath: doc.file_path,
+        err,
+      });
+    });
+
   return NextResponse.json({ ok: true });
 }
 

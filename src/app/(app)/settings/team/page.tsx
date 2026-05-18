@@ -46,11 +46,11 @@ export default async function TeamSettingsPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="border-2 border-[var(--color-ground)] p-10 text-center">
-          <Index className="!text-[38px] !text-[var(--color-ground)] opacity-30 mb-3">
+          <Index className="!text-[38px] !text-[var(--color-ground)]  mb-3">
             🔒
           </Index>
           <H2 className="mb-3">Admin access required.</H2>
-          <Body className="!opacity-70">
+          <Body className="">
             Only an account admin can manage team members. Ask the person who
             originally set up <strong>{business.name}</strong> on OperatorOS to
             invite or promote you.
@@ -77,7 +77,7 @@ export default async function TeamSettingsPage() {
       <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
         <div className="flex items-center gap-3 mb-3">
           <Index className="!text-[15px]">PA-TEAM</Index>
-          <Utility className="opacity-60">SETTINGS / TEAM</Utility>
+          <Utility className="">SETTINGS / TEAM</Utility>
         </div>
         <H1>Team.</H1>
         <Caption className="!mt-2">
@@ -91,12 +91,12 @@ export default async function TeamSettingsPage() {
 
       <section className="border-2 border-[var(--color-ground)] mb-8">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
-          <Utility className="!text-[var(--color-field)] !opacity-80">
+          <Utility className="!text-[var(--color-field)] ">
             MEMBER / EMAIL
           </Utility>
-          <Utility className="!text-[var(--color-field)] !opacity-80">ROLE</Utility>
-          <Utility className="!text-[var(--color-field)] !opacity-80 hidden sm:block">JOINED</Utility>
-          <Utility className="!text-[var(--color-field)] !opacity-80">SORT</Utility>
+          <Utility className="!text-[var(--color-field)] ">ROLE</Utility>
+          <Utility className="!text-[var(--color-field)]  hidden sm:block">JOINED</Utility>
+          <Utility className="!text-[var(--color-field)] ">SORT</Utility>
         </div>
         <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
           {active.map((m) => {

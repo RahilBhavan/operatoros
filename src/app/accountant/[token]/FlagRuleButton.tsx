@@ -64,7 +64,7 @@ export default function FlagRuleButton({
     return (
       <span
         title="This deadline isn't linked to a regulatory rule yet — corrections are only available for rule-backed deadlines."
-        className="inline-flex items-center gap-1 text-[var(--color-ground)] opacity-30 t-utility !text-[11px]"
+        className="inline-flex items-center gap-1 text-[var(--color-ground)]  t-utility !text-[11px]"
       >
         <Flag className="w-3 h-3" />
         <span>FLAG</span>
@@ -123,7 +123,7 @@ export default function FlagRuleButton({
       <button
         type="button"
         onClick={() => setMode("open")}
-        className="inline-flex items-center gap-1 text-[var(--color-ground)] opacity-50 hover:opacity-100 hover:text-[var(--color-mark)] t-utility !text-[11px]"
+        className="inline-flex items-center gap-1 text-[var(--color-ground)]  hover:opacity-100 hover:text-[var(--color-mark)] t-utility !text-[11px]"
         aria-label={`Flag rule: ${ruleName}`}
       >
         <Flag className="w-3 h-3" />
@@ -151,14 +151,14 @@ export default function FlagRuleButton({
             setMode("idle");
             setError(null);
           }}
-          className="t-utility !text-[11px] opacity-60 hover:opacity-100"
+          className="t-utility !text-[11px]  hover:opacity-100"
         >
           ✕ CLOSE
         </button>
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="t-utility opacity-60 !text-[11px]">WHAT FIELD IS WRONG (OPTIONAL)</span>
+        <span className="t-utility  !text-[11px]">WHAT FIELD IS WRONG (OPTIONAL)</span>
         <select
           value={field}
           onChange={(e) => {
@@ -179,7 +179,7 @@ export default function FlagRuleButton({
 
       {field && (
         <label className="flex flex-col gap-1">
-          <span className="t-utility opacity-60 !text-[11px]">
+          <span className="t-utility  !text-[11px]">
             CORRECT VALUE FOR {FIELD_LABELS[field].toUpperCase()}
           </span>
           {field === "severity_tier" ? (
@@ -223,7 +223,7 @@ export default function FlagRuleButton({
       )}
 
       <label className="flex flex-col gap-1">
-        <span className="t-utility opacity-60 !text-[11px]">
+        <span className="t-utility  !text-[11px]">
           RATIONALE (REQUIRED, ≥ 8 CHARS)
         </span>
         <textarea
@@ -238,7 +238,7 @@ export default function FlagRuleButton({
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="t-utility opacity-60 !text-[11px]">CITATION URL (OPTIONAL)</span>
+        <span className="t-utility  !text-[11px]">CITATION URL (OPTIONAL)</span>
         <input
           value={citation}
           onChange={(e) => setCitation(e.target.value)}
@@ -258,11 +258,11 @@ export default function FlagRuleButton({
           type="button"
           onClick={submit}
           disabled={mode === "busy"}
-          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility !text-[12px] disabled:opacity-50"
+          className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 t-utility !text-[12px]"
         >
           {mode === "busy" ? "SUBMITTING…" : "SUBMIT CORRECTION →"}
         </button>
-        <span className="t-utility opacity-60 !text-[11px]">
+        <span className="t-utility  !text-[11px]">
           GOES TO ADMIN REVIEW QUEUE
         </span>
       </div>

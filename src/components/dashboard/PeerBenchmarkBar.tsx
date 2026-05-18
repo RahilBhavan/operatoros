@@ -1,6 +1,5 @@
 "use client";
 
-import { Utility, Index, Caption, Body } from "@/components/doctrine";
 import type { PeerResult } from "@/lib/benchmarks";
 import { describeCohort } from "@/lib/benchmarks";
 
@@ -21,61 +20,90 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
 
     return (
       <div className="border-2 border-[var(--color-ground)]">
-        <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
-            PEER BENCHMARK · COHORT
-          </Utility>
-          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+          <span
+            className="t-utility"
+            style={{ color: "var(--color-field)" }}
+          >
+            Peer benchmark · cohort
+          </span>
+          <span
+            className="t-utility"
+            style={{ color: "var(--color-field)" }}
+          >
             PA-PEER
-          </Index>
+          </span>
         </div>
         <div className="bg-[var(--color-field)] px-5 py-5">
-          <Caption>{beFirst}</Caption>
+          <p
+            className="text-[14px]"
+            style={{ fontFamily: "var(--font-index)" }}
+          >
+            {beFirst}
+          </p>
         </div>
       </div>
     );
   }
 
   const chartWidth = WIDTH - LEFT - RIGHT;
-  const toX = (n: number) => LEFT + (Math.min(100, Math.max(0, n)) / 100) * chartWidth;
+  const toX = (n: number) =>
+    LEFT + (Math.min(100, Math.max(0, n)) / 100) * chartWidth;
 
   const cohort = describeCohort(peer.industrySlug, peer.stateCode);
   const isAtOrAboveMedian = peer.userScore >= peer.median;
-  const userColor = isAtOrAboveMedian ? "var(--color-ground)" : "var(--color-mark)";
+  const userColor = isAtOrAboveMedian
+    ? "var(--color-ground)"
+    : "var(--color-mark)";
 
   const ticks = [
-    { x: toX(peer.p25), label: "P25", value: peer.p25 },
-    { x: toX(peer.median), label: "MED", value: peer.median },
-    { x: toX(peer.p75), label: "P75", value: peer.p75 },
-    { x: toX(peer.p90), label: "P90", value: peer.p90 },
+    { x: toX(peer.p25), label: "P25" },
+    { x: toX(peer.median), label: "MED" },
+    { x: toX(peer.p75), label: "P75" },
+    { x: toX(peer.p90), label: "P90" },
   ];
 
   const userX = toX(peer.userScore);
 
   return (
     <div className="border-2 border-[var(--color-ground)]">
-      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-        <Utility className="!text-[var(--color-field)] !opacity-100">
-          PEER BENCHMARK · COHORT
-        </Utility>
-        <Index className="!text-[var(--color-field)] !text-[15px]">
-          {peer.percentile}P
-        </Index>
+      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <span
+          className="t-utility"
+          style={{ color: "var(--color-field)" }}
+        >
+          Peer benchmark · cohort
+        </span>
+        <span
+          className="font-bold tabular-nums"
+          style={{
+            fontFamily: "var(--font-index)",
+            color: "var(--color-field)",
+            fontSize: 15,
+          }}
+        >
+          {peer.percentile}p
+        </span>
       </div>
 
       <div className="bg-[var(--color-field)] px-5 py-5">
-        <Body className="!text-[15px] !mb-3">
+        <p
+          className="text-[14px] mb-4"
+          style={{ fontFamily: "var(--font-index)" }}
+        >
           You score{" "}
-          <span className="t-h3 inline-block align-baseline">{peer.userScore}</span>{" "}
-          —{" "}
           <span
-            style={{ color: userColor }}
-            className="font-semibold"
+            className="font-black text-[18px]"
+            style={{ fontFamily: "var(--font-destination)" }}
           >
+            {peer.userScore}
+          </span>{" "}
+          —{" "}
+          <span style={{ color: userColor, fontWeight: 700 }}>
             {peer.percentile}th percentile
           </span>{" "}
           vs. {cohort}.
-        </Body>
+        </p>
 
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -90,19 +118,18 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
             y={BAR_Y}
             width={chartWidth}
             height={BAR_HEIGHT}
-            fill="var(--color-field-soft, #f5f1ea)"
+            fill="var(--color-field)"
             stroke="var(--color-ground)"
             strokeWidth={1}
           />
 
-          {/* Median fill — left half is "below median"; right half is "above median" */}
+          {/* IQR fill — solid Ink */}
           <rect
             x={toX(peer.p25)}
             y={BAR_Y}
             width={Math.max(toX(peer.p75) - toX(peer.p25), 0)}
             height={BAR_HEIGHT}
             fill="var(--color-ground)"
-            fillOpacity={0.12}
           />
 
           {/* Tick marks */}
@@ -111,20 +138,20 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
               <line
                 x1={t.x}
                 x2={t.x}
-                y1={BAR_Y}
-                y2={BAR_Y + BAR_HEIGHT}
+                y1={BAR_Y - 2}
+                y2={BAR_Y + BAR_HEIGHT + 2}
                 stroke="var(--color-ground)"
                 strokeWidth={1}
-                strokeOpacity={0.5}
               />
               <text
                 x={t.x}
                 y={BAR_Y + BAR_HEIGHT + 14}
                 textAnchor="middle"
-                className="t-utility"
                 fontSize="9"
                 fill="var(--color-ground)"
-                opacity={0.7}
+                fontFamily="var(--font-destination)"
+                fontWeight="700"
+                letterSpacing="0.08em"
               >
                 {t.label}
               </text>
@@ -134,9 +161,9 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
           {/* User marker */}
           <rect
             x={userX - 2}
-            y={BAR_Y - 5}
+            y={BAR_Y - 6}
             width={4}
-            height={BAR_HEIGHT + 10}
+            height={BAR_HEIGHT + 12}
             fill={userColor}
           />
           <text
@@ -145,20 +172,21 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
             textAnchor="middle"
             fontSize="10"
             fill={userColor}
-            className="t-utility"
-            fontWeight="700"
+            fontFamily="var(--font-destination)"
+            fontWeight="800"
+            letterSpacing="0.12em"
           >
             YOU
           </text>
         </svg>
 
-        <Caption className="!text-[12px] !mt-3">
-          BASED ON {peer.cohortSize} {cohort.toUpperCase()} TRACKED ON OPERATOROS · LAST REFRESHED{" "}
+        <div className="t-utility text-[var(--color-ground)] mt-3">
+          Based on {peer.cohortSize} {cohort.toUpperCase()} · last refresh{" "}
           {new Date(peer.lastCapturedAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
           })}
-        </Caption>
+        </div>
       </div>
     </div>
   );

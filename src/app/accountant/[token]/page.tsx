@@ -19,6 +19,7 @@ import {
   Utility,
   Index,
 } from "@/components/doctrine";
+import { PublicNav } from "@/components/marketing/PublicNav";
 import DeadlineNote from "./DeadlineNote";
 import FlagRuleButton from "./FlagRuleButton";
 
@@ -94,7 +95,25 @@ export default async function AccountantPortalPage({
 
   return (
     <div className="min-h-screen bg-[var(--color-field)]">
-      <PublicNav expiresAt={connection.expires_at} />
+      <PublicNav
+        caption="Accountant portal · Read-only"
+        rightExtra={
+          <span className="inline-flex items-stretch border-2 border-[var(--color-ground)]">
+            <span className="px-2 py-0.5 border-r-2 border-[var(--color-ground)] t-utility !text-[12px]">
+              Expires
+            </span>
+            <span className="px-2 py-0.5 t-utility !text-[12px]">
+              {new Date(connection.expires_at)
+                .toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+                .replace(/\//g, ".")}
+            </span>
+          </span>
+        }
+      />
 
       <main className="max-w-[1100px] mx-auto px-6 py-10">
         {/* Hero — accountant tag (red / mark variant for VIP access) */}
@@ -111,13 +130,13 @@ export default async function AccountantPortalPage({
         >
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <Utility className="opacity-60">VIEWING</Utility>
+              <Utility className="">VIEWING</Utility>
               <Body className="!font-bold !mt-1 uppercase">
                 {business.name}
               </Body>
             </div>
             <div className="text-right">
-              <Utility className="opacity-60">CLIENTS IN VIEW</Utility>
+              <Utility className="">CLIENTS IN VIEW</Utility>
               <Index className="!text-[24px] !text-[var(--color-ground)] block mt-1">
                 {portfolio.length + 1}
               </Index>
@@ -147,11 +166,12 @@ export default async function AccountantPortalPage({
               </header>
               <ul className="bg-[var(--color-field)] divide-y divide-[var(--color-ground)]">
                 {portfolio.map((c) => (
-                  <li key={c.token}>
-                    <Link
-                      href={`/accountant/${c.token}`}
-                      className="flex items-center gap-5 px-5 py-4 hover:bg-[var(--color-field-soft)] transition-colors"
-                    >
+                  // Plaintext share tokens are no longer stored, so we can't
+                  // build a /accountant/{token} URL for sibling clients. Render
+                  // the row as a read-only summary; accountants click into each
+                  // client from their own emailed link.
+                  <li key={c.connection_id} className="px-0">
+                    <div className="flex items-center gap-5 px-5 py-4">
                       <div className="flex-1 min-w-0">
                         <Body className="!font-bold truncate uppercase">
                           {c.business_name}
@@ -161,7 +181,7 @@ export default async function AccountantPortalPage({
                         </Caption>
                       </div>
                       <div className="shrink-0 text-right">
-                        <Utility className="opacity-60 !text-[12px]">
+                        <Utility className=" !text-[12px]">
                           SCORE
                         </Utility>
                         <Index
@@ -173,15 +193,15 @@ export default async function AccountantPortalPage({
                         </Index>
                       </div>
                       <div className="shrink-0 text-right w-28">
-                        <Utility className="opacity-60 !text-[12px]">
+                        <Utility className=" !text-[12px]">
                           EXPOSURE
                         </Utility>
                         <Index className="!text-[15px] block">
                           {formatCents(c.exposure_cents)}
                         </Index>
                       </div>
-                      <Utility className="opacity-60 shrink-0">→</Utility>
-                    </Link>
+                      <Utility className=" shrink-0">·</Utility>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -195,7 +215,7 @@ export default async function AccountantPortalPage({
             <Utility className="!text-[var(--color-field)] !opacity-100">
               CLIENT MANIFEST
             </Utility>
-            <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[12px] ">
               PA-{businessCode}
             </Index>
           </div>
@@ -250,7 +270,7 @@ export default async function AccountantPortalPage({
         {/* Deadline groups */}
         {allDeadlines.length === 0 ? (
           <section className="border-2 border-[var(--color-ground)] py-16 px-6 text-center mb-10">
-            <Index className="!text-[48px] opacity-30 block mb-3">000</Index>
+            <Index className="!text-[48px]  block mb-3">000</Index>
             <H2>No deadlines on record.</H2>
           </section>
         ) : (
@@ -310,7 +330,7 @@ export default async function AccountantPortalPage({
         <footer className="border-t-2 border-[var(--color-ground)] pt-6 mt-12">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <Utility className="opacity-60">GENERATED</Utility>
+              <Utility className="">GENERATED</Utility>
               <Index className="!text-[19px] !text-[var(--color-ground)] block mt-1">
                 {generatedAt
                   .toLocaleString("en-US", {
@@ -325,13 +345,13 @@ export default async function AccountantPortalPage({
               </Index>
             </div>
             <div className="text-center">
-              <Utility className="opacity-60">TOKEN</Utility>
+              <Utility className="">TOKEN</Utility>
               <Index className="!text-[19px] !text-[var(--color-ground)] block mt-1">
                 {tokenSuffix}
               </Index>
             </div>
             <div className="text-right max-w-md">
-              <Caption className="!opacity-70">
+              <Caption className="">
                 Notes are private to this accountant view. Compliance data is
                 auto-generated based on business profile and is for reference
                 only. OperatorOS does not provide legal, tax, or accounting
@@ -339,7 +359,7 @@ export default async function AccountantPortalPage({
               </Caption>
             </div>
           </div>
-          <Caption className="!opacity-60 !text-[12px] mt-3 text-center">
+          <Caption className=" !text-[12px] mt-3 text-center">
             Generated by{" "}
             <Link href="/" className="t-link">
               OperatorOS
@@ -353,37 +373,6 @@ export default async function AccountantPortalPage({
 }
 
 /* -------------------------------------------------------------------------- */
-
-function PublicNav({ expiresAt }: { expiresAt: string }) {
-  return (
-    <nav className="border-b-2 border-[var(--color-ground)] bg-[var(--color-field)] px-6 py-4">
-      <div className="max-w-[1100px] mx-auto flex items-center justify-between gap-4">
-        <Link href="/" className="t-h3 font-black tracking-tight">
-          OPERATOR<span className="text-[var(--color-mark)]">OS</span>
-        </Link>
-        <div className="flex items-center gap-4 flex-wrap justify-end">
-          <Utility className="opacity-60">
-            ACCOUNTANT PORTAL · READ-ONLY
-          </Utility>
-          <span className="inline-flex items-stretch border-2 border-[var(--color-ground)]">
-            <span className="px-2 py-0.5 border-r-2 border-[var(--color-ground)] t-utility !text-[12px]">
-              EXPIRES
-            </span>
-            <span className="px-2 py-0.5 t-utility !text-[12px]">
-              {new Date(expiresAt)
-                .toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                })
-                .replace(/\//g, ".")}
-            </span>
-          </span>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 function SectionHeader({
   index,
@@ -434,10 +423,10 @@ function ScoreCell({
 }) {
   return (
     <div className="px-5 py-5">
-      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <Utility className=" mb-2">{label}</Utility>
       <div className={big ? "t-display !text-[38px]" : "t-h1"}>
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
-        {suffix && <span className="t-h3 !opacity-50 ml-1">{suffix}</span>}
+        {suffix && <span className="t-h3  ml-1">{suffix}</span>}
       </div>
       {extra}
     </div>
@@ -475,7 +464,7 @@ function DeadlineGroup({
           <Utility className="!text-[var(--color-field)] !opacity-100">
             {STATUS_LABEL[statusKey]}
           </Utility>
-          <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+          <Index className="!text-[var(--color-field)] !text-[12px] ">
             ({deadlines.length})
           </Index>
         </div>
@@ -500,7 +489,7 @@ function DeadlineGroup({
                       href={d.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="opacity-70 hover:opacity-100 hover:text-[var(--color-mark)] transition-opacity"
+                      className=" hover:opacity-100 hover:text-[var(--color-mark)] transition-opacity"
                       aria-label="source"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />

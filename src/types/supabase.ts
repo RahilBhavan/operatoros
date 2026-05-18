@@ -737,6 +737,214 @@ export type Database = {
         };
         Relationships: [];
       };
+      regulatory_rules: {
+        Row: {
+          id: string;
+          jurisdiction_type: "federal" | "state" | "local";
+          jurisdiction_code: string;
+          industry_slug: string | null;
+          rule_key: string;
+          name: string;
+          description: string;
+          deadline_type: string;
+          governing_agency: string;
+          frequency: string;
+          due_date_rule: Record<string, unknown>;
+          applies_when: Record<string, unknown>;
+          severity_tier: "critical" | "high" | "medium" | "low" | "info";
+          penalty_estimate_cents: number | null;
+          source_url: string | null;
+          statute_citation: string | null;
+          effective_date: string;
+          sunset_date: string | null;
+          version: number;
+          superseded_by: string | null;
+          last_verified_at: string | null;
+          last_verified_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          jurisdiction_type: "federal" | "state" | "local";
+          jurisdiction_code: string;
+          industry_slug?: string | null;
+          rule_key: string;
+          name: string;
+          description: string;
+          deadline_type: string;
+          governing_agency: string;
+          frequency: string;
+          due_date_rule: Record<string, unknown>;
+          applies_when?: Record<string, unknown>;
+          severity_tier: "critical" | "high" | "medium" | "low" | "info";
+          penalty_estimate_cents?: number | null;
+          source_url?: string | null;
+          statute_citation?: string | null;
+          effective_date?: string;
+          sunset_date?: string | null;
+          version?: number;
+          superseded_by?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          jurisdiction_type?: "federal" | "state" | "local";
+          jurisdiction_code?: string;
+          industry_slug?: string | null;
+          rule_key?: string;
+          name?: string;
+          description?: string;
+          deadline_type?: string;
+          governing_agency?: string;
+          frequency?: string;
+          due_date_rule?: Record<string, unknown>;
+          applies_when?: Record<string, unknown>;
+          severity_tier?: "critical" | "high" | "medium" | "low" | "info";
+          penalty_estimate_cents?: number | null;
+          source_url?: string | null;
+          statute_citation?: string | null;
+          effective_date?: string;
+          sunset_date?: string | null;
+          version?: number;
+          superseded_by?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      regulatory_rule_sources: {
+        Row: {
+          id: string;
+          rule_id: string;
+          source_kind: "seed" | "accountant_correction" | "admin_edit" | "agency_scrape";
+          source_ref: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rule_id: string;
+          source_kind: "seed" | "accountant_correction" | "admin_edit" | "agency_scrape";
+          source_ref?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rule_id?: string;
+          source_kind?: "seed" | "accountant_correction" | "admin_edit" | "agency_scrape";
+          source_ref?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_rule_sources_rule_id_fkey";
+            columns: ["rule_id"];
+            isOneToOne: false;
+            referencedRelation: "regulatory_rules";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      rule_corrections: {
+        Row: {
+          id: string;
+          rule_id: string;
+          proposed_by_connection_id: string | null;
+          proposed_by_user_id: string | null;
+          proposed_by_kind: "accountant" | "admin" | "business_member";
+          proposed_changes: Record<string, unknown>;
+          rationale: string;
+          citation_url: string | null;
+          status: "pending" | "accepted" | "rejected" | "superseded";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          resulting_rule_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rule_id: string;
+          proposed_by_connection_id?: string | null;
+          proposed_by_user_id?: string | null;
+          proposed_by_kind: "accountant" | "admin" | "business_member";
+          proposed_changes: Record<string, unknown>;
+          rationale: string;
+          citation_url?: string | null;
+          status?: "pending" | "accepted" | "rejected" | "superseded";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          resulting_rule_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          rule_id?: string;
+          proposed_by_connection_id?: string | null;
+          proposed_by_user_id?: string | null;
+          proposed_by_kind?: "accountant" | "admin" | "business_member";
+          proposed_changes?: Record<string, unknown>;
+          rationale?: string;
+          citation_url?: string | null;
+          status?: "pending" | "accepted" | "rejected" | "superseded";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          resulting_rule_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rule_corrections_rule_id_fkey";
+            columns: ["rule_id"];
+            isOneToOne: false;
+            referencedRelation: "regulatory_rules";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      auth_rate_limits: {
+        Row: {
+          key: string;
+          attempts: number;
+          window_start: string;
+        };
+        Insert: {
+          key: string;
+          attempts?: number;
+          window_start?: string;
+        };
+        Update: {
+          key?: string;
+          attempts?: number;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
+      stripe_received_events: {
+        Row: {
+          event_id: string;
+          event_type: string;
+          received_at: string;
+        };
+        Insert: {
+          event_id: string;
+          event_type: string;
+          received_at?: string;
+        };
+        Update: {
+          event_id?: string;
+          event_type?: string;
+          received_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       industry_benchmarks: {
@@ -749,6 +957,22 @@ export type Database = {
           p75: number;
           p90: number;
           last_captured_at: string;
+        };
+        Relationships: [];
+      };
+      rule_confidence: {
+        Row: {
+          rule_id: string;
+          confidence_tier:
+            | "low"
+            | "unverified"
+            | "stale"
+            | "community_validated"
+            | "baseline";
+          accepted_corrections: number;
+          pending_corrections: number;
+          rejected_corrections: number;
+          last_verified_at: string | null;
         };
         Relationships: [];
       };
@@ -781,6 +1005,46 @@ export type Database = {
       claim_platform_admin_invite: {
         Args: { p_token: string; p_display_name: string };
         Returns: boolean;
+      };
+      try_consume_auth_rate_limit: {
+        Args: {
+          p_key: string;
+          p_max_attempts: number;
+          p_window_seconds: number;
+        };
+        Returns: boolean;
+      };
+      cleanup_auth_rate_limits: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      accept_correction: {
+        Args: { p_correction_id: string };
+        Returns: string;
+      };
+      reject_correction: {
+        Args: { p_correction_id: string; p_review_note: string };
+        Returns: void;
+      };
+      version_regulatory_rule: {
+        Args: { p_rule_id: string; p_changes: Record<string, unknown> };
+        Returns: string;
+      };
+      refresh_rule_confidence: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      refresh_industry_benchmarks: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      complete_onboarding: {
+        Args: {
+          p_business: Record<string, unknown>;
+          p_location: Record<string, unknown>;
+          p_seeds: Array<Record<string, unknown>>;
+        };
+        Returns: string;
       };
     };
     Enums: {

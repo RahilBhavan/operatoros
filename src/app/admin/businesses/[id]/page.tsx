@@ -56,8 +56,9 @@ export default async function AdminBusinessDetailPage({
       .order("due_date", { ascending: true }),
     supabase
       .from("share_tokens")
+      // token column dropped in 20260517000002_audit_remediation.
       .select(
-        "id, token, label, expires_at, view_count, last_viewed_at, revoked_at, created_at"
+        "id, label, expires_at, view_count, last_viewed_at, revoked_at, created_at"
       )
       .eq("business_id", business.id)
       .order("created_at", { ascending: false }),
@@ -114,21 +115,21 @@ export default async function AdminBusinessDetailPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 pt-5 pb-6">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               PA-{businessIdShort}
             </Index>
             <span className="tag-tab -mt-6">ADMIN</span>
-            <Utility className="opacity-80">
+            <Utility className="">
               CREATED · {createdDate.toUpperCase()}
             </Utility>
           </div>
-          <Utility className="!text-[var(--color-field)] opacity-70 mb-2">
+          <Utility className="!text-[var(--color-field)]  mb-2">
             FINAL DESTINATION
           </Utility>
           <Destination className="!text-[var(--color-field)] !text-[60px] !leading-[0.95]">
             {business.name.toUpperCase()}
           </Destination>
-          <H2 className="!text-[var(--color-field)] opacity-90 mt-2 !text-[19px]">
+          <H2 className="!text-[var(--color-field)]  mt-2 !text-[19px]">
             {business.plan_tier.toUpperCase()} ·{" "}
             {business.billing_status.toUpperCase()}
           </H2>
@@ -196,7 +197,7 @@ export default async function AdminBusinessDetailPage({
           className="lg:col-span-2"
         >
           {top3.length === 0 ? (
-            <Caption className="!opacity-60">
+            <Caption className="">
               No overdue or due-soon items right now.
             </Caption>
           ) : (
@@ -293,7 +294,7 @@ export default async function AdminBusinessDetailPage({
               <Body className="!font-bold !text-[15px]">
                 {ac.accountant_name ?? "—"}
               </Body>
-              <Caption className="!text-[12px] !opacity-60 !mt-0">
+              <Caption className="!text-[12px]  !mt-0">
                 {ac.accountant_email}
               </Caption>
             </td>
@@ -369,7 +370,7 @@ export default async function AdminBusinessDetailPage({
         <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] divide-y-2 divide-[var(--color-ground)]">
           {(events ?? []).length === 0 && (
             <div className="px-5 py-8 text-center">
-              <Caption className="!opacity-60">No events.</Caption>
+              <Caption className="">No events.</Caption>
             </div>
           )}
           {(events ?? []).map((e) => (
@@ -399,10 +400,10 @@ export default async function AdminBusinessDetailPage({
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2">
-      <Utility className="!text-[var(--color-field)] opacity-60 !text-[12px]">
+      <Utility className="!text-[var(--color-field)]  !text-[12px]">
         {label}
       </Utility>
-      <Caption className="!text-[var(--color-field)] !opacity-90 !text-[12px]">
+      <Caption className="!text-[var(--color-field)]  !text-[12px]">
         {value}
       </Caption>
     </div>
@@ -426,10 +427,10 @@ function StatCell({
 }) {
   return (
     <div className="px-5 py-5">
-      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <Utility className=" mb-2">{label}</Utility>
       <div className={big ? "t-display !text-[38px]" : "t-h1"}>
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
-        {suffix && <span className="t-h3 !opacity-50 ml-1">{suffix}</span>}
+        {suffix && <span className="t-h3  ml-1">{suffix}</span>}
       </div>
       <Caption className="!text-[12px] !mt-1">{sub}</Caption>
     </div>
@@ -456,7 +457,7 @@ function CardPanel({
       <div className="border-b-2 border-[var(--color-ground)] px-5 py-3">
         <Utility>{title}</Utility>
         {subtitle && (
-          <Caption className="!text-[12px] !opacity-60 !mt-0.5">
+          <Caption className="!text-[12px]  !mt-0.5">
             {subtitle}
           </Caption>
         )}
@@ -510,7 +511,7 @@ function SectionTable({
             {empty ? (
               <tr>
                 <td colSpan={headers.length} className="px-5 py-8 text-center">
-                  <Caption className="!opacity-60">{empty}</Caption>
+                  <Caption className="">{empty}</Caption>
                 </td>
               </tr>
             ) : (
@@ -538,7 +539,7 @@ function StatePill({ kind }: { kind: "active" | "revoked" | "expired" }) {
   if (kind === "expired") {
     return (
       <span
-        className={`${base} border-[var(--color-ground)] bg-transparent text-[var(--color-ground)] opacity-60`}
+        className={`${base} border-[var(--color-ground)] bg-transparent text-[var(--color-ground)] `}
       >
         EXPIRED
       </span>

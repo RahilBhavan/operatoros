@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
 
@@ -47,11 +46,11 @@ export async function POST(
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
 
-  // The RPC runs as the calling user — uses the server client (cookie auth)
-  // not the service-role client, so auth.uid() resolves and the
-  // is_platform_admin() guard inside the function fires correctly.
-  const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  // version_regulatory_rule is granted to service_role only (defence-in-
+  // depth lockdown in the audit-remediation migration). The route-level
+  // requirePlatformAdminForRoute above is now the authorization boundary.
+  const admin = createAdminClient();
+  const rpc = admin.rpc as unknown as (
     fn: "version_regulatory_rule",
     params: { p_rule_id: string; p_changes: Record<string, unknown> }
   ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;
@@ -79,7 +78,6 @@ export async function POST(
 
   // Audit. Service-role for the insert so a failure to log doesn't roll back
   // the user-visible action (which the RPC already committed).
-  const admin = createAdminClient();
   const { error: auditError } = await admin.from("audit_events").insert({
     business_id: null,
     actor_user_id: auth.user.id,

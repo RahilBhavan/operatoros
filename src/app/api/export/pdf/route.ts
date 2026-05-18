@@ -4,7 +4,7 @@ import { escapeHtml, computeComplianceScore, type DeadlineStatus } from "@/lib/d
 
 // Returns HTML that the browser can print as PDF
 // (server-rendered, no heavy PDF library needed for MVP)
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },

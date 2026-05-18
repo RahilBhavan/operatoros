@@ -36,7 +36,7 @@ export default async function AdminRuleDetailPage({
       </Link>
 
       {versioned === "1" && (
-        <div className="mt-4 border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)] px-4 py-3">
+        <div className="mt-4 border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3">
           <Utility className="!opacity-100 mb-1">VERSIONED</Utility>
           <Body className="!text-[14px]">
             New version saved. This is v{rule.version} — the prior row was
@@ -61,11 +61,11 @@ export default async function AdminRuleDetailPage({
 
       <header className="border-2 border-[var(--color-ground)] mt-4 mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5">
-          <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+          <Index className="!text-[var(--color-field)] !text-[15px] ">
             RULE · {rule.jurisdiction_type.toUpperCase()} · {rule.jurisdiction_code}
           </Index>
           <H1 className="!text-[var(--color-field)] mt-1">{rule.name}</H1>
-          <Caption className="!text-[var(--color-field)] !opacity-80 mt-2 font-mono">
+          <Caption className="!text-[var(--color-field)]  mt-2 font-mono">
             {rule.rule_key} · v{rule.version}
           </Caption>
         </div>
@@ -213,7 +213,7 @@ function DefList({ rows }: { rows: Array<[string, React.ReactNode]> }) {
       {rows.map(([k, v], i) => (
         <div key={`${k}-${i}`} className="contents">
           <dt>
-            <Utility className="opacity-60">{k}</Utility>
+            <Utility className="">{k}</Utility>
           </dt>
           <dd>
             <Body className="!text-[13px]">{v}</Body>

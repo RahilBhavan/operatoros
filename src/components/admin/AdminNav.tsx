@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Index, Utility, Caption } from "@/components/doctrine";
+import { Wordmark } from "@/components/doctrine/Wordmark";
 
 const ITEMS = [
-  { href: "/admin", label: "OVERVIEW", code: "A", exact: true },
-  { href: "/admin/businesses", label: "BUSINESSES", code: "B" },
-  { href: "/admin/waitlist", label: "WAITLIST", code: "C" },
-  { href: "/admin/rules", label: "RULES", code: "D" },
-  { href: "/admin/corrections", label: "CORRECTIONS", code: "E" },
-  { href: "/admin/audit", label: "AUDIT", code: "F" },
-  { href: "/admin/invites", label: "INVITES", code: "G" },
+  { href: "/admin", label: "Overview", code: "A", exact: true },
+  { href: "/admin/businesses", label: "Businesses", code: "B" },
+  { href: "/admin/waitlist", label: "Waitlist", code: "C" },
+  { href: "/admin/rules", label: "Rules", code: "D" },
+  { href: "/admin/corrections", label: "Corrections", code: "E" },
+  { href: "/admin/audit", label: "Audit", code: "F" },
+  { href: "/admin/invites", label: "Invites", code: "G" },
 ];
 
 export default function AdminNav({
@@ -33,65 +33,78 @@ export default function AdminNav({
   }
 
   return (
-    <nav className="bg-[var(--color-ground)] text-[var(--color-field)] border-b-[6px] border-[var(--color-mark)]">
-      <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-6 flex-wrap">
-          <Link href="/admin" className="flex items-baseline gap-3">
-            <span className="t-h3 font-black tracking-tight leading-none">
-              OPERATOR<span className="text-[var(--color-mark)]">OS</span>
-            </span>
-            <Index className="!text-[var(--color-mark)] !text-[15px]">
-              PA-ADMIN
-            </Index>
-            <Utility className="!text-[var(--color-field)] opacity-80 hidden sm:inline">
-              CONTROL TOWER · OPS
-            </Utility>
-          </Link>
+    <nav
+      aria-label="Admin navigation"
+      className="w-full bg-[var(--color-field)] border-t-4 border-b border-t-[var(--color-ground)] border-b-[var(--color-ground)]"
+    >
+      <div className="max-w-[1200px] mx-auto px-6 pt-4 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-baseline gap-4 flex-wrap">
+          <Wordmark href="/admin" size={20} />
+          <span
+            className="t-utility text-[var(--color-mark)]"
+            style={{ fontSize: 12 }}
+          >
+            PA-ADMIN
+          </span>
+          <span
+            className="hidden sm:inline t-utility text-[var(--color-ground)]"
+            style={{ fontSize: 12 }}
+          >
+            Control tower · OPS
+          </span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col items-end">
-            <Caption className="!text-[var(--color-field)] !opacity-80 !text-[12px]">
+          <div className="hidden md:flex flex-col items-end leading-tight">
+            <span
+              className="text-[12px] text-[var(--color-ground)]"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
               {displayName ?? email}
-            </Caption>
+            </span>
             {displayName && (
-              <Caption className="!text-[var(--color-field)] !opacity-50 !text-[12px]">
+              <span
+                className="text-[12px] text-[var(--color-ground)]"
+                style={{ fontFamily: "var(--font-index)" }}
+              >
                 {email}
-              </Caption>
+              </span>
             )}
           </div>
           <Link
             href="/dashboard"
-            className="t-utility text-[var(--color-field)] opacity-80 hover:opacity-100 hover:text-[var(--color-mark)]"
+            className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
           >
-            ← EXIT
+            ← Exit
           </Link>
           <button
             onClick={handleSignOut}
-            className="t-utility text-[var(--color-field)] opacity-80 hover:opacity-100 hover:text-[var(--color-mark)]"
+            className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
           >
-            SIGN OUT →
+            Sign out →
           </button>
         </div>
       </div>
 
-      {/* Sort-styled nav tabs row */}
-      <div className="max-w-[1200px] mx-auto px-6 pb-4 flex items-center gap-1 flex-wrap">
+      {/* Tabs row — active tab gets a Mark underline, mirroring AppNav. */}
+      <div className="max-w-[1200px] mx-auto px-6 flex items-stretch gap-1 flex-wrap -mb-px">
         {ITEMS.map(({ href, label, code, exact }) => {
           const active = exact ? pathname === href : pathname?.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`inline-flex items-stretch border-2 ${
-                active
-                  ? "border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)]"
-                  : "border-[var(--color-field)] text-[var(--color-field)] hover:border-[var(--color-mark)] hover:text-[var(--color-mark)]"
-              }`}
+              aria-current={active ? "page" : undefined}
+              className={`px-3 py-3 flex items-center gap-2 t-utility no-underline text-[var(--color-ground)] border-b-4 ${
+                active ? "border-[var(--color-mark)]" : "border-transparent"
+              } hover:text-[var(--color-mark)] transition-colors`}
             >
-              <span className="px-3 py-1.5 border-r-2 border-current opacity-80 t-utility !text-[12px]">
+              <span
+                className="text-[var(--color-mark)]"
+                style={{ fontSize: 11 }}
+              >
                 {code}
               </span>
-              <span className="px-3 py-1.5 t-utility">{label}</span>
+              <span>{label}</span>
             </Link>
           );
         })}

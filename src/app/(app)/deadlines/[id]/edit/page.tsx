@@ -46,7 +46,7 @@ export default async function EditDeadlinePage({
         <div>
           <div className="flex items-center gap-3 mb-3">
             <Index className="!text-[15px]">PA-DL-EDIT</Index>
-            <Utility className="opacity-60">REGISTRY · AMEND</Utility>
+            <Utility className="">REGISTRY · AMEND</Utility>
           </div>
           <H1>Edit deadline.</H1>
           <Caption className="!mt-2">{deadline.name}</Caption>

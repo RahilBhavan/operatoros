@@ -86,7 +86,7 @@ export default function CreateAdminInviteForm() {
         )}
 
         {acceptUrl && (
-          <div className="mt-4 border-2 border-[var(--color-ground)] bg-[var(--color-field-soft)]">
+          <div className="mt-4 border-2 border-[var(--color-ground)] bg-[var(--color-field)]">
             <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-3 py-2">
               <Utility className="!text-[var(--color-field)]">
                 INVITE READY · SHARE THIS LINK

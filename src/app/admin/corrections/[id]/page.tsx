@@ -35,11 +35,11 @@ export default async function AdminCorrectionDetailPage({
 
       <header className="border-2 border-[var(--color-ground)] mt-4 mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5">
-          <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+          <Index className="!text-[var(--color-field)] !text-[15px] ">
             CORRECTION · {correction.status.toUpperCase()}
           </Index>
           <H1 className="!text-[var(--color-field)] mt-1">{correction.rule_name}</H1>
-          <Caption className="!text-[var(--color-field)] !opacity-80 mt-2 font-mono">
+          <Caption className="!text-[var(--color-field)]  mt-2 font-mono">
             {correction.rule_key} · {correction.rule_jurisdiction_type}/
             {correction.rule_jurisdiction_code} · proposed{" "}
             {new Date(correction.created_at).toLocaleString()}
@@ -115,12 +115,12 @@ export default async function AdminCorrectionDetailPage({
         </div>
         <div className="bg-[var(--color-field)]">
           {diffRows.length === 0 ? (
-            <Body className="px-5 py-4 opacity-60">
+            <Body className="px-5 py-4 ">
               No structured changes parsed — rationale-only correction.
             </Body>
           ) : (
             <table className="w-full">
-              <thead className="bg-[var(--color-field-soft)]">
+              <thead className="bg-[var(--color-field)]">
                 <tr>
                   <Th>FIELD</Th>
                   <Th>CURRENT</Th>
@@ -134,7 +134,7 @@ export default async function AdminCorrectionDetailPage({
                     <td className="px-4 py-3 align-top text-sm">
                       <Code value={current} />
                     </td>
-                    <td className="px-4 py-3 align-top text-sm bg-[var(--color-field-soft)]">
+                    <td className="px-4 py-3 align-top text-sm bg-[var(--color-field)]">
                       <Code value={proposed} />
                     </td>
                   </tr>
@@ -165,7 +165,7 @@ export default async function AdminCorrectionDetailPage({
             <Body className="!text-[14px] whitespace-pre-wrap">
               {correction.review_note}
             </Body>
-            <Caption className="!mt-2 opacity-60 !text-[11px]">
+            <Caption className="!mt-2  !text-[11px]">
               {correction.reviewed_at
                 ? new Date(correction.reviewed_at).toLocaleString()
                 : ""}
@@ -178,8 +178,8 @@ export default async function AdminCorrectionDetailPage({
 }
 
 function Code({ value }: { value: unknown }) {
-  if (value === undefined) return <span className="opacity-60">undefined</span>;
-  if (value === null) return <span className="opacity-60">—</span>;
+  if (value === undefined) return <span className="">undefined</span>;
+  if (value === null) return <span className="">—</span>;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return <span className="break-words">{String(value)}</span>;
   }
@@ -206,7 +206,7 @@ function DefList({ rows }: { rows: Array<[string, React.ReactNode]> }) {
       {rows.map(([k, v], i) => (
         <div key={`${k}-${i}`} className="contents">
           <dt>
-            <Utility className="opacity-60">{k}</Utility>
+            <Utility className="">{k}</Utility>
           </dt>
           <dd>
             <Body className="!text-[13px]">{v}</Body>

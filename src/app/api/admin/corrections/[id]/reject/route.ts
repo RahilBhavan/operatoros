@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendCorrectionStatusEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -39,8 +39,11 @@ export async function POST(
     return NextResponse.json({ error: "review_note too long" }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as (
+  // reject_correction is granted to service_role only after the audit-
+  // remediation migration. requirePlatformAdminForRoute above proves the
+  // caller is an admin; routing through the admin client is safe.
+  const admin = createAdminClient();
+  const rpc = admin.rpc as unknown as (
     fn: "reject_correction",
     params: { p_correction_id: string; p_review_note: string }
   ) => Promise<{ data: unknown; error: { code?: string; message: string } | null }>;
@@ -66,7 +69,6 @@ export async function POST(
     return NextResponse.json({ error: "Reject failed" }, { status: 500 });
   }
 
-  const admin = createAdminClient();
   const { error: auditError } = await admin.from("audit_events").insert({
     business_id: null,
     actor_user_id: auth.user.id,
@@ -90,6 +92,42 @@ export async function POST(
   if (refreshError) {
     console.error("[corrections] refresh_rule_confidence failed", refreshError.message);
   }
+
+  // Notify the proposer (fire-and-forget).
+  void (async () => {
+    try {
+      const { data: correction } = await admin
+        .from("rule_corrections")
+        .select("proposed_by_connection_id, rule_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (!correction?.proposed_by_connection_id) return;
+
+      const { data: connection } = await admin
+        .from("accountant_connections")
+        .select("accountant_email")
+        .eq("id", correction.proposed_by_connection_id)
+        .maybeSingle();
+      if (!connection?.accountant_email) return;
+
+      const { data: rule } = await admin
+        .from("regulatory_rules")
+        .select("name")
+        .eq("id", correction.rule_id)
+        .maybeSingle();
+
+      if (!process.env.RESEND_API_KEY) return;
+      await sendCorrectionStatusEmail({
+        to: connection.accountant_email,
+        ruleName: rule?.name ?? "(rule)",
+        status: "rejected",
+        reviewNote,
+        appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://operatoros.com",
+      });
+    } catch (err) {
+      console.error("[corrections] correction-status email failed", err);
+    }
+  })();
 
   return NextResponse.json({ ok: true });
 }

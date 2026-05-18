@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Copy, Check } from "lucide-react";
-import { Utility, Index, Caption, Button } from "@/components/doctrine";
+import { Button } from "@/components/doctrine/Button";
 
 interface Props {
   canShare: boolean;
@@ -39,88 +38,100 @@ export default function ShareLink({ canShare }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard permission denied — silently ignore, URL is visible in input
+      /* ignore */
     }
   }
 
   return (
-    <div className="border-2 border-[var(--color-ground)]">
-      <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link2 className="w-4 h-4 text-[var(--color-field)]" />
-          <Utility className="!text-[var(--color-field)] !opacity-100">
-            SHARE LINK
-          </Utility>
-        </div>
-        <Index className="!text-[var(--color-field)] !text-[12px] opacity-80">
+    <div className="border-2 border-[var(--color-ground)] flex flex-col">
+      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <span
+          className="t-utility"
+          style={{ color: "var(--color-field)" }}
+        >
+          Share link
+        </span>
+        <span
+          className="t-utility"
+          style={{ color: "var(--color-field)" }}
+        >
           PA-SHR
-        </Index>
+        </span>
       </div>
 
-      <div className="bg-[var(--color-field)] px-5 py-5">
+      <div className="bg-[var(--color-field)] px-5 py-5 flex-1 flex flex-col gap-3">
         {!canShare ? (
-          <div className="flex flex-col gap-2">
-            <Caption>
+          <>
+            <p
+              className="text-[14px]"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
               Shareable link — paid plan required.
-            </Caption>
+            </p>
             <a
               href="/billing"
-              className="t-link t-utility !text-[12px] text-[var(--color-mark)]"
+              className="t-utility text-[var(--color-mark)] underline underline-offset-4"
             >
-              UPGRADE TO ENABLE →
+              Upgrade to enable →
             </a>
-          </div>
+          </>
         ) : shareUrl ? (
-          <div className="flex flex-col gap-3">
-            <Caption>
+          <>
+            <p
+              className="text-[14px]"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
               Live, read-only snapshot of your compliance calendar.
-            </Caption>
+            </p>
             <div className="flex items-center gap-2">
               <input
                 value={shareUrl}
                 readOnly
-                className="t-input flex-1 min-w-0 font-mono text-xs"
+                className="t-input flex-1 min-w-0 !text-[12px] !font-mono"
+                style={{ fontFamily: "var(--font-index)" }}
               />
-              <Button
-                variant="ground"
-                onClick={handleCopy}
-                className="shrink-0"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-[var(--color-field)]" />
-                ) : (
-                  <Copy className="w-4 h-4 text-[var(--color-field)]" />
-                )}
-                <span>{copied ? "COPIED" : "COPY"}</span>
+              <Button variant="ground" onClick={handleCopy} className="shrink-0">
+                {copied ? "Copied" : "Copy"}
               </Button>
             </div>
-          </div>
+          </>
         ) : (
-          <div className="flex flex-col gap-3">
-            <Caption>
+          <>
+            <p
+              className="text-[14px]"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
               Generate a read-only URL anyone can open without an account.
-            </Caption>
+            </p>
             <div>
               <Button
                 variant="ground"
                 onClick={handleGenerate}
                 disabled={loading}
               >
-                <Link2 className="w-4 h-4 text-[var(--color-field)]" />
-                <span>{loading ? "GENERATING…" : "GENERATE LINK"}</span>
+                {loading ? "Generating…" : "Generate link →"}
               </Button>
             </div>
-            {error && (
-              <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
-                <Utility className="!text-[var(--color-field)] !opacity-100 !text-[12px]">
-                  ERROR
-                </Utility>
-                <p className="t-caption !text-[var(--color-field)] mt-1">
+            {error ? (
+              <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] px-3 py-2">
+                <div
+                  className="t-utility"
+                  style={{ color: "var(--color-field)" }}
+                >
+                  Error
+                </div>
+                <p
+                  className="text-[13px] mt-1"
+                  style={{
+                    fontFamily: "var(--font-index)",
+                    color: "var(--color-field)",
+                  }}
+                >
                   {error}
                 </p>
               </div>
-            )}
-          </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -43,16 +44,33 @@ export async function POST(
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
-  // Verify ownership
+  // Verify ownership + load plan_tier in one round-trip so we can gate paid
+  // features below.
   const { data: business } = await supabase
     .from("businesses")
-    .select("id")
+    .select("id, plan_tier")
     .eq("id", document.business_id)
     .eq("owner_id", user.id)
     .single();
 
   if (!business) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const tier = business.plan_tier as string | null;
+  if (tier !== "business" && tier !== "accountant") {
+    return NextResponse.json(
+      { error: "AI extraction requires a paid plan.", upgradeRequired: true },
+      { status: 402 }
+    );
+  }
+
+  const allowed = await consumeRateLimit(`ai:extract:${user.id}`, 10, 3600);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Rate limit reached — try again in an hour." },
+      { status: 429 }
+    );
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {

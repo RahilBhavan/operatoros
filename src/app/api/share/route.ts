@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { hashToken } from "@/lib/security/token-hash";
 
 const EXPIRY_DAYS = new Set([7, 30, 90, 365]);
 
@@ -37,6 +40,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // IP/user rate limit: 20 share-link creates per hour per user. Keeps a
+  // compromised session from minting unlimited public links.
+  const adminForRate = createAdminClient();
+  const rateRpc = adminForRate.rpc as unknown as (
+    fn: "try_consume_auth_rate_limit",
+    params: { p_key: string; p_max_attempts: number; p_window_seconds: number }
+  ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+  const { data: rateAllowed, error: rateError } = await rateRpc(
+    "try_consume_auth_rate_limit",
+    {
+      p_key: `share:create:${user.id}`,
+      p_max_attempts: 20,
+      p_window_seconds: 3600,
+    }
+  );
+  if (rateError) {
+    console.error("[share] rate-limit RPC failed", rateError.message);
+    // Fail-open on RPC error — Supabase plan throttle is the backstop.
+  } else if (rateAllowed === false) {
+    return NextResponse.json(
+      { error: "Too many share links created. Try again in an hour." },
+      { status: 429 }
+    );
+  }
+
   let body: { label?: string; expiry_days?: number } = {};
   try {
     body = await req.json();
@@ -51,6 +79,14 @@ export async function POST(req: NextRequest) {
   const label = typeof body.label === "string" ? body.label.slice(0, 120) : null;
   const expiresAt = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString();
 
+  // Generate plaintext in app code so we can return it once. The DB only
+  // stores sha256(plaintext) — the plaintext column was dropped in
+  // 20260517000002_audit_remediation.
+  const plaintextToken = randomBytes(24).toString("hex");
+  const tokenHash = hashToken(plaintextToken);
+
+  // Cast: generated supabase types haven't regenerated for the new
+  // token_hash column added in 20260517000002_audit_remediation.
   const { data: token, error } = await supabase
     .from("share_tokens")
     .insert({
@@ -58,8 +94,9 @@ export async function POST(req: NextRequest) {
       expires_at: expiresAt,
       label,
       created_by_user_id: user.id,
-    })
-    .select()
+      token_hash: tokenHash,
+    } as never)
+    .select("id, label, expires_at")
     .single();
 
   if (error || !token) {
@@ -69,7 +106,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/share/${token.token}`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL}/share/${plaintextToken}`;
   return NextResponse.json({
     id: token.id,
     url,
@@ -96,15 +133,17 @@ export async function GET() {
 
   const { data: tokens } = await supabase
     .from("share_tokens")
-    .select("id, token, label, expires_at, view_count, last_viewed_at, revoked_at, created_at")
+    .select("id, label, expires_at, view_count, last_viewed_at, revoked_at, created_at")
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  // Plaintext token is no longer recoverable post-issue (column dropped); the
+  // URL field is omitted from listings. UI surfaces metadata only and can
+  // offer a "create new link" affordance for callers that need to reshare.
   const links = (tokens ?? []).map((t) => ({
     id: t.id,
     label: t.label,
-    url: `${appUrl}/share/${t.token}`,
+    url: null as string | null,
     expires_at: t.expires_at,
     view_count: t.view_count,
     last_viewed_at: t.last_viewed_at,

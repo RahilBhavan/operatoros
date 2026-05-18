@@ -15,8 +15,10 @@ export default async function AdminInvitesPage() {
       .select("user_id, display_name, created_at, revoked_at"),
     supabase
       .from("platform_admin_invites")
+      // token column was dropped in 20260517000002_audit_remediation; the
+      // plaintext URL is only available at creation time, not in listings.
       .select(
-        "id, token, invited_email, created_at, expires_at, used_at, used_by, revoked_at, created_by"
+        "id, invited_email, created_at, expires_at, used_at, used_by, revoked_at, created_by"
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -52,13 +54,13 @@ export default async function AdminInvitesPage() {
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               ADMINS · ACCESS CONTROL
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">PLATFORM ADMINS</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">
+            <Utility className="!text-[var(--color-field)] ">
               ACTIVE
             </Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">
@@ -133,7 +135,9 @@ export default async function AdminInvitesPage() {
             </td>
             <td className="px-5 py-3">
               <Caption className="!text-[12px] font-mono truncate max-w-[280px] inline-block">
-                {`${appUrl}/admin-accept/${i.token}`}
+                {/* Plaintext invite token isn't recoverable post-issue (hash-only
+                    storage). Surface the email instead so admins can resend. */}
+                {`${appUrl}/admin-accept/…  (sent to ${i.invited_email})`}
               </Caption>
             </td>
             <td className="px-5 py-3 text-right">
@@ -158,7 +162,7 @@ export default async function AdminInvitesPage() {
                 {i.used_at ? (
                   <span className="inline-flex flex-col gap-0.5">
                     <StatePill kind="active" label="ACCEPTED" />
-                    <Caption className="!text-[12px] !opacity-60">
+                    <Caption className="!text-[12px] ">
                       by{" "}
                       {i.used_by ? emailById.get(i.used_by) ?? "user" : "user"}
                     </Caption>
@@ -222,7 +226,7 @@ function SectionTable({
             {empty ? (
               <tr>
                 <td colSpan={headers.length} className="px-5 py-8 text-center">
-                  <Caption className="!opacity-60">{empty}</Caption>
+                  <Caption className="">{empty}</Caption>
                 </td>
               </tr>
             ) : (
@@ -256,7 +260,7 @@ function StatePill({
   if (kind === "expired") {
     return (
       <span
-        className={`${base} border-[var(--color-ground)] bg-transparent text-[var(--color-ground)] opacity-60`}
+        className={`${base} border-[var(--color-ground)] bg-transparent text-[var(--color-ground)] `}
       >
         {label ?? "EXPIRED"}
       </span>

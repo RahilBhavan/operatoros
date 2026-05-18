@@ -1,5 +1,10 @@
 # OperatorOS — Master Overview
 
+> ⚠️ **HISTORICAL — do not rely on this.** Predates the 2026-05-15 VC consensus
+> loop that collapsed pricing from 4 tiers to 2 (Business $79 / Accountant $299)
+> and reframed the AI as a "suggestion engine, not auto-discovery." For current
+> facts see `README.md`; for shipped state see `MEMORY.md`.
+
 > A single document covering what OperatorOS is, what it does, how it works, what it wants to become, who it competes with, and what it does not yet have.
 
 ---

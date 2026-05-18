@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   Destination,
   Body,
-  Caption,
   Utility,
   Index,
 } from "@/components/doctrine";
@@ -36,11 +35,11 @@ export default async function UnsubscribePage({
           }`}
         >
           <div className="flex items-center justify-between mb-6">
-            <Index className="!text-[12px] !text-[var(--color-field)] opacity-80">
+            <Index className="!text-[12px] !text-[var(--color-field)] ">
               REMINDERS · {ok ? "PAUSED" : "INVALID"}
             </Index>
             <span className="tag-tab -mt-6">{ok ? "OK" : "ERR"}</span>
-            <Utility className="opacity-80">SECTOR · {ok ? "C" : "X"}</Utility>
+            <Utility className="">SECTOR · {ok ? "C" : "X"}</Utility>
           </div>
           <Destination className="!text-[var(--color-field)] !text-[60px] !leading-none">
             {ok ? "PAUSED." : "INVALID."}

@@ -27,13 +27,13 @@ export default async function AdminCorrectionsPage({
       <header className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               CORRECTIONS · QUEUE
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">RULE CORRECTIONS</H1>
           </div>
           <div className="text-right">
-            <Utility className="!text-[var(--color-field)] opacity-70">PENDING</Utility>
+            <Utility className="!text-[var(--color-field)] ">PENDING</Utility>
             <div className="t-display !text-[38px] !text-[var(--color-field)]">
               {stats.pending}
             </div>
@@ -97,7 +97,7 @@ export default async function AdminCorrectionsPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center">
-                  <Body className="opacity-60">No {status} corrections.</Body>
+                  <Body className="">No {status} corrections.</Body>
                 </td>
               </tr>
             )}
@@ -108,13 +108,13 @@ export default async function AdminCorrectionsPage({
                 </td>
                 <td className="px-4 py-3">
                   <Body className="!text-[13px] !font-bold">{r.rule_name}</Body>
-                  <Caption className="!text-[11px] !mt-1 opacity-70 font-mono">
+                  <Caption className="!text-[11px] !mt-1  font-mono">
                     {r.rule_key} · {r.rule_jurisdiction_type}/{r.rule_jurisdiction_code}
                   </Caption>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <span className="block">{r.proposer_email ?? "(admin)"}</span>
-                  <Caption className="!text-[11px] opacity-70">{r.proposed_by_kind}</Caption>
+                  <Caption className="!text-[11px] ">{r.proposed_by_kind}</Caption>
                 </td>
                 <td className="px-4 py-3 text-sm max-w-md">
                   <span className="line-clamp-2">{r.rationale}</span>
@@ -156,7 +156,7 @@ function StatCell({
 }) {
   return (
     <div className="px-5 py-5">
-      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <Utility className=" mb-2">{label}</Utility>
       <div className="t-h1">
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
       </div>

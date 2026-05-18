@@ -6,7 +6,7 @@ import {
   loadAuditStream,
   loadNetworkDensity,
 } from "@/lib/admin/data";
-import { Body, Caption, Display, H1, Index, Utility } from "@/components/doctrine";
+import { Body, Caption, H1, Index, Utility } from "@/components/doctrine";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +38,14 @@ export default async function AdminOverviewPage() {
       <header className="border-2 border-[var(--color-ground)] mb-8">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 pt-5 pb-6">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <Index className="!text-[var(--color-field)] !text-[15px] opacity-80">
+            <Index className="!text-[var(--color-field)] !text-[15px] ">
               OPS · OVERVIEW
             </Index>
             <span className="tag-tab -mt-6">ADMIN</span>
-            <Utility className="opacity-80">SECTOR · TOWER</Utility>
+            <Utility className="">SECTOR · TOWER</Utility>
           </div>
           <H1 className="!text-[var(--color-field)]">PLATFORM OVERVIEW</H1>
-          <Caption className="!text-[var(--color-field)] !opacity-80 mt-2">
+          <Caption className="!text-[var(--color-field)]  mt-2">
             Live operational state of OperatorOS. Numbers refresh on every page load.
           </Caption>
         </div>
@@ -82,7 +82,7 @@ export default async function AdminOverviewPage() {
           <Utility className="!text-[var(--color-field)] !opacity-100">
             OPERATIONAL EXPOSURE
           </Utility>
-          <Caption className="!text-[var(--color-field)] !opacity-80 !text-[12px]">
+          <Caption className="!text-[var(--color-field)]  !text-[12px]">
             FAILURE SURFACES
           </Caption>
         </div>
@@ -116,7 +116,7 @@ export default async function AdminOverviewPage() {
       <section className="grid lg:grid-cols-3 gap-4 mb-8">
         <CardPanel title="PLAN DISTRIBUTION">
           {Object.entries(kpis.by_plan).length === 0 ? (
-            <Caption className="!opacity-60">No businesses yet.</Caption>
+            <Caption className="">No businesses yet.</Caption>
           ) : (
             <ul className="flex flex-col divide-y divide-[var(--color-ground)]">
               {Object.entries(kpis.by_plan).map(([tier, count]) => (
@@ -131,7 +131,7 @@ export default async function AdminOverviewPage() {
 
         <CardPanel title="TOP WAITLIST STATES">
           {kpis.top_states.length === 0 ? (
-            <Caption className="!opacity-60">
+            <Caption className="">
               No state-tagged signups yet.
             </Caption>
           ) : (
@@ -161,7 +161,7 @@ export default async function AdminOverviewPage() {
 
         <CardPanel title="NETWORK DENSITY · COHORTS ≥ 10">
           {network.cohorts_at_threshold === 0 ? (
-            <Caption className="!opacity-60">
+            <Caption className="">
               No (industry × state) cohort has yet crossed the 10-business
               k-anonymity threshold. Peer benchmarks are dark on the dashboard
               until then.
@@ -170,7 +170,7 @@ export default async function AdminOverviewPage() {
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-3 border-2 border-[var(--color-ground)]">
                 <div className="px-4 py-3 border-r-2 border-[var(--color-ground)]">
-                  <Utility className="opacity-60 mb-1 !text-[12px]">
+                  <Utility className=" mb-1 !text-[12px]">
                     COHORTS
                   </Utility>
                   <Index className="!text-[19px]">
@@ -178,7 +178,7 @@ export default async function AdminOverviewPage() {
                   </Index>
                 </div>
                 <div className="px-4 py-3">
-                  <Utility className="opacity-60 mb-1 !text-[12px]">
+                  <Utility className=" mb-1 !text-[12px]">
                     BUSINESSES COVERED
                   </Utility>
                   <Index className="!text-[19px]">
@@ -228,7 +228,7 @@ export default async function AdminOverviewPage() {
               {recentBiz.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center">
-                    <Caption className="!opacity-60">No businesses yet.</Caption>
+                    <Caption className="">No businesses yet.</Caption>
                   </td>
                 </tr>
               )}
@@ -244,7 +244,7 @@ export default async function AdminOverviewPage() {
                     >
                       <Body className="!font-bold">{b.name}</Body>
                     </Link>
-                    <Caption className="!text-[12px] !opacity-60 !mt-0">
+                    <Caption className="!text-[12px]  !mt-0">
                       {b.state ?? "—"} · {b.industry_slug ?? "—"} ·{" "}
                       {b.entity_type ?? "—"}
                     </Caption>
@@ -262,7 +262,7 @@ export default async function AdminOverviewPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <Index
-                      className={`!text-[15px] ${b.exposure_cents > 0 ? "" : "!opacity-50"}`}
+                      className={`!text-[15px] ${b.exposure_cents > 0 ? "" : ""}`}
                     >
                       {formatCents(b.exposure_cents)}
                     </Index>
@@ -284,7 +284,7 @@ export default async function AdminOverviewPage() {
         <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] divide-y-2 divide-[var(--color-ground)]">
           {recentEvents.length === 0 && (
             <div className="px-5 py-10 text-center">
-              <Caption className="!opacity-60">No audit events yet.</Caption>
+              <Caption className="">No audit events yet.</Caption>
             </div>
           )}
           {recentEvents.map((e) => (
@@ -300,7 +300,7 @@ export default async function AdminOverviewPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {e.actor_email && (
-                  <Caption className="!text-[12px] !opacity-60">
+                  <Caption className="!text-[12px] ">
                     {e.actor_email}
                   </Caption>
                 )}
@@ -336,7 +336,7 @@ function StatCell({
 }) {
   return (
     <div className="px-5 py-5">
-      <Utility className="opacity-60 mb-2">{label}</Utility>
+      <Utility className=" mb-2">{label}</Utility>
       <div className={big ? "t-display !text-[38px]" : "t-h1"}>
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
       </div>

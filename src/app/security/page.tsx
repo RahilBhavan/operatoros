@@ -111,7 +111,7 @@ export default function SecurityPage() {
                 &quot;is this safe?&quot;
               </span>
             </Display>
-            <Body className="!text-[19px] text-[var(--color-ground)] opacity-80 leading-relaxed">
+            <Body className="!text-[19px] text-[var(--color-ground)]  leading-relaxed">
               We&apos;re pre-revenue, so we haven&apos;t spent on a SOC 2 yet —
               but every architectural decision has been made as if we were
               about to. Here&apos;s exactly what we do today, what we
@@ -124,18 +124,18 @@ export default function SecurityPage() {
         <section className="px-6 py-20">
           <div className="max-w-4xl mx-auto">
             <H2 className="mb-3">How your data is stored.</H2>
-            <Body className="text-[var(--color-ground)] opacity-75 max-w-2xl mb-10">
+            <Body className="text-[var(--color-ground)]  max-w-2xl mb-10">
               Six facts about where your data lives, how it&apos;s encrypted,
               and what we never touch.
             </Body>
-            <div className="border-2 border-[var(--color-ground)] divide-y-2 divide-[var(--color-ground)]/15">
+            <div className="border-2 border-[var(--color-ground)] divide-y-2 divide-[var(--color-ground)]">
               {STORAGE_FACTS.map((fact) => (
                 <div
                   key={fact.label}
                   className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-4 p-5 sm:p-6"
                 >
                   <div>
-                    <Utility className="text-[var(--color-ground)] opacity-70">
+                    <Utility className="text-[var(--color-ground)] ">
                       {fact.label}
                     </Utility>
                     <Index className="!text-[15px] block mt-1">
@@ -152,7 +152,7 @@ export default function SecurityPage() {
         </section>
 
         {/* AUDITS */}
-        <section className="px-6 py-20 bg-[var(--color-field-soft)] border-y-2 border-[var(--color-ground)]">
+        <section className="px-6 py-20 bg-[var(--color-field)] border-y-2 border-[var(--color-ground)]">
           <div className="max-w-3xl mx-auto">
             <H2 className="mb-4">What audits we have today.</H2>
             <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] p-6 sm:p-8">
@@ -177,7 +177,7 @@ export default function SecurityPage() {
         <section className="px-6 py-20">
           <div className="max-w-4xl mx-auto">
             <H2 className="mb-3">Threat model — by surface.</H2>
-            <Body className="text-[var(--color-ground)] opacity-75 max-w-2xl mb-10">
+            <Body className="text-[var(--color-ground)]  max-w-2xl mb-10">
               The full per-route version lives in our repo at{" "}
               <code className="text-[var(--color-mark)]">
                 docs/security/threat-models.md
@@ -185,7 +185,7 @@ export default function SecurityPage() {
               and is available to enterprise prospects on request. Six
               load-bearing examples here.
             </Body>
-            <div className="border-2 border-[var(--color-ground)] divide-y-2 divide-[var(--color-ground)]/15">
+            <div className="border-2 border-[var(--color-ground)] divide-y-2 divide-[var(--color-ground)]">
               {THREAT_MODEL.map((entry) => (
                 <div
                   key={entry.surface}
@@ -201,13 +201,13 @@ export default function SecurityPage() {
                   </div>
                   <div className="flex flex-col gap-3">
                     <div>
-                      <Utility className="text-[var(--color-ground)] opacity-70">
+                      <Utility className="text-[var(--color-ground)] ">
                         Risk
                       </Utility>
                       <Body className="!text-[15px] mt-1">{entry.risk}</Body>
                     </div>
                     <div>
-                      <Utility className="text-[var(--color-ground)] opacity-70">
+                      <Utility className="text-[var(--color-ground)] ">
                         Mitigation
                       </Utility>
                       <Body className="!text-[15px] mt-1 text-[var(--color-ground)]">
@@ -230,14 +230,14 @@ export default function SecurityPage() {
             <H2 className="!text-[var(--color-field)] mb-4">
               Found something? Tell us.
             </H2>
-            <Body className="text-[var(--color-field)] opacity-85 leading-relaxed mb-6">
+            <Body className="text-[var(--color-field)]  leading-relaxed mb-6">
               We acknowledge security reports within 72 hours and triage within
               5 business days. We will not pursue legal action against
               researchers who follow this policy: report privately first, give
               us a reasonable window to fix, no destructive testing on
               production data, no social engineering of our team or customers.
             </Body>
-            <div className="border-2 border-[var(--color-field)]/40 p-5 sm:p-6 inline-flex flex-wrap items-center gap-4">
+            <div className="border-2 border-[var(--color-field)] p-5 sm:p-6 inline-flex flex-wrap items-center gap-4">
               <Utility className="!text-[var(--color-field)] !opacity-100">
                 Report to
               </Utility>
@@ -249,7 +249,7 @@ export default function SecurityPage() {
                 <ArrowRight aria-hidden className="w-4 h-4" />
               </a>
             </div>
-            <Caption className="!text-[var(--color-field)] !opacity-70 mt-6">
+            <Caption className="!text-[var(--color-field)]  mt-6">
               No bug bounty program yet — but a thank-you in the changelog and
               an enterprise demo on the house if you find something real.
             </Caption>

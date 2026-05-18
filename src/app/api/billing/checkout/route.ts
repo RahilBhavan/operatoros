@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, getPriceId, PLANS, type PaidPlanTier } from "@/lib/stripe";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -10,6 +11,17 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Bound Stripe customer creation per user — without this a script could
+  // spam this endpoint and burn Stripe API quota (and pollute Stripe data
+  // until the customer_id is set on the businesses row).
+  const allowed = await consumeRateLimit(`billing:checkout:${user.id}`, 10, 3600);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many checkout attempts. Try again in an hour." },
+      { status: 429 }
+    );
   }
 
   const { plan } = await req.json();

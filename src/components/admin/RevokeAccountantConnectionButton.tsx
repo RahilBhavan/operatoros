@@ -30,7 +30,7 @@ export default function RevokeAccountantConnectionButton({
     <button
       onClick={handleRevoke}
       disabled={busy}
-      className="t-utility !text-[12px] !text-[var(--color-mark)] hover:opacity-70 disabled:opacity-50"
+      className="t-utility !text-[12px] !text-[var(--color-mark)]"
     >
       {busy ? "REVOKING…" : "REVOKE →"}
     </button>

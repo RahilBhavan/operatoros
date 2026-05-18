@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hashToken } from "@/lib/security/token-hash";
 
 export const runtime = "nodejs";
 
@@ -22,16 +23,21 @@ export async function POST(req: NextRequest) {
   const normalized = parsed.data.email.trim().toLowerCase();
 
   const admin = createAdminClient();
-  const token = randomBytes(24).toString("hex");
+  // Plaintext is generated in-process and returned once; only the hash hits
+  // the DB. token column was dropped in 20260517000002_audit_remediation.
+  const plaintextToken = randomBytes(24).toString("hex");
+  const tokenHash = hashToken(plaintextToken);
 
+  // Cast: generated supabase types haven't regenerated for the new
+  // token_hash column added in 20260517000002_audit_remediation.
   const { data: invite, error } = await admin
     .from("platform_admin_invites")
     .insert({
       invited_email: normalized,
       created_by: auth.user.id,
-      token,
-    })
-    .select("id, token, expires_at")
+      token_hash: tokenHash,
+    } as never)
+    .select("id, expires_at")
     .single();
   if (error || !invite) {
     return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
@@ -40,7 +46,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     invite_id: invite.id,
-    accept_url: `/admin-accept/${invite.token}`,
+    accept_url: `/admin-accept/${plaintextToken}`,
     expires_at: invite.expires_at,
   });
 }

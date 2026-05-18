@@ -39,7 +39,7 @@ export function MarketingNav({
         <div className="flex items-center gap-3">
           <Link
             href="/sign-in"
-            className="hidden sm:inline-flex t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
+            className="inline-flex t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
           >
             Sign in
           </Link>

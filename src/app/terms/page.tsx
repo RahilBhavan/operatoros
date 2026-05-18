@@ -43,7 +43,7 @@ export default function TermsPage() {
           <article className="max-w-[760px]">
             <div className="flex items-center gap-3 mb-4">
               <Index className="!text-[15px]">PA-LEGAL</Index>
-              <Utility className="opacity-60">CATEGORY · TERMS</Utility>
+              <Utility className="">CATEGORY · TERMS</Utility>
             </div>
             <H1 className="mb-3">Terms of Service.</H1>
             <Caption className="mb-2">
@@ -224,7 +224,7 @@ export default function TermsPage() {
 
           <aside className="hidden lg:block">
             <div className="sticky top-8 border-2 border-[var(--color-ground)] bg-[var(--color-field)] p-5">
-              <Utility className="opacity-70 mb-3 block">On this page</Utility>
+              <Utility className=" mb-3 block">On this page</Utility>
               <ul className="flex flex-col gap-2.5 text-[13px]">
                 {SECTIONS.map((s) => (
                   <li key={s.id}>
@@ -232,7 +232,7 @@ export default function TermsPage() {
                       href={`#${s.id}`}
                       className="text-[var(--color-ground)] hover:text-[var(--color-mark)]"
                     >
-                      <span className="opacity-50 mr-2">{s.n}</span>
+                      <span className=" mr-2">{s.n}</span>
                       {s.title}
                     </a>
                   </li>

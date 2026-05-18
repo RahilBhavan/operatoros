@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { buildWaitlistConfirmation } from "@/lib/email-templates/waitlist-confirmation";
+import { consumeRateLimit, hashIp } from "@/lib/security/rate-limit";
 
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,6 +26,19 @@ const VALID_STATES = new Set([
 ]);
 
 export async function POST(req: NextRequest) {
+  // IP-keyed throttle keeps a single client from flooding signups / triggering
+  // Resend sends. 5 attempts per hour per source IP is plenty for legitimate
+  // use (a user re-submitting the form).
+  const fwd = req.headers.get("x-forwarded-for");
+  const ip = fwd?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? "0.0.0.0";
+  const allowed = await consumeRateLimit(`waitlist:${hashIp(ip)}`, 5, 3600);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again later." },
+      { status: 429 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

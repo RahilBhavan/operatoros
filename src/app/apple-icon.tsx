@@ -14,7 +14,7 @@ export default async function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#F4EDE0",
+          background: "#FFFFFF",
           padding: 16,
         }}
       >
@@ -26,7 +26,7 @@ export default async function AppleIcon() {
             alignItems: "center",
             justifyContent: "center",
             background: "#C8102E",
-            color: "#F4EDE0",
+            color: "#FFFFFF",
             fontFamily: "sans-serif",
             fontWeight: 900,
             fontSize: 128,

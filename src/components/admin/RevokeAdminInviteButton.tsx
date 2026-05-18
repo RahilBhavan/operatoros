@@ -21,7 +21,7 @@ export default function RevokeAdminInviteButton({ id }: { id: string }) {
     <button
       onClick={handle}
       disabled={busy}
-      className="t-utility !text-[12px] !text-[var(--color-mark)] hover:opacity-70 disabled:opacity-50"
+      className="t-utility !text-[12px] !text-[var(--color-mark)]"
     >
       {busy ? "REVOKING…" : "REVOKE →"}
     </button>
