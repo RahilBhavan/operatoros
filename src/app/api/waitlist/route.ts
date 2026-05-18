@@ -4,14 +4,11 @@ import { Resend } from "resend";
 import { buildWaitlistConfirmation } from "@/lib/email-templates/waitlist-confirmation";
 import { consumeRateLimit, hashIp } from "@/lib/security/rate-limit";
 import { WAITLIST_LIMIT } from "@/lib/security/rate-limits";
+import { getSupabaseAdminConfig } from "@/lib/supabase/config";
 
 function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error("Supabase environment variables not configured");
-  }
-  return createClient(url, key);
+  const { url, serviceRoleKey } = getSupabaseAdminConfig();
+  return createClient(url, serviceRoleKey);
 }
 
 function strOrNull(value: unknown, maxLen = 200): string | null {

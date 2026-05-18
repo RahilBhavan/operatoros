@@ -3,13 +3,13 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { hashToken } from "@/lib/security/token-hash";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { ACCOUNTANT_NOTE_LIMIT } from "@/lib/security/rate-limits";
+import { getSupabaseAdminConfig } from "@/lib/supabase/config";
 
 function createRawAdmin() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const { url, serviceRoleKey } = getSupabaseAdminConfig();
+  return createSupabaseClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 import { z } from "zod";
 

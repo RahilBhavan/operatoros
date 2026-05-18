@@ -60,6 +60,23 @@ View page source on `/` and confirm `<html … data-app="operatoros-compliance">
 
 ## Environment variables
 
+### Error: “URL and Key are required to create a Supabase client”
+
+Vercel is missing Supabase env vars (or they were added without a **redeploy**). In the project linked to this repo:
+
+1. [Supabase → Project Settings → API](https://supabase.com/dashboard/project/_/settings/api) — copy **Project URL** and **anon public** key.
+2. Vercel → **Settings → Environment Variables** — add for **Production** and **Preview**:
+   - `NEXT_PUBLIC_SUPABASE_URL` = Project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key
+   - `SUPABASE_SERVICE_ROLE_KEY` = service_role key (server-only; never expose to the browser)
+3. **Redeploy** (env changes do not apply to existing deployments until you redeploy).
+
+Check: `GET /api/health` should return `"supabase": { "public": true, "serviceRole": true }`.
+
+Optional: link the [Supabase Vercel integration](https://vercel.com/integrations/supabase) to auto-inject these variables.
+
+---
+
 Copy [`.env.example`](../../.env.example). Set in **Production** and **Preview**:
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`

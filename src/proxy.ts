@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  getSupabasePublicConfig,
+  isSupabasePublicConfigured,
+} from "@/lib/supabase/config";
 
 const PROTECTED = ["/dashboard", "/deadlines", "/billing", "/onboarding", "/settings"];
 const AUTH_ONLY = ["/sign-in", "/sign-up"];
@@ -8,9 +12,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   let response = NextResponse.next({ request });
 
+  if (!isSupabasePublicConfigured()) {
+    return response;
+  }
+
+  const { url, anonKey } = getSupabasePublicConfig();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
