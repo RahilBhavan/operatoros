@@ -140,7 +140,8 @@ export default async function AcceptInvitePage({
     });
   }
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: invite.business_id,
     actor_user_id: user.id,
     event_type: "team.invite_accepted",

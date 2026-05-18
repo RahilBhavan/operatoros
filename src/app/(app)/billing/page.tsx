@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/stripe";
 import BillingActions from "@/components/dashboard/BillingActions";
@@ -10,6 +11,7 @@ import {
   Index,
   TagCard,
 } from "@/components/doctrine";
+import { shouldSuggestLite } from "@/lib/entitlements";
 
 const PLAN_CODES: Record<string, { code: string; sort: string }> = {
   business: { code: "B-079", sort: "A" },
@@ -28,7 +30,7 @@ export default async function BillingPage() {
   const { data: business } = await supabase
     .from("businesses")
     .select(
-      "id, plan_tier, billing_status, trial_ends_at, stripe_customer_id"
+      "id, plan_tier, billing_status, trial_ends_at, stripe_customer_id, industry_slug, employee_count"
     )
     .eq("owner_id", user.id)
     .single();
@@ -38,6 +40,11 @@ export default async function BillingPage() {
   const isActive =
     business.billing_status === "active" ||
     business.billing_status === "trialing";
+
+  const liteSuggested = shouldSuggestLite(
+    business.industry_slug,
+    business.employee_count
+  );
 
   return (
     <div>
@@ -82,6 +89,36 @@ export default async function BillingPage() {
           </div>
         </div>
       )}
+
+      {/* WS-1.5 — Lite suggestion for thin-compliance NAICS + small headcount.
+          Lite tier is not yet purchasable (no Stripe price ID); the suggestion
+          links to the homepage waitlist so we can notify on launch. */}
+      {liteSuggested && business.plan_tier !== "accountant" ? (
+        <div className="border-2 border-[var(--color-ground)] mb-10">
+          <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+            <Utility className="!text-[var(--color-field)] !opacity-100">
+              SUGGESTED · LITE TIER · COMING SOON
+            </Utility>
+            <Index className="!text-[var(--color-field)] !text-[12px]">L-039</Index>
+          </div>
+          <div className="bg-[var(--color-field)] px-5 py-5">
+            <H2>Your shape may fit our Lite tier.</H2>
+            <Caption className="!mt-2">
+              Solo-or-near-solo operators in thin-compliance industries
+              (photography, storage, vintage retail, single-person services)
+              often find Business at $79 over-built for their needs. Lite is
+              $39/mo, email-only, no AI/portal/share. We&apos;ll notify you
+              when it ships.
+            </Caption>
+            <Link
+              href="/#waitlist"
+              className="t-utility mt-3 inline-block text-[var(--color-mark)] underline underline-offset-4"
+            >
+              Notify me when Lite launches →
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {/* Plan cards */}
       <div className="grid md:grid-cols-2 gap-6 mb-10">

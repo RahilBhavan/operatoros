@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ export async function POST(
     .from("waitlist_signups")
     .update({ invited_at: now })
     .eq("id", id);
-  if (error) return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  if (error) return dbError("admin:waitlist/invite", error);
 
   // Best-effort early-access email.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -66,7 +67,8 @@ export async function POST(
   // Platform-level event: waitlist row isn't tied to a business yet.
   // audit_events.business_id was made nullable specifically so we can log
   // these without inventing a sentinel tenant.
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: null,
     actor_user_id: auth.user.id,
     event_type: "platform.waitlist_invited",

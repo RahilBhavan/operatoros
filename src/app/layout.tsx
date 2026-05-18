@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Slab, Atkinson_Hyperlegible } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,7 +30,7 @@ const siteUrl =
 
 const siteTitle = "OperatorOS — Never miss a compliance deadline again";
 const siteDescription =
-  "A 50-state compliance calendar with statute citations, severity-tiered risk scoring, and a portfolio view your accountant can actually use. Pre-populated in 30 seconds; audit-ready behind a one-click share link.";
+  "A federal compliance calendar with statute citations, severity-tiered risk scoring, and a portfolio view your accountant can actually use. Five states (CA, TX, NY, DE, FL) deeply curated; the rest on a template fallback with deep coverage rolling out. Pre-populated in 30 seconds; audit-ready behind a one-click share link.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -75,6 +76,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
@@ -94,6 +96,7 @@ export default function RootLayout({
       className={`h-full antialiased ${inter.variable} ${robotoSlab.variable} ${atkinson.variable}`}
     >
       <body className="min-h-full bg-field text-ground font-destination">
+        <ServiceWorkerRegister />
         {children}
       </body>
     </html>

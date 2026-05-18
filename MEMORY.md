@@ -4,6 +4,36 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-18 — Audit remediation pass on WS-2.x feature expansion
+
+What: Multi-agent audit surfaced CRITICAL/HIGH/MEDIUM findings against the uncommitted feature set (staff credentials, audit binders, COI, projects, locations, BAA/PHI, integrations, SMS notifications, filings). User said "fix all of them"; remediation landed.
+
+Decisions made:
+- **BAA gate scope**: `checkBaaForPhi()` (`src/lib/security/baa-gate.ts`) is invoked on staff_credentials, staff (members), audit_binders, COI issues + recipients, and filings POST routes. The gate is a **no-op for non-healthcare tenants** (`industry_slug !== "healthcare"`) and a 409 for healthcare tenants without an active row in `business_associate_agreements`. Why: HIPAA requires a signed BAA before PHI processing; non-healthcare verticals legitimately use these tables without PHI implications. How to apply: when adding new PHI-touching routes, import `checkBaaForPhi` and call it after the business lookup, before the insert.
+- **PHI action enum expansion**: `phi_access_log.action` extended from read-only (`view/download/list/share/export`) to also include `create/update/delete` via migration `20260518000013_audit_remediation.sql`. The TS type `PhiAccessAction` and the generated `src/types/supabase.ts` were widened to match. Reason: HIPAA's audit-trail requirement covers writes, not just reads.
+- **audit_events trigger pattern**: A single `write_compliance_audit_event()` SECURITY DEFINER function fires on `staff_credentials`, `credential_renewals_log`, and `business_associate_agreements`. Event type is `{table_name}.{action}` (e.g. `staff_credentials.created`). When adding new HIPAA-relevant tables, attach the same trigger rather than writing per-table audit logic.
+- **Entitlement gating policy**: Paid-tier gates added to filings (`ai`), integrations start/callback/sync (`ai`), share-with-accountant (`accountantPortal`). Staff, COI, projects, locations, audit-binders, notifications, BAA — **not gated**; they are basic compliance-tracking surfaces that free trial should be able to exercise. Why: differentiating the paid surfaces from the on-ramp surfaces matters for conversion; integrations + filings + accountant share are the costly-to-Operators features.
+- **Rate-limit defaults**: `share-with-accountant:{user_id}` capped at 10/hour; `integrations-sync:{business_id}:{provider}` at 6/hour. Compliance-insights rate limit was already pre-Anthropic (audit agent misread the call order) — left in place.
+- **sms_log XOR rejected**: Cron-fired reminders legitimately set both `user_id` AND `business_id`. Constraint relaxed to "at least one is set" (`sms_log_context_check`).
+- **CE Credits and FileItForMeCta are NOT orphans**: Coherence-audit agent flagged these as dangling; verification showed `ce_credits` is written by `api/staff/credentials/[id]/ce/route.ts` and `FileItForMeCta` POSTs to `/api/filings`. No action taken.
+- **Compliance-insights rate-limit ordering**: Audit claimed it ran "after expensive Anthropic call". Inspection showed it gates at line 147, before the Anthropic call at line 219+. Left as-is.
+
+Shipped:
+- New helpers: `src/lib/api/respond.ts` (`dbError()`), `src/lib/security/baa-gate.ts` (`checkBaaForPhi`, `requiresBaa`).
+- New migration: `supabase/migrations/20260518000013_audit_remediation.sql` (phi_access_log FK + action enum, compliance audit-event triggers, filings DELETE policy, sms_log context CHECK).
+- New PWA asset: `public/manifest.webmanifest` + `manifest` field in root layout metadata. SW already precached this URL — it was a 404 until now.
+- Patched routes: staff, staff/credentials (+ [id]/ce w/ staff_member cross-check), audit-binders (+ [id]/lock), coi/issues, coi/recipients, projects, projects/[id]/deadlines, locations, filings, baa/accept, notifications/preferences, integrations start + callback (+ token-length bound) + sync, ai/share-with-accountant — all sanitised error responses + appropriate BAA/PHI/entitlement/rate-limit additions.
+- New tests: `entitlements.test.ts`, `filings.test.ts`, `integrations-providers.test.ts`, `sms.test.ts`, `baa-gate.test.ts`, `audit-remediation-2-migration.test.ts`, `respond.test.ts` — 30 new tests; suite now 334/334.
+
+Verification: tsc clean · vitest 334/334 · eslint 0 errors · `npx next build` succeeds.
+
+Quirks committed knowingly:
+- `staff_credential_id` FK on `phi_access_log` does not pre-check existing rows because the table is brand new (000008) and has no production traffic; no `not valid` / `validate constraint` dance needed.
+- The new `write_compliance_audit_event` trigger uses `SECURITY DEFINER` to bypass the audit_events RLS policy (`TO service_role WITH CHECK (true)`). This relies on the function being owned by `postgres` (Supabase default for migration-applied functions). If the deploy environment changes the owner, the trigger will fail silently for non-service-role callers; the failure would surface as inserts succeeding but audit rows missing. Monitor `audit_events` row counts after deploy.
+- Staff/COI/projects/locations are not paid-tier gated. If business decides they should be, gate with `entitlementsFor(plan_tier)` at the API level — the pattern is identical to filings.
+
+---
+
 ## 2026-05-17 — UX audit fix pass: deltas to earlier session notes
 
 What: Read the design rollout note dated 2026-05-16 below. A few items it left as "deferred / quirks" have actually moved since — recording the deltas so the log stays accurate.

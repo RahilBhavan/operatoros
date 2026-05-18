@@ -77,7 +77,7 @@ export default async function OpengraphImage() {
               maxWidth: 900,
             }}
           >
-            50-state calendar · statute-cited · risk-weighted score ·
+            Federal + 5 states deep · statute-cited · risk-weighted score ·
             accountant portfolio view.
           </div>
         </div>

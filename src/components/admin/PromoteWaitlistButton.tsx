@@ -51,7 +51,12 @@ export default function PromoteWaitlistButton({
 
   return (
     <span className="inline-flex items-center gap-2 text-xs">
-      <span className="t-caption !text-[12px] truncate max-w-[160px]">{email}?</span>
+      <span
+        className="t-caption !text-[12px] truncate max-w-[160px]"
+        title={email}
+      >
+        {email}?
+      </span>
       <button
         onClick={handlePromote}
         disabled={stage === "busy"}

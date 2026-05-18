@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — OperatorOS</title>
+    <style>
+      :root {
+        --ground: #14213d;
+        --mark: #fca311;
+        --field: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--field);
+        color: var(--ground);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        max-width: 520px;
+        border: 2px solid var(--ground);
+        padding: 32px;
+      }
+      .stamp {
+        display: inline-block;
+        background: var(--mark);
+        color: var(--field);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 4px 8px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 40px;
+        font-weight: 900;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: -0.02em;
+        margin-bottom: 16px;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+      }
+      a {
+        display: inline-block;
+        background: var(--mark);
+        color: var(--field);
+        text-decoration: none;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .meta {
+        margin-top: 24px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <span class="stamp">PA-OFFL</span>
+      <h1>You&rsquo;re offline.</h1>
+      <p>
+        OperatorOS can&rsquo;t reach the network right now. Your last cached
+        view should still load if you&rsquo;ve visited the page before.
+      </p>
+      <p>
+        Compliance data is intentionally not cached when authenticated — to
+        avoid showing you stale deadline status when it really matters. Once
+        you&rsquo;re back online, everything will refresh automatically.
+      </p>
+      <a href="/dashboard">Try the dashboard again →</a>
+      <div class="meta">OperatorOS · service worker v1</div>
+    </main>
+  </body>
+</html>

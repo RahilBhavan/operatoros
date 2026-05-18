@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { buildWaitlistConfirmation } from "@/lib/email-templates/waitlist-confirmation";
 import { consumeRateLimit, hashIp } from "@/lib/security/rate-limit";
+import { WAITLIST_LIMIT } from "@/lib/security/rate-limits";
 
 function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +32,11 @@ export async function POST(req: NextRequest) {
   // use (a user re-submitting the form).
   const fwd = req.headers.get("x-forwarded-for");
   const ip = fwd?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? "0.0.0.0";
-  const allowed = await consumeRateLimit(`waitlist:${hashIp(ip)}`, 5, 3600);
+  const allowed = await consumeRateLimit(
+    `waitlist:${hashIp(ip)}`,
+    WAITLIST_LIMIT.max,
+    WAITLIST_LIMIT.windowSeconds
+  );
   if (!allowed) {
     return NextResponse.json(
       { error: "Too many requests. Try again later." },

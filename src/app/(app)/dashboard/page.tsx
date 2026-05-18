@@ -21,6 +21,8 @@ import {
 import { LinkButton } from "@/components/doctrine/Button";
 import { StampChip } from "@/components/doctrine/StampChip";
 import { KpiCard } from "@/components/doctrine/KpiCard";
+import StateCoverageBanner from "@/components/dashboard/StateCoverageBanner";
+import { EXPLICITLY_HANDLED_STATES } from "@/lib/regulatory-graph";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
   regulatory_rule_id?: string | null;
@@ -45,11 +47,25 @@ export default async function DashboardPage() {
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name, plan_tier, billing_status")
+    .select("id, name, plan_tier, billing_status, industry_slug")
     .eq("owner_id", user.id)
     .single();
 
   if (!business) redirect("/onboarding");
+
+  // Primary location state — used to decide whether to show the
+  // template-fallback banner (WS-0.4).
+  const { data: locationRow } = await supabase
+    .from("locations")
+    .select("state")
+    .eq("business_id", business.id)
+    .limit(1)
+    .maybeSingle();
+
+  const primaryState = locationRow?.state ?? null;
+  const isTemplateFallbackState =
+    primaryState != null &&
+    !(EXPLICITLY_HANDLED_STATES as readonly string[]).includes(primaryState);
 
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -84,7 +100,7 @@ export default async function DashboardPage() {
 
   const complianceScore = computeRiskWeightedScore(deadlines);
   const exposureCents = computeExposureCents(deadlines);
-  const actions = topActions(deadlines, 3);
+  const actions = topActions(deadlines, 5);
   const peer = await getPeerContext(supabase, business.id, complianceScore);
   const isPremium =
     (business.billing_status === "active" ||
@@ -134,34 +150,18 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard
-          tone="ground"
-          label="Risk-weighted score"
-          value={complianceScore}
-          suffix="/100"
-          sub={
-            exposureCents > 0 ? `${formatCents(exposureCents)} exposure` : "On target"
-          }
+      {/* State-coverage transparency banner — only when the user's primary
+          state isn't in the deeply-curated set (WS-0.4). */}
+      {isTemplateFallbackState && primaryState ? (
+        <StateCoverageBanner
+          state={primaryState}
+          industrySlug={business.industry_slug ?? null}
         />
-        <KpiCard
-          tone={overdue.length > 0 ? "mark" : "field"}
-          label="Overdue"
-          value={overdue.length}
-          sub={overdue.length > 0 ? "Action required" : "All clear"}
-        />
-        <KpiCard tone="field" label="Due soon" value={inProgress.length} sub="≤ 30 days" />
-        <KpiCard tone="field" label="Upcoming" value={upcoming.length} sub="Next 6 months" />
-      </div>
+      ) : null}
 
-      {/* Share / accountant tools */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <ShareLink canShare={isPremium} />
-        <AccountantInvite canInvite={isPremium} />
-      </div>
-
-      {/* Top actions */}
+      {/* Next 5 actions — promoted to first-fold per buyer-panel WS-0.1.
+          Operators in the 100-business panel wanted a list with confirmation
+          affordance, not a 0-100 score, as their daily anchor. */}
       {actions.length > 0 ? (
         <section className="border-2 border-[var(--color-ground)]">
           <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
               className="t-utility"
               style={{ color: "var(--color-field)" }}
             >
-              Top {actions.length} action{actions.length === 1 ? "" : "s"} to recover score
+              Next {actions.length} action{actions.length === 1 ? "" : "s"}
             </span>
             <span
               className="t-utility"
@@ -188,12 +188,9 @@ export default async function DashboardPage() {
                     : "border-b border-[var(--color-ground)]"
                 }
               >
-                <Link
-                  href={a.id ? `/deadlines/${a.id}` : "/deadlines"}
-                  className="flex items-center gap-5 px-5 py-4 hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] no-underline group"
-                >
+                <div className="flex items-center gap-5 px-5 py-4 hover:bg-[var(--color-ground)]/5">
                   <span
-                    className="font-black leading-none w-10 shrink-0 text-[var(--color-mark)] group-hover:text-[var(--color-field)]"
+                    className="font-black leading-none w-10 shrink-0 text-[var(--color-mark)]"
                     style={{
                       fontFamily: "var(--font-destination)",
                       fontSize: 28,
@@ -203,12 +200,13 @@ export default async function DashboardPage() {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div
-                      className="font-bold text-[15px] truncate"
+                    <Link
+                      href={a.id ? `/deadlines/${a.id}` : "/deadlines"}
+                      className="font-bold text-[15px] truncate block no-underline hover:underline"
                       style={{ fontFamily: "var(--font-index)" }}
                     >
                       {a.name}
-                    </div>
+                    </Link>
                     <div className="t-utility mt-1">
                       {a.status === "overdue" ? "Overdue" : "Due soon"} ·{" "}
                       {a.severity_tier?.toUpperCase()} severity
@@ -219,15 +217,47 @@ export default async function DashboardPage() {
                       ) : null}
                     </div>
                   </div>
-                  <span className="t-utility shrink-0">Open →</span>
-                </Link>
+                  <Link
+                    href={a.id ? `/deadlines/${a.id}/edit` : "/deadlines"}
+                    className="t-utility shrink-0 text-[var(--color-mark)] hover:underline"
+                  >
+                    Log filing →
+                  </Link>
+                </div>
               </li>
             ))}
           </ol>
         </section>
       ) : null}
 
-      {/* Score chart + insights */}
+      {/* Counters row (score moved here, demoted from hero per WS-0.1) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <KpiCard
+          tone={overdue.length > 0 ? "mark" : "field"}
+          label="Overdue"
+          value={overdue.length}
+          sub={overdue.length > 0 ? "Action required" : "All clear"}
+        />
+        <KpiCard tone="field" label="Due soon" value={inProgress.length} sub="≤ 30 days" />
+        <KpiCard tone="field" label="Upcoming" value={upcoming.length} sub="Next 6 months" />
+        <KpiCard
+          tone="field"
+          label="Score"
+          value={complianceScore}
+          suffix="/100"
+          sub={
+            exposureCents > 0 ? `${formatCents(exposureCents)} exposure` : "On target"
+          }
+        />
+      </div>
+
+      {/* Share / accountant tools */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <ShareLink canShare={isPremium} />
+        <AccountantInvite canInvite={isPremium} />
+      </div>
+
+      {/* Trend + insights (score history kept here for context, no longer hero) */}
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
         <ComplianceScoreChart history={history} currentScore={complianceScore} />
         <ProactiveInsights />

@@ -33,3 +33,19 @@ jobs:
       # the typescript + javascript rulesets, which already cover SQL string
       # injection patterns via the database client wrappers in this repo.
       - run: semgrep scan --config p/typescript --config p/javascript --error
+
+  # Vitest unit suite is part of the security gate — half the security
+  # invariants in this repo are encoded as contract tests (RLS shape,
+  # rate-limit RPC semantics, audit-event triggers). Letting a PR merge
+  # without running them would defeat those guards.
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm test

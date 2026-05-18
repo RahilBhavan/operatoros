@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { AI_EXTRACT_LIMIT } from "@/lib/security/rate-limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -65,7 +66,11 @@ export async function POST(
     );
   }
 
-  const allowed = await consumeRateLimit(`ai:extract:${user.id}`, 10, 3600);
+  const allowed = await consumeRateLimit(
+    `ai:extract:${user.id}`,
+    AI_EXTRACT_LIMIT.max,
+    AI_EXTRACT_LIMIT.windowSeconds
+  );
   if (!allowed) {
     return NextResponse.json(
       { error: "Rate limit reached — try again in an hour." },

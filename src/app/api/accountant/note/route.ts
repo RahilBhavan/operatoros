@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { hashToken } from "@/lib/security/token-hash";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { ACCOUNTANT_NOTE_LIMIT } from "@/lib/security/rate-limits";
 
 function createRawAdmin() {
   return createSupabaseClient(
@@ -40,6 +42,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid token" }, { status: 403 });
   }
 
+  // Rate-limit note writes per accountant connection so a leaked token
+  // can't be used to spam thousands of notes against a single business.
+  const allowed = await consumeRateLimit(
+    `accountant-note:${connection.id}`,
+    ACCOUNTANT_NOTE_LIMIT.max,
+    ACCOUNTANT_NOTE_LIMIT.windowSeconds
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many notes. Try again in an hour." },
+      { status: 429 }
+    );
+  }
+
   const { data: deadline } = await admin
     .from("deadlines")
     .select("id")
@@ -51,9 +67,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Deadline not found" }, { status: 404 });
   }
 
-  // Upsert by (deadline_id, connection_id) — the accountant_token column was
-  // dropped in 20260517000002_audit_remediation. TODO: confirm the migration
-  // renamed the unique index to (deadline_id, connection_id).
+  // Upsert by (deadline_id, connection_id). The accountant_token column was
+  // dropped and the unique index renamed in 20260517000002_audit_remediation.
   const { error } = await admin.from("accountant_deadline_notes").upsert(
     {
       deadline_id: deadlineId,

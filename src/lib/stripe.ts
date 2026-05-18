@@ -13,6 +13,7 @@ export function getStripe(): Stripe {
 }
 
 const PRICE_ENV_BY_TIER: Record<PaidPlanTier, string> = {
+  lite: "STRIPE_LITE_PRICE_ID",
   business: "STRIPE_BUSINESS_PRICE_ID",
   accountant: "STRIPE_ACCOUNTANT_PRICE_ID",
 };
@@ -25,6 +26,18 @@ export function getPriceId(tier: PaidPlanTier): string {
 }
 
 export const PLANS = {
+  lite: {
+    name: "Lite",
+    amount: 39,
+    description: "For thin-compliance solo operators — calendar + email only",
+    features: [
+      "Unlimited deadlines",
+      "Document storage (1 GB)",
+      "Email reminders",
+      "Federal + state taxonomy",
+      "No AI insights, accountant portal, or share link",
+    ],
+  },
   business: {
     name: "Business",
     amount: 79,

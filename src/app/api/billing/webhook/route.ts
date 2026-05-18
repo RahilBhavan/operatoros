@@ -43,6 +43,67 @@ function tierFromPriceId(priceId: string | null | undefined): PaidPlanTier | nul
   return null;
 }
 
+/**
+ * WS-F — mirror a Stripe.Subscription into stripe_subscriptions. Called from
+ * subscription.{created,updated,deleted} handlers. Idempotent (upsert).
+ *
+ * 2026 Stripe API: current_period_start/end moved off Subscription onto
+ * SubscriptionItem, so we read them from items.data[0].
+ */
+async function mirrorStripeSubscription(
+  supabase: SupabaseAdmin,
+  sub: Stripe.Subscription,
+  businessId: string | null
+): Promise<void> {
+  const item = sub.items.data[0];
+  if (!item) return;
+
+  const priceId = item.price?.id ?? null;
+  if (!priceId) return;
+
+  const planTier = tierFromPriceId(priceId);
+  if (!planTier) {
+    // Unknown price — don't mirror (would violate CHECK on plan_tier).
+    console.warn("[stripe] mirror skipped: unknown price", {
+      subscription_id: sub.id,
+      price_id: priceId,
+    });
+    return;
+  }
+
+  const unitAmountCents = item.price?.unit_amount ?? 0;
+  const currency = item.price?.currency ?? "usd";
+
+  const row: Database["public"]["Tables"]["stripe_subscriptions"]["Insert"] = {
+    id: sub.id,
+    business_id: businessId,
+    customer_id: stripeCustomerIdToString(sub.customer) ?? "",
+    status: sub.status,
+    price_id: priceId,
+    plan_tier: planTier as "business" | "accountant",
+    current_period_start: new Date(item.current_period_start * 1000).toISOString(),
+    current_period_end: new Date(item.current_period_end * 1000).toISOString(),
+    cancel_at_period_end: sub.cancel_at_period_end ?? false,
+    canceled_at: sub.canceled_at
+      ? new Date(sub.canceled_at * 1000).toISOString()
+      : null,
+    trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
+    unit_amount_cents: unitAmountCents,
+    currency,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("stripe_subscriptions")
+    .upsert(row, { onConflict: "id" });
+  if (error) {
+    console.warn("[stripe] mirror upsert failed", {
+      subscription_id: sub.id,
+      error: error.message,
+    });
+  }
+}
+
 function logAuditEvent(
   supabase: SupabaseAdmin,
   args: {
@@ -170,6 +231,9 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", trustedId);
 
+      // WS-F — mirror the subscription into stripe_subscriptions for MRR truth.
+      await mirrorStripeSubscription(supabase, subscription, trustedId);
+
       logAuditEvent(supabase, {
         businessId: trustedId,
         action: "billing.subscription_created",
@@ -244,6 +308,9 @@ export async function POST(req: NextRequest) {
 
       await supabase.from("businesses").update(update).eq("id", trustedId);
 
+      // WS-F — keep the mirror current on every subscription change.
+      await mirrorStripeSubscription(supabase, sub, trustedId);
+
       logAuditEvent(supabase, {
         businessId: trustedId,
         action: "billing.subscription_updated",
@@ -289,6 +356,10 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: null,
         })
         .eq("id", trustedId);
+
+      // WS-F — capture final state of the sub before it disappears from
+      // Stripe so MRR sums + churn analytics retain the row.
+      await mirrorStripeSubscription(supabase, sub, trustedId);
 
       logAuditEvent(supabase, {
         businessId: trustedId,
@@ -466,18 +537,141 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // WS-D — viral attribution. First paid invoice for a viral-attributed
+      // business increments the accountant's paid_conversions_count. Only
+      // subscription_create qualifies as "first" (cycle/update are renewals).
+      // The webhook-level idempotency guard above (stripe_received_events)
+      // prevents double-counting on Stripe retries.
+      if (reason === "subscription_create") {
+        const tierFromPrice = tierFromPriceId(
+          subscription.items.data[0]?.price?.id ?? null
+        );
+
+        // WS-E — first paid invoice is the canonical upgrade_completed event.
+        const { track } = await import("@/lib/analytics");
+        void track({
+          distinctId: trustedId,
+          event: "upgrade_completed",
+          properties: {
+            business_id: trustedId,
+            tier: tierFromPrice ?? "unknown",
+            amount_cents: invoice.amount_paid ?? 0,
+            currency: invoice.currency ?? "usd",
+          },
+          groups: { business: trustedId },
+        });
+
+        const { data: attribution } = await supabase
+          .from("businesses")
+          .select("invite_code")
+          .eq("id", trustedId)
+          .maybeSingle();
+        const inviteCode = attribution?.invite_code ?? null;
+        if (inviteCode) {
+          const { data: link } = await supabase
+            .from("accountant_invite_links")
+            .select("id, accountant_id")
+            .eq("code", inviteCode)
+            .maybeSingle();
+          if (link?.id) {
+            const { incrementInviteLinkCounter } = await import(
+              "@/lib/viral-attribution"
+            );
+            const result = await incrementInviteLinkCounter(
+              supabase,
+              link.id,
+              "paid_conversions_count"
+            );
+            if (!result.ok) {
+              console.warn("[stripe] viral conversion increment failed", {
+                event_id: event.id,
+                link_id: link.id,
+                error: result.error,
+              });
+            } else {
+              void track({
+                distinctId: link.accountant_id,
+                event: "invite_link_conversion",
+                properties: {
+                  business_id: trustedId,
+                  invite_code: inviteCode,
+                  tier: tierFromPrice ?? "unknown",
+                },
+              });
+            }
+          }
+        }
+      }
+
       break;
     }
 
     case "customer.subscription.trial_will_end": {
-      // TODO: dispatch trial-ending email via @/lib/email helper. Owned by a
-      // separate agent — do not add the send here.
       const sub = event.data.object as Stripe.Subscription;
-      console.info("[stripe] trial_will_end", {
-        event_id: event.id,
-        subscription_id: sub.id,
-        trial_end: sub.trial_end,
+      const customerId = stripeCustomerIdToString(sub.customer);
+      if (!customerId || !sub.trial_end) break;
+
+      const { data: businessRow } = await supabase
+        .from("businesses")
+        .select("id, name")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle();
+
+      const trustedId = resolveSubscriptionBusinessId({
+        stripeCustomerId: customerId,
+        businessFromCustomer: businessRow,
+        metadataBusinessId: sub.metadata?.business_id ?? null,
       });
+      if (!trustedId) break;
+
+      let customerEmail: string | null = null;
+      try {
+        const customer = await getStripe().customers.retrieve(customerId);
+        if (customer && !("deleted" in customer && customer.deleted)) {
+          customerEmail = (customer as Stripe.Customer).email ?? null;
+        }
+      } catch (err) {
+        console.warn("[stripe] trial_will_end: failed to fetch customer email", {
+          event_id: event.id,
+          customer_id: customerId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      const trialEndIso = new Date(sub.trial_end * 1000).toISOString();
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const billingUrl = appUrl ? `${appUrl.replace(/\/$/, "")}/billing` : "";
+
+      if (customerEmail && billingUrl) {
+        try {
+          const { sendTrialEndingEmail } = await import("@/lib/email");
+          await sendTrialEndingEmail({
+            to: customerEmail,
+            businessName: businessRow?.name ?? null,
+            trialEndIso,
+            billingUrl,
+          });
+        } catch (err) {
+          console.warn("[stripe] trial_will_end: email send failed", {
+            event_id: event.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      logAuditEvent(supabase, {
+        businessId: trustedId,
+        action: "billing.trial_will_end",
+        eventId: event.id,
+        eventType: event.type,
+        targetId: trustedId,
+        metadata: {
+          subscription_id: sub.id,
+          trial_end: trialEndIso,
+          email_sent: Boolean(customerEmail),
+        },
+      });
+
       break;
     }
 

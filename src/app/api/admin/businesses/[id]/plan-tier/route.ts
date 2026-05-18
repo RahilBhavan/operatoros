@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -47,9 +48,10 @@ export async function POST(
       billing_status: parsed.data.billing_status,
     })
     .eq("id", id);
-  if (error) return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  if (error) return dbError("admin:businesses/plan-tier", error);
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: id,
     actor_user_id: auth.user.id,
     event_type: "platform.plan_tier_forced",

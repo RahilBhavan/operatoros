@@ -8,8 +8,13 @@ import { Wordmark } from "@/components/doctrine/Wordmark";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/deadlines", label: "Deadlines" },
+  { href: "/staff", label: "Staff" },
+  { href: "/projects", label: "Projects" },
+  { href: "/coi", label: "COI" },
+  { href: "/audit-prep", label: "Audit prep" },
+  { href: "/locations", label: "Locations" },
   { href: "/billing", label: "Billing" },
-  { href: "/settings/team", label: "Team" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function AppNav({ userEmail }: { userEmail: string }) {

@@ -22,17 +22,22 @@ describe("ShareLink", () => {
       vi.restoreAllMocks();
     });
 
-    it("renders the generate button", () => {
+    it("renders the WS-0.2 template buttons", () => {
       render(<ShareLink canShare={true} />);
-      expect(screen.getByRole("button", { name: /generate link/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /insurance carrier/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /auditor \/ surveyor/i })).toBeDefined();
+      expect(screen.getByRole("button", { name: /general contractor/i })).toBeDefined();
+      // Custom-recipient template uses the literal label "Recipient" inside
+      // a button containing the blurb — match by text rather than role-name.
+      expect(screen.getByText(/^Recipient$/)).toBeDefined();
     });
 
     it("shows loading state while fetching", async () => {
       vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
       render(<ShareLink canShare={true} />);
-      fireEvent.click(screen.getByRole("button"));
+      fireEvent.click(screen.getByRole("button", { name: /insurance carrier/i }));
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /generating/i })).toBeDefined();
+        expect(screen.getByText(/generating/i)).toBeDefined();
       });
     });
 
@@ -41,7 +46,7 @@ describe("ShareLink", () => {
         json: async () => ({ url: "https://app.operatoros.com/share/abc123" }),
       }));
       render(<ShareLink canShare={true} />);
-      fireEvent.click(screen.getByRole("button"));
+      fireEvent.click(screen.getByRole("button", { name: /insurance carrier/i }));
       await waitFor(() => {
         const input = screen.getByRole("textbox") as HTMLInputElement;
         expect(input.value).toBe("https://app.operatoros.com/share/abc123");
@@ -53,7 +58,7 @@ describe("ShareLink", () => {
         json: async () => ({ error: "Upgrade required" }),
       }));
       render(<ShareLink canShare={true} />);
-      fireEvent.click(screen.getByRole("button"));
+      fireEvent.click(screen.getByRole("button", { name: /auditor \/ surveyor/i }));
       await waitFor(() => {
         expect(screen.getByText("Upgrade required")).toBeDefined();
       });
@@ -62,7 +67,7 @@ describe("ShareLink", () => {
     it("shows generic error when fetch throws", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
       render(<ShareLink canShare={true} />);
-      fireEvent.click(screen.getByRole("button"));
+      fireEvent.click(screen.getByRole("button", { name: /general contractor/i }));
       await waitFor(() => {
         expect(screen.getByText(/something went wrong/i)).toBeDefined();
       });

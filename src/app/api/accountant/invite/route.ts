@@ -3,6 +3,8 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/security/token-hash";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { ACCOUNTANT_INVITE_LIMIT } from "@/lib/security/rate-limits";
 import { Resend } from "resend";
 
 const ELIGIBLE_PLANS = ["business", "accountant"] as const;
@@ -15,6 +17,21 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate-limit token rotation per owner. Without this, a compromised owner
+  // session could spam invites to harvest portal tokens, and a logged-in
+  // owner can hammer the Resend send path.
+  const allowed = await consumeRateLimit(
+    `accountant-invite:${user.id}`,
+    ACCOUNTANT_INVITE_LIMIT.max,
+    ACCOUNTANT_INVITE_LIMIT.windowSeconds
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many invites. Try again in an hour." },
+      { status: 429 }
+    );
   }
 
   const body = await req.json();

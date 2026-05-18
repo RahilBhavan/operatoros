@@ -639,6 +639,162 @@ insert into public.regulatory_rules (
   name, description, deadline_type, governing_agency, frequency,
   due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
   source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000080', 'state', 'IL', null, 'state-il-annual-report', 'Illinois Annual Report', 'Illinois LLCs and corporations must file an annual report with the Secretary of State before the first day of the anniversary month of formation. $75 LLC, $75 + franchise tax for corporations. $100 late fee.', 'entity_filing', 'Illinois Secretary of State', 'annual', '{"kind":"next_md","month":11,"day":1}'::jsonb, '{"state":"IL","entity_in":["llc","s_corp","c_corp"]}'::jsonb, 'high', 10000, 'https://www.ilsos.gov/departments/business_services/home.html', '805 ILCS 5/14.05', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000080'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000080'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000081', 'state', 'IL', null, 'state-il-sales-tax-quarterly', 'Illinois Sales Tax (ST-1)', 'Illinois ST-1 sales/use tax return. Filing frequency (monthly, quarterly, annual) is set by IDOR based on prior liability. Due the 20th of the month following the reporting period.', 'tax_filing', 'Illinois Department of Revenue (IDOR)', 'quarterly', '{"kind":"next_md","month":0,"day":20}'::jsonb, '{"state":"IL","entity_in":["llc","s_corp","c_corp","sole_proprietor"]}'::jsonb, 'high', 25000, 'https://tax.illinois.gov/businesses/taxinformation/sales/st1.html', '35 ILCS 120/3', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000081'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000081'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000082', 'state', 'PA', null, 'state-pa-annual-report', 'Pennsylvania Annual Report', 'Pennsylvania annual report (Act 122 of 2022, effective 2025): all PA business entities must file an annual report with the Department of State by June 30 for corporations / September 30 for LLCs. $7 filing fee. Failure to file by Jan 1 of the following year may result in administrative dissolution.', 'entity_filing', 'Pennsylvania Department of State', 'annual', '{"kind":"next_md","month":8,"day":30}'::jsonb, '{"state":"PA","entity_in":["llc"]}'::jsonb, 'critical', 0, 'https://www.pa.gov/agencies/dos/programs/business-and-charities.html', '15 Pa.C.S. §146', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000082'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000082'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000083', 'state', 'PA', null, 'state-pa-sales-tax', 'Pennsylvania Sales Tax (PA-3)', 'Pennsylvania PA-3 sales tax return. Monthly, quarterly, or semi-annual filing based on prior tax liability. Due the 20th of the month following the reporting period.', 'tax_filing', 'Pennsylvania Department of Revenue', 'quarterly', '{"kind":"next_md","month":0,"day":20}'::jsonb, '{"state":"PA","entity_in":["llc","s_corp","c_corp","sole_proprietor"]}'::jsonb, 'high', 25000, 'https://www.revenue.pa.gov/TaxTypes/SUT/Pages/default.aspx', '72 P.S. §7217', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000083'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000083'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000084', 'state', 'GA', null, 'state-ga-annual-registration', 'Georgia Annual Registration', 'All Georgia business entities must file an annual registration with the Secretary of State between January 1 and April 1. $50 for LLCs and profit corporations. Late filings incur a $25 penalty after April 1; failure to file may result in administrative dissolution.', 'entity_filing', 'Georgia Secretary of State, Corporations Division', 'annual', '{"kind":"next_md","month":3,"day":1}'::jsonb, '{"state":"GA","entity_in":["llc","s_corp","c_corp"]}'::jsonb, 'high', 2500, 'https://sos.ga.gov/corporations-division', 'O.C.G.A. §14-2-1622', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000084'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000084'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
+) values ('20000000-0000-4000-8000-000000000085', 'state', 'GA', null, 'state-ga-sales-tax', 'Georgia Sales & Use Tax (ST-3)', 'Georgia ST-3 sales & use tax return. Filing frequency (monthly, quarterly, annual) is set by the Georgia Department of Revenue based on liability. Due the 20th of the month following the reporting period.', 'tax_filing', 'Georgia Department of Revenue', 'quarterly', '{"kind":"next_md","month":0,"day":20}'::jsonb, '{"state":"GA","entity_in":["llc","s_corp","c_corp","sole_proprietor"]}'::jsonb, 'high', 25000, 'https://dor.georgia.gov/taxes/business-taxes/sales-use-tax', 'O.C.G.A. §48-8-49', 1)
+on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
+  name = excluded.name,
+  description = excluded.description,
+  deadline_type = excluded.deadline_type,
+  governing_agency = excluded.governing_agency,
+  frequency = excluded.frequency,
+  due_date_rule = excluded.due_date_rule,
+  applies_when = excluded.applies_when,
+  severity_tier = excluded.severity_tier,
+  penalty_estimate_cents = excluded.penalty_estimate_cents,
+  source_url = excluded.source_url,
+  statute_citation = excluded.statute_citation;
+
+insert into public.regulatory_rule_sources (rule_id, source_kind, source_ref)
+  select '20000000-0000-4000-8000-000000000085'::uuid, 'seed', null
+  where not exists (
+    select 1 from public.regulatory_rule_sources
+    where rule_id = '20000000-0000-4000-8000-000000000085'::uuid and source_kind = 'seed'
+  );
+
+insert into public.regulatory_rules (
+  id, jurisdiction_type, jurisdiction_code, industry_slug, rule_key,
+  name, description, deadline_type, governing_agency, frequency,
+  due_date_rule, applies_when, severity_tier, penalty_estimate_cents,
+  source_url, statute_citation, version
 ) values ('20000000-0000-4000-8000-000000000080', 'local', '*', 'restaurant', 'industry-restaurant-health-permit', 'Food Service / Health Permit Renewal', 'Annual food service establishment permit required by your local health department.', 'business_license', 'County Health Department', 'annual', '{"kind":"months_from_today","months":6}'::jsonb, '{"industry":"restaurant"}'::jsonb, 'critical', 100000, null, null, 1)
 on conflict (jurisdiction_code, industry_slug, rule_key, version) do update set
   name = excluded.name,

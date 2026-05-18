@@ -15,7 +15,7 @@ import type { BusinessSummary, WaitlistRow, AuditEventRow } from "@/types/admin"
  */
 export async function loadBusinessSummaries(
   filter?: {
-    plan_tier?: "free" | "business" | "accountant";
+    plan_tier?: "free" | "lite" | "business" | "accountant";
     billing_status?: string;
     state?: string;
     search?: string;
@@ -182,6 +182,7 @@ export type AdminKpis = {
   waitlist_uninvited: number;
   signups_last_7d: number;
   mrr_cents: number;
+  mrr_source: "stripe" | "approximate";
   by_plan: Record<string, number>;
   top_states: Array<{ state: string; count: number }>;
 };
@@ -238,17 +239,33 @@ export async function loadKpis(): Promise<AdminKpis> {
     .slice(0, 5)
     .map(([state, count]) => ({ state, count }));
 
-  // Naive MRR: count active subs × tier price. Real numbers come from Stripe;
-  // this is the "approximate" view for the dashboard.
-  const PRICE_CENTS: Record<string, number> = {
-    business: 7900,
-    accountant: 29900,
-    free: 0,
-  };
+  // WS-F — MRR pulled from the Stripe-mirror table when populated. Falls
+  // back to the legacy plan_tier × price approximation when no rows are
+  // present (e.g. before the backfill script runs against a new project),
+  // and surfaces which path produced the number so the UI can label it.
   let mrr = 0;
-  for (const b of bizes) {
-    if (b.billing_status !== "active") continue;
-    mrr += PRICE_CENTS[b.plan_tier] ?? 0;
+  let mrrSource: "stripe" | "approximate" = "approximate";
+  const { data: stripeSubs } = await supabase
+    .from("stripe_subscriptions")
+    .select("unit_amount_cents, status")
+    .in("status", ["active", "trialing"]);
+  if (stripeSubs && stripeSubs.length > 0) {
+    mrr = stripeSubs.reduce(
+      (acc, s) => acc + (s.unit_amount_cents ?? 0),
+      0
+    );
+    mrrSource = "stripe";
+  } else {
+    const PRICE_CENTS: Record<string, number> = {
+      business: 7900,
+      accountant: 29900,
+      lite: 1900,
+      free: 0,
+    };
+    for (const b of bizes) {
+      if (b.billing_status !== "active") continue;
+      mrr += PRICE_CENTS[b.plan_tier] ?? 0;
+    }
   }
 
   return {
@@ -263,6 +280,7 @@ export async function loadKpis(): Promise<AdminKpis> {
     waitlist_uninvited: wls.filter((w) => !w.invited_at).length,
     signups_last_7d: signupsLast7,
     mrr_cents: mrr,
+    mrr_source: mrrSource,
     by_plan: byPlan,
     top_states: topStates,
   };

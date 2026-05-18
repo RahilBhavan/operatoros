@@ -10,6 +10,25 @@ import { PanAmTag } from "@/components/doctrine/PanAmTag";
 
 const PRICING_TIERS = [
   {
+    name: "Lite",
+    code: "L-039",
+    price: 39,
+    description:
+      "For thin-compliance solo operators — calendar + email reminders only.",
+    features: [
+      "Unlimited deadlines",
+      "1 GB document storage",
+      "Email reminders",
+      "Federal + state taxonomy",
+      "No AI insights",
+      "No share link · no accountant portal",
+    ],
+    highlighted: false,
+    cta: "Notify me",
+    href: "/?lite-waitlist",
+    comingSoon: true,
+  },
+  {
     name: "Business",
     code: "B-079",
     price: 79,
@@ -27,6 +46,7 @@ const PRICING_TIERS = [
     highlighted: true,
     cta: "Start free trial",
     href: "/sign-up",
+    comingSoon: false,
   },
   {
     name: "Accountant",
@@ -45,6 +65,7 @@ const PRICING_TIERS = [
     highlighted: false,
     cta: "Start as an accountant",
     href: "/sign-up?role=accountant",
+    comingSoon: false,
   },
 ] as const;
 
@@ -61,7 +82,7 @@ const PAIN_STATS = [
     stat: "47",
     label:
       "Median annual compliance obligations OperatorOS pre-populates for a 25-employee, multi-state business.",
-    source: "Internal estimate · federal + 50-state taxonomy",
+    source: "Federal taxonomy + 5 states deep · 46 template-fallback",
   },
   {
     code: "P-03",
@@ -154,7 +175,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "How do you know what applies to my state?",
-    a: "On signup you give us four inputs — industry (NAICS slug), state, entity type, employee count. We seed deadlines from a federal + 50-state taxonomy keyed off those inputs. Every deadline carries its statute citation and the responsible agency's URL so you (or your accountant) can verify in seconds.",
+    a: "On signup you give us four inputs — industry (NAICS slug), state, entity type, employee count. Federal deadlines are deep across every taxonomy. Five states (CA, TX, NY, DE, FL) have hand-curated state-specific rule sets; the remaining 46 ride a template-fallback rule set that covers the most common annual filings but does not yet name every county- or industry-specific obligation. Every deadline carries its statute citation and the responsible agency's URL so you (or your accountant) can verify in seconds. We're working state-by-state — request priority curation for yours from the homepage form.",
   },
   {
     q: "What happens after the 14-day free trial?",
@@ -211,10 +232,13 @@ export default function LandingPage() {
                 color: "var(--color-ground)",
               }}
             >
-              A 50-state compliance calendar with statute citations,
+              A federal compliance calendar with statute citations,
               severity-tiered risk scoring, and a portfolio view your accountant
-              can actually use. Pre-populated in 30 seconds; audit-ready behind
-              a share link your auditor can verify with one click.
+              can actually use. Five states (CA · TX · NY · DE · FL) ship with
+              hand-curated state rule sets today; the rest are on a template
+              fallback with deep curation rolling out. Pre-populated in 30
+              seconds; audit-ready behind a share link your auditor can verify
+              with one click.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 items-start">
@@ -440,9 +464,9 @@ export default function LandingPage() {
             {[
               {
                 code: "M-01",
-                hero: "50 states + DC",
-                kicker: "Covered out of the box",
-                body: "Annual report cadences, franchise tax windows, and entity filings encoded for every US state with the responsible agency named and linked.",
+                hero: "5 states deep · 46 fallback",
+                kicker: "CA · TX · NY · DE · FL deeply curated",
+                body: "Federal cadences ship deep across every taxonomy. Five states have hand-curated rule sets with named agencies + statute citations. The remaining 46 ride a template-fallback set we're upgrading state-by-state — request priority curation for yours.",
               },
               {
                 code: "M-02",
@@ -778,7 +802,7 @@ export default function LandingPage() {
               textTransform: "uppercase",
             }}
           >
-            Simple, two-tier pricing.
+            Three tiers · pick your shape.
           </h2>
           <p
             className="mb-12 max-w-[560px]"
@@ -788,11 +812,12 @@ export default function LandingPage() {
               lineHeight: 1.5,
             }}
           >
-            One plan for the business owner. One plan for the accountant who
-            serves them. Both come with a 14-day free trial.
+            Lite for thin-compliance solos · Business for owner-operators ·
+            Accountant for portfolio practices. Business and Accountant come
+            with a 14-day free trial; Lite is in waitlist.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-0 border-2 border-[var(--color-ground)]">
+          <div className="grid md:grid-cols-3 gap-0 border-2 border-[var(--color-ground)]">
             {PRICING_TIERS.map((tier, i) => {
               const inverse = tier.highlighted;
               return (
@@ -802,7 +827,7 @@ export default function LandingPage() {
                     inverse
                       ? "panel-ink"
                       : "bg-[var(--color-field)] text-[var(--color-ground)]"
-                  } ${i === 0 ? "md:border-r-2 border-[var(--color-ground)]" : ""}`}
+                  } ${i < PRICING_TIERS.length - 1 ? "md:border-r-2 border-[var(--color-ground)]" : ""}`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -896,10 +921,10 @@ export default function LandingPage() {
                   </ul>
 
                   <Link
-                    href={tier.href}
+                    href={tier.comingSoon ? "#waitlist" : tier.href}
                     className={inverse ? "btn btn-inverse mt-auto" : "btn mt-auto"}
                   >
-                    {tier.cta} →
+                    {tier.comingSoon ? `${tier.cta} · coming soon →` : `${tier.cta} →`}
                   </Link>
                 </div>
               );

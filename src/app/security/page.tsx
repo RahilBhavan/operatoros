@@ -255,6 +255,111 @@ export default function SecurityPage() {
             </Caption>
           </div>
         </section>
+
+        {/* Sub-processors — required by WS-2.2 BAA scaffolds. Every vendor
+            that may touch customer data is listed here with their role and
+            BAA status (where HIPAA applies). */}
+        <section id="sub-processors" className="px-6 py-16 sm:py-20 border-b-2 border-[var(--color-ground)]">
+          <div className="max-w-[1080px] mx-auto">
+            <Utility className="mb-3">Sub-processors</Utility>
+            <H2 className="mb-6">Who else touches your data</H2>
+            <Body className="mb-8 max-w-[680px]">
+              The third-party services we use to operate OperatorOS. Where
+              applicable for healthcare customers, each is required to sign a
+              Business Associate Agreement (HIPAA &sect;164.504(e)).
+            </Body>
+            <div className="border-2 border-[var(--color-ground)] overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[var(--color-ground)] text-[var(--color-field)]">
+                    <th className="t-utility px-4 py-3">Vendor</th>
+                    <th className="t-utility px-4 py-3">Role</th>
+                    <th className="t-utility px-4 py-3">Data class</th>
+                    <th className="t-utility px-4 py-3">BAA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      v: "Supabase",
+                      role: "Postgres + Auth + Storage",
+                      data: "All customer data",
+                      baa: "Required for healthcare customers — Supabase Pro/Team plan supports BAA. Status: PENDING.",
+                    },
+                    {
+                      v: "Resend",
+                      role: "Transactional email",
+                      data: "Recipient email + reminder body",
+                      baa: "Required for PHI-bearing reminders. Status: PENDING.",
+                    },
+                    {
+                      v: "Anthropic",
+                      role: "AI compliance insights (Claude Haiku)",
+                      data: "Business profile + tracked deadline names",
+                      baa: "Available via Claude on Bedrock or direct agreement. Status: PENDING.",
+                    },
+                    {
+                      v: "Twilio",
+                      role: "SMS reminders (optional)",
+                      data: "Recipient phone + reminder body",
+                      baa: "Required if SMS enabled for PHI-bearing customer. Status: PENDING.",
+                    },
+                    {
+                      v: "Stripe",
+                      role: "Subscription billing",
+                      data: "Customer name, email, payment method",
+                      baa: "Stripe does not consider billing metadata PHI. Status: N/A.",
+                    },
+                    {
+                      v: "Vercel",
+                      role: "Hosting + edge functions",
+                      data: "Request transit (TLS-terminated; no app-layer persistence)",
+                      baa: "Vercel Enterprise BAA available. Status: PENDING.",
+                    },
+                  ].map((r, i) => (
+                    <tr
+                      key={r.v}
+                      className={
+                        i === 5 ? "" : "border-b border-[var(--color-ground)]"
+                      }
+                    >
+                      <td
+                        className="px-4 py-3 text-[14px] font-bold"
+                        style={{ fontFamily: "var(--font-index)" }}
+                      >
+                        {r.v}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-[14px]"
+                        style={{ fontFamily: "var(--font-index)" }}
+                      >
+                        {r.role}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-[14px]"
+                        style={{ fontFamily: "var(--font-index)" }}
+                      >
+                        {r.data}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-[13px]"
+                        style={{ fontFamily: "var(--font-index)" }}
+                      >
+                        {r.baa}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Caption className="mt-4 max-w-[680px]">
+              &ldquo;Status: PENDING&rdquo; means the BAA is required before
+              healthcare customers can ingest PHI through OperatorOS and is
+              actively being negotiated. Healthcare-vertical onboarding is
+              gated on full coverage of every PENDING row above.
+            </Caption>
+          </div>
+        </section>
       </main>
 
       <MarketingFooter />

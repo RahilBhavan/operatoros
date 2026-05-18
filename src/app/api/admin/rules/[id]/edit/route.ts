@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
+import { dbError } from "@/lib/api/respond";
+import { validateProposedChanges } from "@/lib/corrections";
 
 export const runtime = "nodejs";
 
@@ -37,11 +39,13 @@ export async function POST(
   if (!body || typeof body !== "object" || !("changes" in body)) {
     return NextResponse.json({ error: "Missing changes" }, { status: 400 });
   }
-  const changes = (body as { changes: unknown }).changes;
-  if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
-    return NextResponse.json({ error: "changes must be an object" }, { status: 400 });
-  }
-  const validation = validateChanges(changes as Record<string, unknown>);
+  // Shared validator with the accountant corrections route — keeps the
+  // admin edit and accountant flag paths on identical field rules
+  // (severity tiers, frequency enum, ISO dates, penalty cents). Adding
+  // a new allowed field updates both flows in one place.
+  const validation = validateProposedChanges(
+    (body as { changes: unknown }).changes
+  );
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
@@ -73,7 +77,7 @@ export async function POST(
     if (error?.code === "P0002") {
       return NextResponse.json({ error: "Rule not found" }, { status: 404 });
     }
-    return NextResponse.json({ error: "Version create failed" }, { status: 500 });
+    return dbError("admin:rules/edit", error);
   }
 
   // Audit. Service-role for the insert so a failure to log doesn't roll back
@@ -102,90 +106,3 @@ export async function POST(
   return NextResponse.json({ ok: true, new_rule_id: newRuleId });
 }
 
-const STRING_FIELDS = [
-  "name",
-  "description",
-  "deadline_type",
-  "governing_agency",
-  "frequency",
-  "source_url",
-  "statute_citation",
-] as const;
-const SEVERITY_VALUES = ["critical", "high", "medium", "low", "info"] as const;
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function validateChanges(
-  raw: Record<string, unknown>
-):
-  | { ok: true; value: Record<string, unknown> }
-  | { ok: false; error: string } {
-  const out: Record<string, unknown> = {};
-
-  for (const f of STRING_FIELDS) {
-    if (!(f in raw)) continue;
-    const v = raw[f];
-    if (v === null || v === "") {
-      // empty/null is allowed for source_url + statute_citation; everything
-      // else must stay non-empty (the RPC coalesces null back to old value).
-      if (f === "source_url" || f === "statute_citation") {
-        out[f] = "";
-        continue;
-      }
-      return { ok: false, error: `${f} cannot be empty` };
-    }
-    if (typeof v !== "string") return { ok: false, error: `${f} must be a string` };
-    if (v.length > 2000) return { ok: false, error: `${f} too long` };
-    out[f] = v;
-  }
-
-  if ("severity_tier" in raw) {
-    const v = raw.severity_tier;
-    if (typeof v !== "string" || !SEVERITY_VALUES.includes(v as (typeof SEVERITY_VALUES)[number])) {
-      return { ok: false, error: "Invalid severity_tier" };
-    }
-    out.severity_tier = v;
-  }
-
-  if ("penalty_estimate_cents" in raw) {
-    const v = raw.penalty_estimate_cents;
-    if (v === null || v === "") {
-      out.penalty_estimate_cents = "";
-    } else {
-      const n = typeof v === "number" ? v : Number(v);
-      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
-        return { ok: false, error: "penalty_estimate_cents must be a non-negative integer" };
-      }
-      out.penalty_estimate_cents = String(n);
-    }
-  }
-
-  for (const f of ["effective_date", "sunset_date"] as const) {
-    if (!(f in raw)) continue;
-    const v = raw[f];
-    if (v === null || v === "") {
-      if (f === "sunset_date") {
-        out.sunset_date = "";
-        continue;
-      }
-      return { ok: false, error: `${f} cannot be empty` };
-    }
-    if (typeof v !== "string" || !ISO_DATE_RE.test(v)) {
-      return { ok: false, error: `${f} must be YYYY-MM-DD` };
-    }
-    out[f] = v;
-  }
-
-  for (const f of ["due_date_rule", "applies_when"] as const) {
-    if (!(f in raw)) continue;
-    const v = raw[f];
-    if (!v || typeof v !== "object" || Array.isArray(v)) {
-      return { ok: false, error: `${f} must be an object` };
-    }
-    out[f] = v;
-  }
-
-  if (Object.keys(out).length === 0) {
-    return { ok: false, error: "No changes provided" };
-  }
-  return { ok: true, value: out };
-}

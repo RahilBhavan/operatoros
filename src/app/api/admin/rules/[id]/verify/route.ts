@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,7 @@ export async function POST(
 
   const { error } = await updater;
   if (error) {
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    return dbError("admin:rules/verify", error);
   }
 
   // Platform-level event (no specific business_id). The audit_events.business_id

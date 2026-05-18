@@ -216,3 +216,54 @@ export async function sendCorrectionStatusEmail(params: CorrectionStatusEmailPar
 
   if (error) throw new Error(`Correction-status email send failed: ${error.message}`);
 }
+
+export interface TrialEndingEmailParams {
+  to: string;
+  businessName: string | null;
+  trialEndIso: string;
+  billingUrl: string;
+}
+
+export async function sendTrialEndingEmail(params: TrialEndingEmailParams) {
+  const { to, businessName, trialEndIso, billingUrl } = params;
+  const safeName = businessName ? escapeHtml(businessName) : "there";
+  const safeBilling = billingUrl.startsWith("https://") ? billingUrl : "";
+  const trialEndsLabel = new Date(trialEndIso).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const subject = `Your OperatorOS trial ends ${trialEndsLabel}`;
+
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    to,
+    subject,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+        <div style="margin-bottom: 20px;">
+          <span style="font-weight: 700; font-size: 18px; color: #1e293b;">OperatorOS</span>
+        </div>
+
+        <p style="color: #0f172a; font-size: 18px; font-weight: 600; margin: 0 0 12px;">Your trial ends ${trialEndsLabel}</p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">
+          Hi ${safeName} — heads up that your OperatorOS trial converts to a paid subscription on <strong>${trialEndsLabel}</strong>. You don't need to do anything to keep your deadlines, reminders, and AI insights running.
+        </p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 20px;">
+          If you'd like to change plans, update payment, or cancel before the trial ends, you can do all three from the billing page.
+        </p>
+
+        <a href="${safeBilling}" style="display: inline-block; background: #2563eb; color: white; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none; margin: 0 0 16px;">
+          Manage billing →
+        </a>
+
+        <p style="font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; margin: 16px 0 0;">
+          This is the standard Stripe trial-ending notice — sent once, three days before the trial converts.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) throw new Error(`Trial-ending email send failed: ${error.message}`);
+}

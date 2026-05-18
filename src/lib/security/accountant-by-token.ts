@@ -109,11 +109,9 @@ export async function loadAccountantPortalByToken(
     supabase
       .from("accountant_deadline_notes")
       .select("deadline_id, note")
-      // Notes were keyed by raw token (accountant_token column). With plaintext
-      // tokens dropped, lookup must shift to connection_id. The schema column
-      // rename is in the parallel audit_remediation migration; if that lands as
-      // `connection_id`, this filter is correct. TODO: confirm column name once
-      // migration is applied and supabase types regenerate.
+      // Notes are keyed by accountant_connections.id (the accountant_token
+      // column was dropped in 20260517000002_audit_remediation; the unique
+      // index is now (deadline_id, connection_id)).
       .eq("connection_id" as never, connection.id),
     supabase.from("accountant_access_log").insert({
       connection_id: connection.id,

@@ -2,7 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReminderEmail } from "@/lib/email";
+import { isSmsConfigured, sendSms } from "@/lib/sms";
+import { track } from "@/lib/analytics";
 import { computeRiskWeightedScore, computeAutoStatus } from "@/lib/deadline-utils";
+
+const SEVERITY_RANK: Record<string, number> = {
+  critical: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+  info: 0,
+};
+
+function inQuietHours(
+  now: Date,
+  start: string | null,
+  end: string | null
+): boolean {
+  if (!start || !end) return false;
+  const hhmm = `${String(now.getUTCHours()).padStart(2, "0")}:${String(
+    now.getUTCMinutes()
+  ).padStart(2, "0")}`;
+  // Window wraps midnight if end < start (e.g. 22:00 → 07:00).
+  if (start <= end) return hhmm >= start && hhmm < end;
+  return hhmm >= start || hhmm < end;
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -230,6 +254,19 @@ export async function GET(req: NextRequest) {
           status: "sent",
         });
 
+        // WS-E — track each reminder for funnel reporting.
+        void track({
+          distinctId: deadline.business_id,
+          event: "reminder_sent",
+          properties: {
+            channel: "email",
+            severity: deadline.severity_tier ?? "medium",
+            days_until_due: days,
+            reminder_type: type,
+          },
+          groups: { business: deadline.business_id },
+        });
+
         processed++;
       } catch {
         toInsert.push({
@@ -248,6 +285,119 @@ export async function GET(req: NextRequest) {
     await supabase.from("reminder_log").insert(toInsert);
   }
 
+  // WS-1.1 — SMS fan-out alongside email. Only T-7 / T-1 windows; SMS at
+  // 30+ days is noisy. Gated on Twilio env vars + per-user opt-in with TCPA
+  // ack recorded.
+  let smsSent = 0;
+  let smsErrors = 0;
+  if (isSmsConfigured()) {
+    const smsOwnerIds = [
+      ...new Set(
+        deadlines
+          .map((d) => {
+            const biz = Array.isArray(d.businesses) ? d.businesses[0] : d.businesses;
+            return biz?.owner_id;
+          })
+          .filter(Boolean) as string[]
+      ),
+    ];
+
+    const { data: smsPrefRows } = await supabase
+      .from("notification_preferences")
+      .select(
+        "user_id, sms_enabled, phone_number, phone_verified_at, sms_severity_threshold, quiet_hours_start, quiet_hours_end, tcpa_opted_in_at"
+      )
+      .in("user_id", smsOwnerIds);
+
+    const smsPrefByOwner = new Map<
+      string,
+      NonNullable<typeof smsPrefRows>[number]
+    >();
+    for (const p of smsPrefRows ?? []) smsPrefByOwner.set(p.user_id, p);
+
+    for (const deadline of deadlines) {
+      const business = Array.isArray(deadline.businesses)
+        ? deadline.businesses[0]
+        : deadline.businesses;
+      if (!business) continue;
+      const isEligible =
+        business.billing_status === "active" ||
+        business.billing_status === "trialing";
+      const hasPremiumPlan =
+        business.plan_tier === "business" ||
+        business.plan_tier === "accountant";
+      if (!isEligible || !hasPremiumPlan) continue;
+
+      // Match the dueDate against the same windows. SMS only at T-7 / T-1.
+      const target = targetDates.find((t) => t.dateStr === deadline.due_date);
+      if (!target) continue;
+      if (target.type !== "7_day" && target.type !== "1_day") continue;
+
+      const prefs = smsPrefByOwner.get(business.owner_id);
+      if (!prefs) continue;
+      if (!prefs.sms_enabled) continue;
+      if (!prefs.tcpa_opted_in_at) continue;
+      if (!prefs.phone_number) continue;
+
+      const sevRank =
+        SEVERITY_RANK[deadline.severity_tier ?? "medium"] ?? 0;
+      const thresholdRank =
+        SEVERITY_RANK[prefs.sms_severity_threshold ?? "high"] ?? 3;
+      if (sevRank < thresholdRank) continue;
+
+      if (
+        inQuietHours(
+          now,
+          prefs.quiet_hours_start,
+          prefs.quiet_hours_end
+        )
+      ) {
+        continue;
+      }
+
+      // Idempotency: re-use reminder_log keys for SMS by suffixing the type.
+      if (sentSet.has(`${deadline.id}:sms-${target.type}`)) continue;
+
+      const days = REMINDER_WINDOWS.find((w) => w.type === target.type)?.days ?? 0;
+      const body = `OperatorOS: "${deadline.name}" due in ${days} day${days === 1 ? "" : "s"} (${deadline.due_date}). Reply STOP to end.`;
+      const result = await sendSms({
+        toPhone: prefs.phone_number,
+        body,
+        userId: business.owner_id,
+        businessId: deadline.business_id,
+        kind: "reminder",
+      });
+      if (result.ok) {
+        smsSent++;
+        await supabase.from("reminder_log").insert({
+          deadline_id: deadline.id,
+          business_id: deadline.business_id,
+          // Cast: the generated supabase types still constrain reminder_type
+          // to the email-only values from 20260513000004_billing.sql; the
+          // 20260518000011_reminder_log_sms migration extends the CHECK to
+          // accept sms-* prefixes but types haven't been regenerated.
+          reminder_type: `sms-${target.type}` as ReminderType,
+          recipient_email: prefs.phone_number,
+          status: "sent",
+        });
+        // WS-E — funnel signal for SMS channel.
+        void track({
+          distinctId: deadline.business_id,
+          event: "reminder_sent",
+          properties: {
+            channel: "sms",
+            severity: deadline.severity_tier ?? "medium",
+            days_until_due: days,
+            reminder_type: target.type,
+          },
+          groups: { business: deadline.business_id },
+        });
+      } else {
+        smsErrors++;
+      }
+    }
+  }
+
   await snapshotComplianceScores(supabase);
 
   // Daily housekeeping: refresh the rule_confidence materialised view (kept
@@ -259,7 +409,13 @@ export async function GET(req: NextRequest) {
     (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("cleanup_auth_rate_limits"),
   ]);
 
-  return NextResponse.json({ processed, errors, timestamp: nowIso });
+  return NextResponse.json({
+    processed,
+    errors,
+    sms_sent: smsSent,
+    sms_errors: smsErrors,
+    timestamp: nowIso,
+  });
 }
 
 async function snapshotComplianceScores(

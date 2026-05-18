@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/security/token-hash";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     .select("id, expires_at")
     .single();
   if (error || !invite) {
-    return NextResponse.json({ error: "Failed to create invite" }, { status: 500 });
+    return dbError("admin:invites/create", error);
   }
 
   return NextResponse.json({
@@ -65,7 +66,7 @@ export async function DELETE(req: NextRequest) {
     .update({ revoked_at: new Date().toISOString() })
     .eq("id", id)
     .is("used_at", null);
-  if (error) return NextResponse.json({ error: "Revoke failed" }, { status: 500 });
+  if (error) return dbError("admin:invites/revoke", error);
 
   return NextResponse.json({ ok: true });
 }

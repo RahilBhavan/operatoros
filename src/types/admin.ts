@@ -6,7 +6,7 @@ export type BusinessSummary = {
   name: string;
   owner_id: string;
   owner_email: string | null;
-  plan_tier: "free" | "business" | "accountant";
+  plan_tier: "free" | "lite" | "business" | "accountant";
   billing_status: "trialing" | "active" | "past_due" | "canceled" | "inactive";
   trial_ends_at: string | null;
   created_at: string;

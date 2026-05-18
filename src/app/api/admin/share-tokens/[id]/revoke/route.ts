@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -26,9 +27,10 @@ export async function DELETE(
     .from("share_tokens")
     .update({ revoked_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) return NextResponse.json({ error: "Revoke failed" }, { status: 500 });
+  if (error) return dbError("admin:share-tokens/revoke", error);
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: token.business_id,
     actor_user_id: auth.user.id,
     event_type: "platform.share_token_revoked",

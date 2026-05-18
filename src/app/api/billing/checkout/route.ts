@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, getPriceId, PLANS, type PaidPlanTier } from "@/lib/stripe";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { BILLING_CHECKOUT_LIMIT } from "@/lib/security/rate-limits";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -16,7 +17,11 @@ export async function POST(req: NextRequest) {
   // Bound Stripe customer creation per user — without this a script could
   // spam this endpoint and burn Stripe API quota (and pollute Stripe data
   // until the customer_id is set on the businesses row).
-  const allowed = await consumeRateLimit(`billing:checkout:${user.id}`, 10, 3600);
+  const allowed = await consumeRateLimit(
+    `billing:checkout:${user.id}`,
+    BILLING_CHECKOUT_LIMIT.max,
+    BILLING_CHECKOUT_LIMIT.windowSeconds
+  );
   if (!allowed) {
     return NextResponse.json(
       { error: "Too many checkout attempts. Try again in an hour." },

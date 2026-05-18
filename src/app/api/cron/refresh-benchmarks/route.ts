@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,10 +42,7 @@ export async function GET(req: NextRequest) {
 
   const { error } = await rpc("refresh_industry_benchmarks");
   if (error) {
-    return NextResponse.json(
-      { error: "refresh_failed", message: error.message },
-      { status: 500 }
-    );
+    return dbError("cron:refresh-benchmarks", error);
   }
 
   // Weekly backstop refresh of rule_confidence in addition to the daily one

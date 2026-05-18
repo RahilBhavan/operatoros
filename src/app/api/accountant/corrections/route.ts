@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/security/token-hash";
+import { ACCOUNTANT_CORRECTION_LIMIT } from "@/lib/security/rate-limits";
 import {
   validateProposedChanges,
   validateRationale,
@@ -89,8 +90,8 @@ export async function POST(req: NextRequest) {
 
   const { data: allowed, error: rateError } = await rateRpc("try_consume_auth_rate_limit", {
     p_key: `correction:${connection.id}`,
-    p_max_attempts: 10,
-    p_window_seconds: 60 * 60,
+    p_max_attempts: ACCOUNTANT_CORRECTION_LIMIT.max,
+    p_window_seconds: ACCOUNTANT_CORRECTION_LIMIT.windowSeconds,
   });
   if (rateError) {
     console.error("[corrections] rate-limit RPC failed", rateError.message);

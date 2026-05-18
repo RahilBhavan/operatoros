@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCorrectionStatusEmail } from "@/lib/email";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -53,7 +54,7 @@ export async function POST(
     if (error?.code === "P0002") {
       return NextResponse.json({ error: "Correction not found" }, { status: 404 });
     }
-    return NextResponse.json({ error: "Accept failed" }, { status: 500 });
+    return dbError("admin:corrections/accept", error);
   }
 
   // Audit — same shape the verify/edit routes use. The accept RPC has

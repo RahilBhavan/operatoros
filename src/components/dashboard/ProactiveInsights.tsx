@@ -7,6 +7,8 @@ interface Insight {
   title: string;
   body: string;
   urgency: "high" | "medium" | "low";
+  source_url?: string;
+  agency?: string;
 }
 
 const URGENCY_LABEL: Record<Insight["urgency"], string> = {
@@ -15,14 +17,34 @@ const URGENCY_LABEL: Record<Insight["urgency"], string> = {
   low: "Low",
 };
 
+function formatRefreshed(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.round(diffMs / 60000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    return d.toLocaleDateString();
+  } catch {
+    return "";
+  }
+}
+
 export default function ProactiveInsights() {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [sharingIndex, setSharingIndex] = useState<number | null>(null);
+  const [shareStatus, setShareStatus] = useState<
+    { index: number; ok: boolean; message: string } | null
+  >(null);
 
   async function load() {
-    if (loaded) return;
     setLoading(true);
     setError("");
 
@@ -42,6 +64,46 @@ export default function ProactiveInsights() {
     }
 
     setInsights(data.insights ?? []);
+    setGeneratedAt(data.generated_at ?? null);
+  }
+
+  async function shareWithAccountant(insight: Insight, idx: number) {
+    setSharingIndex(idx);
+    setShareStatus(null);
+    try {
+      const res = await fetch("/api/ai/share-with-accountant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: insight.title,
+          body: insight.body,
+          agency: insight.agency,
+          source_url: insight.source_url,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShareStatus({
+          index: idx,
+          ok: true,
+          message: `Sent to ${data.sent_to}`,
+        });
+      } else {
+        setShareStatus({
+          index: idx,
+          ok: false,
+          message: data.error ?? "Failed to send.",
+        });
+      }
+    } catch {
+      setShareStatus({
+        index: idx,
+        ok: false,
+        message: "Network error.",
+      });
+    } finally {
+      setSharingIndex(null);
+    }
   }
 
   return (
@@ -65,7 +127,13 @@ export default function ProactiveInsights() {
           className="t-utility"
           style={{ color: "var(--color-field)" }}
         >
-          {loaded ? "↺ Refresh" : loading ? "Loading…" : "Run →"}
+          {loaded && generatedAt
+            ? `↺ Refresh · ${formatRefreshed(generatedAt)}`
+            : loaded
+            ? "↺ Refresh"
+            : loading
+            ? "Loading…"
+            : "Run →"}
         </span>
       </button>
 
@@ -157,23 +225,40 @@ export default function ProactiveInsights() {
                 acting.
               </p>
             </div>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-4">
               {insights.map((insight, i) => {
                 const isHigh = insight.urgency === "high";
                 const accent = isHigh
                   ? "var(--color-mark)"
                   : "var(--color-ground)";
+                const status = shareStatus?.index === i ? shareStatus : null;
                 return (
                   <li
                     key={i}
                     className="border-l-4 border-[var(--color-ground)] pl-4"
                     style={{ borderLeftColor: accent }}
                   >
+                    {/* Agency leads — visual anchor per WS-1.4. */}
+                    {insight.agency ? (
+                      <div
+                        className="t-utility"
+                        style={{ color: accent }}
+                      >
+                        {insight.agency} · {URGENCY_LABEL[insight.urgency]}
+                      </div>
+                    ) : (
+                      <div
+                        className="t-utility"
+                        style={{ color: accent }}
+                      >
+                        {URGENCY_LABEL[insight.urgency]}
+                      </div>
+                    )}
                     <div
-                      className="t-utility"
-                      style={{ color: accent }}
+                      className="mt-1 font-bold text-[15px]"
+                      style={{ fontFamily: "var(--font-index)" }}
                     >
-                      {URGENCY_LABEL[insight.urgency]} · {insight.title}
+                      {insight.title}
                     </div>
                     <p
                       className="mt-1 text-[14px] leading-relaxed"
@@ -181,6 +266,42 @@ export default function ProactiveInsights() {
                     >
                       {insight.body}
                     </p>
+                    {insight.source_url ? (
+                      <div className="mt-2">
+                        <a
+                          href={insight.source_url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="t-utility text-[var(--color-mark)] underline underline-offset-4"
+                        >
+                          Source →
+                        </a>
+                      </div>
+                    ) : null}
+                    <div className="mt-2 flex items-center gap-3 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => shareWithAccountant(insight, i)}
+                        disabled={sharingIndex === i}
+                        className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] disabled:opacity-50"
+                      >
+                        {sharingIndex === i
+                          ? "Sending…"
+                          : "→ Share with my accountant"}
+                      </button>
+                      {status ? (
+                        <span
+                          className="t-utility"
+                          style={{
+                            color: status.ok
+                              ? "var(--color-mark)"
+                              : "var(--color-ground)",
+                          }}
+                        >
+                          {status.message}
+                        </span>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}

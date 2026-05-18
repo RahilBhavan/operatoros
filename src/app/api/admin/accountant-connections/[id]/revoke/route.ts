@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { dbError } from "@/lib/api/respond";
 
 export const runtime = "nodejs";
 
@@ -26,9 +27,10 @@ export async function DELETE(
     .from("accountant_connections")
     .update({ revoked_at: new Date().toISOString() })
     .eq("id", id);
-  if (error) return NextResponse.json({ error: "Revoke failed" }, { status: 500 });
+  if (error) return dbError("admin:accountant-connections/revoke", error);
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: conn.business_id,
     actor_user_id: auth.user.id,
     event_type: "platform.accountant_connection_revoked",

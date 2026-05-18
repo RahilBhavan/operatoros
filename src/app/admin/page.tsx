@@ -53,9 +53,17 @@ export default async function AdminOverviewPage() {
         {/* Primary KPI strip */}
         <div className="bg-[var(--color-field)] grid grid-cols-2 lg:grid-cols-4 divide-x-2 divide-y-2 lg:divide-y-0 divide-[var(--color-ground)]">
           <StatCell
-            label="MRR (PLAN × COUNT)"
+            label={
+              kpis.mrr_source === "stripe"
+                ? "MRR (STRIPE TRUTH)"
+                : "MRR (PLAN × COUNT)"
+            }
             value={formatCents(kpis.mrr_cents)}
-            sub={`${kpis.paying} paying · ${kpis.trialing} trialing`}
+            sub={
+              kpis.mrr_source === "stripe"
+                ? `${kpis.paying} paying · ${kpis.trialing} trialing`
+                : `${kpis.paying} paying · ${kpis.trialing} trialing · approximate`
+            }
             big
           />
           <StatCell

@@ -66,8 +66,9 @@ export async function POST(req: NextRequest) {
   // promote at accept time. The intended role rides along in audit_events
   // metadata so the accept handler can read it back.
   //
-  // FIXME: when memberships.user_id is allowed NULL (parallel migration),
-  // drop the placeholder entirely and stop pinning the role.
+  // Future cleanup (non-blocking): when a follow-on migration makes
+  // memberships.user_id nullable, drop the placeholder + role pin entirely.
+  // Today's workaround is the audited fix for the M-series finding.
   const pendingRole = "member" as const;
 
   const { data: existing } = await admin
@@ -112,7 +113,8 @@ export async function POST(req: NextRequest) {
     membershipId = inserted.id;
   }
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent } = await import("@/lib/audit-log");
+  await writeAuditEvent(admin, {
     business_id: business.id,
     actor_user_id: user.id,
     event_type: "team.invite_sent",
@@ -194,7 +196,8 @@ export async function DELETE(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: "Revoke failed" }, { status: 500 });
 
-  await admin.from("audit_events").insert({
+  const { writeAuditEvent: writeAuditEvent2 } = await import("@/lib/audit-log");
+  await writeAuditEvent2(admin, {
     business_id: business.id,
     actor_user_id: user.id,
     event_type: "team.invite_revoked",

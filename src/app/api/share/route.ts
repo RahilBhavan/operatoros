@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/security/token-hash";
+import { SHARE_TOKEN_LIMIT } from "@/lib/security/rate-limits";
 
 const EXPIRY_DAYS = new Set([7, 30, 90, 365]);
 
@@ -51,8 +52,8 @@ export async function POST(req: NextRequest) {
     "try_consume_auth_rate_limit",
     {
       p_key: `share:create:${user.id}`,
-      p_max_attempts: 20,
-      p_window_seconds: 3600,
+      p_max_attempts: SHARE_TOKEN_LIMIT.max,
+      p_window_seconds: SHARE_TOKEN_LIMIT.windowSeconds,
     }
   );
   if (rateError) {

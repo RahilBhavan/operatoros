@@ -118,9 +118,11 @@ export type Database = {
           onboarding_complete: boolean;
           stripe_customer_id: string | null;
           stripe_subscription_id: string | null;
-          plan_tier: "free" | "business" | "accountant";
+          plan_tier: "free" | "lite" | "business" | "accountant";
           billing_status: "trialing" | "active" | "past_due" | "canceled" | "inactive";
           trial_ends_at: string | null;
+          invited_by_accountant_id: string | null;
+          invite_code: string | null;
         };
         Insert: {
           id?: string;
@@ -134,9 +136,11 @@ export type Database = {
           onboarding_complete?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
-          plan_tier?: "free" | "business" | "accountant";
+          plan_tier?: "free" | "lite" | "business" | "accountant";
           billing_status?: "trialing" | "active" | "past_due" | "canceled" | "inactive";
           trial_ends_at?: string | null;
+          invited_by_accountant_id?: string | null;
+          invite_code?: string | null;
         };
         Update: {
           id?: string;
@@ -150,9 +154,44 @@ export type Database = {
           onboarding_complete?: boolean;
           stripe_customer_id?: string | null;
           stripe_subscription_id?: string | null;
-          plan_tier?: "free" | "business" | "accountant";
+          plan_tier?: "free" | "lite" | "business" | "accountant";
           billing_status?: "trialing" | "active" | "past_due" | "canceled" | "inactive";
           trial_ends_at?: string | null;
+          invited_by_accountant_id?: string | null;
+          invite_code?: string | null;
+        };
+        Relationships: [];
+      };
+      accountant_invite_links: {
+        Row: {
+          id: string;
+          accountant_id: string;
+          code: string;
+          label: string | null;
+          signups_count: number;
+          paid_conversions_count: number;
+          created_at: string;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          accountant_id: string;
+          code: string;
+          label?: string | null;
+          signups_count?: number;
+          paid_conversions_count?: number;
+          created_at?: string;
+          revoked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          accountant_id?: string;
+          code?: string;
+          label?: string | null;
+          signups_count?: number;
+          paid_conversions_count?: number;
+          created_at?: string;
+          revoked_at?: string | null;
         };
         Relationships: [];
       };
@@ -165,6 +204,12 @@ export type Database = {
           state: string;
           county: string | null;
           zip: string | null;
+          // WS-3.4 — multi-location columns added in 20260518000005.
+          name: string | null;
+          open_date: string | null;
+          close_date: string | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -174,6 +219,9 @@ export type Database = {
           state: string;
           county?: string | null;
           zip?: string | null;
+          name?: string | null;
+          open_date?: string | null;
+          close_date?: string | null;
         };
         Update: {
           id?: string;
@@ -183,6 +231,9 @@ export type Database = {
           state?: string;
           county?: string | null;
           zip?: string | null;
+          name?: string | null;
+          open_date?: string | null;
+          close_date?: string | null;
         };
         Relationships: [
           {
@@ -945,6 +996,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_subscriptions: {
+        Row: {
+          id: string;
+          business_id: string | null;
+          customer_id: string;
+          status: string;
+          price_id: string;
+          plan_tier: "business" | "accountant" | "lite";
+          current_period_start: string;
+          current_period_end: string;
+          cancel_at_period_end: boolean;
+          canceled_at: string | null;
+          trial_end: string | null;
+          unit_amount_cents: number;
+          currency: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          business_id?: string | null;
+          customer_id: string;
+          status: string;
+          price_id: string;
+          plan_tier: "business" | "accountant" | "lite";
+          current_period_start: string;
+          current_period_end: string;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_end?: string | null;
+          unit_amount_cents: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string | null;
+          customer_id?: string;
+          status?: string;
+          price_id?: string;
+          plan_tier?: "business" | "accountant" | "lite";
+          current_period_start?: string;
+          current_period_end?: string;
+          cancel_at_period_end?: boolean;
+          canceled_at?: string | null;
+          trial_end?: string | null;
+          unit_amount_cents?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       industry_benchmarks: {
@@ -973,6 +1075,810 @@ export type Database = {
           pending_corrections: number;
           rejected_corrections: number;
           last_verified_at: string | null;
+        };
+        Relationships: [];
+      };
+      staff_members: {
+        Row: {
+          id: string;
+          business_id: string;
+          full_name: string;
+          email: string | null;
+          role: string | null;
+          employment_type: "w2" | "1099" | "volunteer" | "owner" | "other" | null;
+          hire_date: string | null;
+          end_date: string | null;
+          user_id: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          full_name: string;
+          email?: string | null;
+          role?: string | null;
+          employment_type?: "w2" | "1099" | "volunteer" | "owner" | "other" | null;
+          hire_date?: string | null;
+          end_date?: string | null;
+          user_id?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          full_name?: string;
+          email?: string | null;
+          role?: string | null;
+          employment_type?: "w2" | "1099" | "volunteer" | "owner" | "other" | null;
+          hire_date?: string | null;
+          end_date?: string | null;
+          user_id?: string | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      credential_types: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          agency: string | null;
+          jurisdiction_code: string | null;
+          vertical_tag:
+            | "healthcare"
+            | "construction"
+            | "food_service"
+            | "personal_services"
+            | "retail"
+            | "transportation"
+            | "manufacturing"
+            | "fitness"
+            | "business_services"
+            | "other"
+            | null;
+          default_validity_days: number | null;
+          description: string | null;
+          source_url: string | null;
+          ce_required_hours: number | null;
+          ce_period_months: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          agency?: string | null;
+          jurisdiction_code?: string | null;
+          vertical_tag?:
+            | "healthcare"
+            | "construction"
+            | "food_service"
+            | "personal_services"
+            | "retail"
+            | "transportation"
+            | "manufacturing"
+            | "fitness"
+            | "business_services"
+            | "other"
+            | null;
+          default_validity_days?: number | null;
+          description?: string | null;
+          source_url?: string | null;
+          ce_required_hours?: number | null;
+          ce_period_months?: number | null;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          agency?: string | null;
+          jurisdiction_code?: string | null;
+          vertical_tag?:
+            | "healthcare"
+            | "construction"
+            | "food_service"
+            | "personal_services"
+            | "retail"
+            | "transportation"
+            | "manufacturing"
+            | "fitness"
+            | "business_services"
+            | "other"
+            | null;
+          default_validity_days?: number | null;
+          description?: string | null;
+          source_url?: string | null;
+          ce_required_hours?: number | null;
+          ce_period_months?: number | null;
+        };
+        Relationships: [];
+      };
+      staff_credentials: {
+        Row: {
+          id: string;
+          staff_member_id: string;
+          credential_type_id: string;
+          business_id: string;
+          identifier: string | null;
+          issued_date: string | null;
+          expires_date: string | null;
+          status: "active" | "expired" | "pending" | "revoked";
+          document_id: string | null;
+          last_verified_at: string | null;
+          last_verified_by: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_member_id: string;
+          credential_type_id: string;
+          business_id: string;
+          identifier?: string | null;
+          issued_date?: string | null;
+          expires_date?: string | null;
+          status?: "active" | "expired" | "pending" | "revoked";
+          document_id?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          staff_member_id?: string;
+          credential_type_id?: string;
+          business_id?: string;
+          identifier?: string | null;
+          issued_date?: string | null;
+          expires_date?: string | null;
+          status?: "active" | "expired" | "pending" | "revoked";
+          document_id?: string | null;
+          last_verified_at?: string | null;
+          last_verified_by?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      credential_renewals_log: {
+        Row: {
+          id: string;
+          staff_credential_id: string;
+          business_id: string;
+          event_kind:
+            | "renewed"
+            | "reminder_sent"
+            | "expired_observed"
+            | "verified"
+            | "revoked";
+          previous_expires_date: string | null;
+          new_expires_date: string | null;
+          channel: "email" | "sms" | "in_app" | null;
+          recipient: string | null;
+          notes: string | null;
+          recorded_by: string | null;
+          recorded_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_credential_id: string;
+          business_id: string;
+          event_kind:
+            | "renewed"
+            | "reminder_sent"
+            | "expired_observed"
+            | "verified"
+            | "revoked";
+          previous_expires_date?: string | null;
+          new_expires_date?: string | null;
+          channel?: "email" | "sms" | "in_app" | null;
+          recipient?: string | null;
+          notes?: string | null;
+          recorded_by?: string | null;
+        };
+        Update: {
+          event_kind?:
+            | "renewed"
+            | "reminder_sent"
+            | "expired_observed"
+            | "verified"
+            | "revoked";
+          previous_expires_date?: string | null;
+          new_expires_date?: string | null;
+          channel?: "email" | "sms" | "in_app" | null;
+          recipient?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      audit_binders: {
+        Row: {
+          id: string;
+          business_id: string;
+          name: string;
+          agency: string | null;
+          scope: string | null;
+          inspection_date: string | null;
+          snapshot: Record<string, unknown>;
+          share_token_id: string | null;
+          status: "draft" | "locked" | "expired";
+          locked_at: string | null;
+          locked_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          name: string;
+          agency?: string | null;
+          scope?: string | null;
+          inspection_date?: string | null;
+          snapshot?: Record<string, unknown>;
+          share_token_id?: string | null;
+          status?: "draft" | "locked" | "expired";
+          locked_at?: string | null;
+          locked_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          agency?: string | null;
+          scope?: string | null;
+          inspection_date?: string | null;
+          snapshot?: Record<string, unknown>;
+          share_token_id?: string | null;
+          status?: "draft" | "locked" | "expired";
+          locked_at?: string | null;
+          locked_by?: string | null;
+        };
+        Relationships: [];
+      };
+      coi_recipients: {
+        Row: {
+          id: string;
+          business_id: string;
+          name: string;
+          email: string | null;
+          address: string | null;
+          requirements: string | null;
+          recurring: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          name: string;
+          email?: string | null;
+          address?: string | null;
+          requirements?: string | null;
+          recurring?: boolean;
+          notes?: string | null;
+        };
+        Update: {
+          name?: string;
+          email?: string | null;
+          address?: string | null;
+          requirements?: string | null;
+          recurring?: boolean;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      coi_issues: {
+        Row: {
+          id: string;
+          business_id: string;
+          recipient_id: string;
+          document_id: string | null;
+          effective_date: string | null;
+          expiry_date: string;
+          issued_at: string;
+          issued_by: string | null;
+          delivery_channel: "email" | "share_link" | "manual";
+          share_token_id: string | null;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          recipient_id: string;
+          document_id?: string | null;
+          effective_date?: string | null;
+          expiry_date: string;
+          issued_at?: string;
+          issued_by?: string | null;
+          delivery_channel?: "email" | "share_link" | "manual";
+          share_token_id?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          recipient_id?: string;
+          document_id?: string | null;
+          effective_date?: string | null;
+          expiry_date?: string;
+          delivery_channel?: "email" | "share_link" | "manual";
+          share_token_id?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      projects: {
+        Row: {
+          id: string;
+          business_id: string;
+          name: string;
+          address: string | null;
+          jurisdiction_code: string | null;
+          customer_name: string | null;
+          gc_business_name: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          status: "planned" | "active" | "on_hold" | "completed" | "cancelled";
+          value_cents: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          name: string;
+          address?: string | null;
+          jurisdiction_code?: string | null;
+          customer_name?: string | null;
+          gc_business_name?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: "planned" | "active" | "on_hold" | "completed" | "cancelled";
+          value_cents?: number | null;
+          notes?: string | null;
+        };
+        Update: {
+          name?: string;
+          address?: string | null;
+          jurisdiction_code?: string | null;
+          customer_name?: string | null;
+          gc_business_name?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: "planned" | "active" | "on_hold" | "completed" | "cancelled";
+          value_cents?: number | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      project_deadlines: {
+        Row: {
+          id: string;
+          project_id: string;
+          business_id: string;
+          name: string;
+          description: string | null;
+          governing_agency: string | null;
+          due_date: string;
+          status: "upcoming" | "in_progress" | "compliant" | "overdue";
+          severity_tier: "critical" | "high" | "medium" | "low" | "info";
+          document_id: string | null;
+          source_url: string | null;
+          statute_citation: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          business_id: string;
+          name: string;
+          description?: string | null;
+          governing_agency?: string | null;
+          due_date: string;
+          status?: "upcoming" | "in_progress" | "compliant" | "overdue";
+          severity_tier?: "critical" | "high" | "medium" | "low" | "info";
+          document_id?: string | null;
+          source_url?: string | null;
+          statute_citation?: string | null;
+        };
+        Update: {
+          name?: string;
+          description?: string | null;
+          governing_agency?: string | null;
+          due_date?: string;
+          status?: "upcoming" | "in_progress" | "compliant" | "overdue";
+          severity_tier?: "critical" | "high" | "medium" | "low" | "info";
+          document_id?: string | null;
+          source_url?: string | null;
+          statute_citation?: string | null;
+        };
+        Relationships: [];
+      };
+      project_documents: {
+        Row: {
+          id: string;
+          project_id: string;
+          document_id: string;
+          business_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          document_id: string;
+          business_id: string;
+        };
+        Update: { project_id?: string; document_id?: string };
+        Relationships: [];
+      };
+      ce_requirements: {
+        Row: {
+          id: string;
+          credential_type_id: string;
+          jurisdiction_code: string | null;
+          period_months: number;
+          hours_required: number;
+          category_breakdown: Record<string, unknown>;
+          source_url: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          credential_type_id: string;
+          jurisdiction_code?: string | null;
+          period_months: number;
+          hours_required: number;
+          category_breakdown?: Record<string, unknown>;
+          source_url?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          credential_type_id?: string;
+          jurisdiction_code?: string | null;
+          period_months?: number;
+          hours_required?: number;
+          category_breakdown?: Record<string, unknown>;
+          source_url?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      ce_credits: {
+        Row: {
+          id: string;
+          staff_credential_id: string;
+          business_id: string;
+          hours: number;
+          category: string | null;
+          course_name: string | null;
+          provider: string | null;
+          completed_at: string;
+          source_url: string | null;
+          document_id: string | null;
+          notes: string | null;
+          recorded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_credential_id: string;
+          business_id: string;
+          hours: number;
+          category?: string | null;
+          course_name?: string | null;
+          provider?: string | null;
+          completed_at: string;
+          source_url?: string | null;
+          document_id?: string | null;
+          notes?: string | null;
+          recorded_by?: string | null;
+        };
+        Update: {
+          hours?: number;
+          category?: string | null;
+          course_name?: string | null;
+          provider?: string | null;
+          completed_at?: string;
+          source_url?: string | null;
+          document_id?: string | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          email_enabled: boolean;
+          sms_enabled: boolean;
+          phone_number: string | null;
+          phone_verified_at: string | null;
+          sms_severity_threshold:
+            | "critical"
+            | "high"
+            | "medium"
+            | "low"
+            | "info";
+          quiet_hours_start: string | null;
+          quiet_hours_end: string | null;
+          tcpa_opted_in_at: string | null;
+          tcpa_opt_in_ip: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          email_enabled?: boolean;
+          sms_enabled?: boolean;
+          phone_number?: string | null;
+          phone_verified_at?: string | null;
+          sms_severity_threshold?:
+            | "critical"
+            | "high"
+            | "medium"
+            | "low"
+            | "info";
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          tcpa_opted_in_at?: string | null;
+          tcpa_opt_in_ip?: string | null;
+        };
+        Update: {
+          email_enabled?: boolean;
+          sms_enabled?: boolean;
+          phone_number?: string | null;
+          phone_verified_at?: string | null;
+          sms_severity_threshold?:
+            | "critical"
+            | "high"
+            | "medium"
+            | "low"
+            | "info";
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+          tcpa_opted_in_at?: string | null;
+          tcpa_opt_in_ip?: string | null;
+        };
+        Relationships: [];
+      };
+      sms_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          business_id: string | null;
+          to_phone: string;
+          body: string;
+          kind: "reminder" | "verification" | "system";
+          provider: "twilio";
+          provider_message_id: string | null;
+          status: "queued" | "sent" | "delivered" | "failed" | "undelivered";
+          cost_cents: number | null;
+          error_code: string | null;
+          sent_at: string;
+          delivered_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          business_id?: string | null;
+          to_phone: string;
+          body: string;
+          kind: "reminder" | "verification" | "system";
+          provider?: "twilio";
+          provider_message_id?: string | null;
+          status?: "queued" | "sent" | "delivered" | "failed" | "undelivered";
+          cost_cents?: number | null;
+          error_code?: string | null;
+          sent_at?: string;
+          delivered_at?: string | null;
+        };
+        Update: {
+          status?: "queued" | "sent" | "delivered" | "failed" | "undelivered";
+          provider_message_id?: string | null;
+          cost_cents?: number | null;
+          error_code?: string | null;
+          delivered_at?: string | null;
+        };
+        Relationships: [];
+      };
+      business_associate_agreements: {
+        Row: {
+          id: string;
+          business_id: string;
+          version: string;
+          signed_at: string;
+          signed_by_user_id: string | null;
+          signer_name: string;
+          signer_title: string | null;
+          signer_ip: string | null;
+          pdf_document_id: string | null;
+          effective_until: string | null;
+          revoked_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          version: string;
+          signed_at: string;
+          signed_by_user_id?: string | null;
+          signer_name: string;
+          signer_title?: string | null;
+          signer_ip?: string | null;
+          pdf_document_id?: string | null;
+          effective_until?: string | null;
+          revoked_at?: string | null;
+        };
+        Update: {
+          version?: string;
+          signed_at?: string;
+          signer_name?: string;
+          signer_title?: string | null;
+          signer_ip?: string | null;
+          pdf_document_id?: string | null;
+          effective_until?: string | null;
+          revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
+      phi_access_log: {
+        Row: {
+          id: string;
+          business_id: string;
+          user_id: string | null;
+          accountant_connection_id: string | null;
+          share_token_id: string | null;
+          document_id: string | null;
+          deadline_id: string | null;
+          staff_credential_id: string | null;
+          action: "view" | "download" | "list" | "share" | "export" | "create" | "update" | "delete";
+          ip: string | null;
+          user_agent: string | null;
+          accessed_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          user_id?: string | null;
+          accountant_connection_id?: string | null;
+          share_token_id?: string | null;
+          document_id?: string | null;
+          deadline_id?: string | null;
+          staff_credential_id?: string | null;
+          action: "view" | "download" | "list" | "share" | "export" | "create" | "update" | "delete";
+          ip?: string | null;
+          user_agent?: string | null;
+        };
+        Update: {
+          action?: "view" | "download" | "list" | "share" | "export" | "create" | "update" | "delete";
+          ip?: string | null;
+          user_agent?: string | null;
+        };
+        Relationships: [];
+      };
+      filings: {
+        Row: {
+          id: string;
+          business_id: string;
+          deadline_id: string | null;
+          filing_kind:
+            | "state_annual_report"
+            | "fincen_boi"
+            | "de_franchise_tax"
+            | "business_license_renewal"
+            | "food_handler"
+            | "liquor_renewal";
+          provider: "harbor_compliance" | "license_logix" | "direct";
+          partner_filing_id: string | null;
+          status:
+            | "pending"
+            | "submitted"
+            | "accepted"
+            | "rejected"
+            | "refunded"
+            | "failed";
+          price_cents: number;
+          cost_cents: number | null;
+          stripe_payment_intent_id: string | null;
+          filed_at: string | null;
+          confirmation_number: string | null;
+          return_document_id: string | null;
+          created_at: string;
+          updated_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          deadline_id?: string | null;
+          filing_kind:
+            | "state_annual_report"
+            | "fincen_boi"
+            | "de_franchise_tax"
+            | "business_license_renewal"
+            | "food_handler"
+            | "liquor_renewal";
+          provider: "harbor_compliance" | "license_logix" | "direct";
+          partner_filing_id?: string | null;
+          status?:
+            | "pending"
+            | "submitted"
+            | "accepted"
+            | "rejected"
+            | "refunded"
+            | "failed";
+          price_cents: number;
+          cost_cents?: number | null;
+          stripe_payment_intent_id?: string | null;
+          filed_at?: string | null;
+          confirmation_number?: string | null;
+          return_document_id?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          status?:
+            | "pending"
+            | "submitted"
+            | "accepted"
+            | "rejected"
+            | "refunded"
+            | "failed";
+          partner_filing_id?: string | null;
+          filed_at?: string | null;
+          confirmation_number?: string | null;
+          return_document_id?: string | null;
+        };
+        Relationships: [];
+      };
+      integration_connections: {
+        Row: {
+          id: string;
+          business_id: string;
+          provider: "simplepractice" | "karbon" | "qbo" | "taxdome";
+          external_account_id: string | null;
+          access_token_cipher: string | null;
+          refresh_token_cipher: string | null;
+          token_expires_at: string | null;
+          scopes: string[];
+          status: "active" | "paused" | "revoked" | "errored";
+          last_synced_at: string | null;
+          last_sync_error_at: string | null;
+          last_sync_error: string | null;
+          connected_by: string | null;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          provider: "simplepractice" | "karbon" | "qbo" | "taxdome";
+          external_account_id?: string | null;
+          access_token_cipher?: string | null;
+          refresh_token_cipher?: string | null;
+          token_expires_at?: string | null;
+          scopes?: string[];
+          status?: "active" | "paused" | "revoked" | "errored";
+          last_synced_at?: string | null;
+          last_sync_error_at?: string | null;
+          last_sync_error?: string | null;
+          connected_by?: string | null;
+        };
+        Update: {
+          external_account_id?: string | null;
+          access_token_cipher?: string | null;
+          refresh_token_cipher?: string | null;
+          token_expires_at?: string | null;
+          scopes?: string[];
+          status?: "active" | "paused" | "revoked" | "errored";
+          last_synced_at?: string | null;
+          last_sync_error_at?: string | null;
+          last_sync_error?: string | null;
         };
         Relationships: [];
       };

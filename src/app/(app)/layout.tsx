@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppNav from "@/components/dashboard/AppNav";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
 export default async function AppLayout({
   children,
@@ -32,6 +33,7 @@ export default async function AppLayout({
       <main className="flex-1 max-w-[1160px] w-full mx-auto px-6 py-10">
         {children}
       </main>
+      <InstallPrompt />
     </div>
   );
 }

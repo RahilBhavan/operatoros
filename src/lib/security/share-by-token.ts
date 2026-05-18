@@ -2,6 +2,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/supabase";
 import { createHash } from "node:crypto";
 import { hashToken } from "@/lib/security/token-hash";
+import { logPhiAccess } from "@/lib/security/phi-access-log";
+
+// WS-2.2 — businesses in these industries are treated as PHI-bearing for
+// audit purposes. Every share-token + accountant-token view triggers a
+// phi_access_log row when the business's industry_slug is in this set.
+const PHI_INDUSTRIES = new Set(["healthcare"]);
 
 type DeadlineRow = Pick<
   Database["public"]["Tables"]["deadlines"]["Row"],
@@ -43,7 +49,7 @@ export async function loadShareViewByToken(
 
   const { data: shareToken } = await supabase
     .from("share_tokens")
-    .select("business_id, expires_at, label, view_count, revoked_at")
+    .select("id, business_id, expires_at, label, view_count, revoked_at")
     // token_hash replaces the plaintext token column dropped in
     // 20260517000002_audit_remediation; lookup is by sha256(rawToken).
     // Cast: supabase types haven't been regenerated for the new column yet.
@@ -56,11 +62,27 @@ export async function loadShareViewByToken(
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name")
+    .select("id, name, industry_slug")
     .eq("id", shareToken.business_id)
     .maybeSingle();
 
   if (!business) return null;
+
+  // WS-2.2 — write a phi_access_log row when the underlying business is a
+  // PHI-bearing vertical. Fire-and-forget; helper never throws.
+  if (
+    business.industry_slug &&
+    PHI_INDUSTRIES.has(business.industry_slug) &&
+    viewer
+  ) {
+    void logPhiAccess({
+      businessId: business.id,
+      action: "view",
+      shareTokenId: shareToken.id,
+      ip: viewer.ip ?? null,
+      userAgent: viewer.userAgent ?? null,
+    });
+  }
 
   const { data: deadlines } = await supabase
     .from("deadlines")
@@ -85,7 +107,7 @@ export async function loadShareViewByToken(
     expires_at: shareToken.expires_at,
     label: shareToken.label,
     view_count: shareToken.view_count,
-    business,
+    business: { id: business.id, name: business.name },
     deadlines: deadlines ?? [],
   };
 }

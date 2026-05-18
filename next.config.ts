@@ -40,7 +40,19 @@ const nextConfig: NextConfig = {
         value: "max-age=31536000; includeSubDomains; preload",
       });
     }
-    return [{ source: "/(.*)", headers: base }];
+    // Service worker needs a specific content-type, no caching, and a
+    // narrow CSP. Without these, browsers reject the registration or serve
+    // stale SW code across deploys (WS-3.5).
+    const swHeaders = [
+      { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+      { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+      { key: "Service-Worker-Allowed", value: "/" },
+    ];
+
+    return [
+      { source: "/sw.js", headers: swHeaders },
+      { source: "/(.*)", headers: base },
+    ];
   },
 };
 

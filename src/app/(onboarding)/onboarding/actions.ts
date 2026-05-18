@@ -1,9 +1,17 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { employeeRangeToCount } from "@/lib/onboarding-utils";
 import { buildStarterDeadlines } from "@/lib/seed-deadlines";
 import { loadActiveRules, type RulesClient } from "@/lib/regulatory-graph";
+import {
+  INVITE_CODE_COOKIE,
+  incrementInviteLinkCounter,
+  loadActiveInviteLink,
+} from "@/lib/viral-attribution";
+import { track } from "@/lib/analytics";
 import type {
   EmployeeRange,
   EntityType,
@@ -157,6 +165,67 @@ export async function completeOnboarding(
     }
     return { ok: false, error: "Could not save your onboarding. Try again." };
   }
+
+  let attributedToAccountantId: string | null = null;
+
+  // WS-D — viral attribution. If the visitor arrived via /i/<code>, persist
+  // the attribution on the new business row and increment the link's signups
+  // counter. Fire-and-forget on each step: a failure here must not block
+  // onboarding success.
+  try {
+    const cookieStore = await cookies();
+    const inviteCookie = cookieStore.get(INVITE_CODE_COOKIE)?.value;
+    if (inviteCookie) {
+      const admin = createAdminClient();
+      const link = await loadActiveInviteLink(admin, inviteCookie);
+      if (link) {
+        await admin
+          .from("businesses")
+          .update({
+            invited_by_accountant_id: link.accountant_id,
+            invite_code: link.code,
+          })
+          .eq("id", String(businessId));
+        await incrementInviteLinkCounter(admin, link.id, "signups_count");
+        attributedToAccountantId = link.accountant_id;
+        // WS-E — analytics signal that an invited signup landed.
+        void track({
+          distinctId: user.id,
+          event: "invite_link_signup",
+          properties: {
+            business_id: String(businessId),
+            accountant_id: link.accountant_id,
+            invite_code: link.code,
+          },
+        });
+      }
+      // Clear the cookie either way — it's single-use and revoked codes
+      // should not linger.
+      cookieStore.set(INVITE_CODE_COOKIE, "", {
+        path: "/",
+        maxAge: 0,
+      });
+    }
+  } catch (err) {
+    console.warn("[onboarding] viral attribution skipped", {
+      business_id: String(businessId),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // WS-E — onboarding completion is one of the four canonical funnel steps.
+  void track({
+    distinctId: user.id,
+    event: "onboarding_completed",
+    properties: {
+      business_id: String(businessId),
+      industry_slug: data.industry,
+      state: data.state,
+      entity_type: data.entityType,
+      employee_range: data.employeeRange,
+      attributed: Boolean(attributedToAccountantId),
+    },
+  });
 
   return { ok: true, businessId: String(businessId) };
 }

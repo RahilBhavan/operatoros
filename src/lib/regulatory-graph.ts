@@ -331,7 +331,14 @@ const STATE_FALLBACKS: Record<string, StateFallback> = {
   WY: { agency: "Wyoming Secretary of State", month: 0, day: 1, frequency: "annual", source_url: "https://wyobiz.wyo.gov/", uuid: "10000000-0000-4000-8000-00000000002e" },
 };
 
-const EXPLICITLY_HANDLED_STATES = ["CA", "TX", "NY", "DE", "FL"];
+export const EXPLICITLY_HANDLED_STATES = [
+  "CA", "TX", "NY", "DE", "FL",
+  // WS-1.3 expansion (panel asked for the next batch). Each newly-promoted
+  // state ships with at least an annual-report rule + sales-tax cadence
+  // rule. Industry-specific licenses are still on the template fallback
+  // until a compliance researcher curates them per state.
+  "IL", "PA", "GA",
+] as const;
 
 // State-fallback rules. One per non-explicitly-handled state. Each fires
 // only for LLC/S/C corps in that state.
@@ -912,6 +919,132 @@ const CORE_RULES: RuleDef[] = [
     penalty_estimate_cents: 40000,
     source_url: "https://dos.fl.gov/sunbiz/",
     statute_citation: "Fla. Stat. §605.0212",
+  },
+
+  // ── IL-specific (WS-1.3 expansion) ──
+  {
+    id: "20000000-0000-4000-8000-000000000080",
+    rule_key: "state-il-annual-report",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "IL",
+    industry_slug: null,
+    name_template: "Illinois Annual Report",
+    description_template:
+      "Illinois LLCs and corporations must file an annual report with the Secretary of State before the first day of the anniversary month of formation. $75 LLC, $75 + franchise tax for corporations. $100 late fee.",
+    deadline_type: "entity_filing",
+    agency_template: "Illinois Secretary of State",
+    frequency: "annual",
+    due_date_rule: { kind: "next_md", month: 11, day: 1 },
+    applies_when: { state: "IL", entity_in: ["llc", "s_corp", "c_corp"] },
+    severity_tier: "high",
+    penalty_estimate_cents: 10000,
+    source_url: "https://www.ilsos.gov/departments/business_services/home.html",
+    statute_citation: "805 ILCS 5/14.05",
+  },
+  {
+    id: "20000000-0000-4000-8000-000000000081",
+    rule_key: "state-il-sales-tax-quarterly",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "IL",
+    industry_slug: null,
+    name_template: "Illinois Sales Tax (ST-1)",
+    description_template:
+      "Illinois ST-1 sales/use tax return. Filing frequency (monthly, quarterly, annual) is set by IDOR based on prior liability. Due the 20th of the month following the reporting period.",
+    deadline_type: "tax_filing",
+    agency_template: "Illinois Department of Revenue (IDOR)",
+    frequency: "quarterly",
+    due_date_rule: { kind: "next_md", month: 0, day: 20 },
+    applies_when: { state: "IL", entity_in: ["llc", "s_corp", "c_corp", "sole_proprietor"] },
+    severity_tier: "high",
+    penalty_estimate_cents: 25000,
+    source_url: "https://tax.illinois.gov/businesses/taxinformation/sales/st1.html",
+    statute_citation: "35 ILCS 120/3",
+  },
+
+  // ── PA-specific (WS-1.3 expansion) ──
+  {
+    id: "20000000-0000-4000-8000-000000000082",
+    rule_key: "state-pa-annual-report",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "PA",
+    industry_slug: null,
+    name_template: "Pennsylvania Annual Report",
+    description_template:
+      "Pennsylvania annual report (Act 122 of 2022, effective 2025): all PA business entities must file an annual report with the Department of State by June 30 for corporations / September 30 for LLCs. $7 filing fee. Failure to file by Jan 1 of the following year may result in administrative dissolution.",
+    deadline_type: "entity_filing",
+    agency_template: "Pennsylvania Department of State",
+    frequency: "annual",
+    due_date_rule: { kind: "next_md", month: 8, day: 30 },
+    applies_when: { state: "PA", entity_in: ["llc"] },
+    severity_tier: "critical",
+    penalty_estimate_cents: 0,
+    source_url: "https://www.pa.gov/agencies/dos/programs/business-and-charities.html",
+    statute_citation: "15 Pa.C.S. §146",
+  },
+  {
+    id: "20000000-0000-4000-8000-000000000083",
+    rule_key: "state-pa-sales-tax",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "PA",
+    industry_slug: null,
+    name_template: "Pennsylvania Sales Tax (PA-3)",
+    description_template:
+      "Pennsylvania PA-3 sales tax return. Monthly, quarterly, or semi-annual filing based on prior tax liability. Due the 20th of the month following the reporting period.",
+    deadline_type: "tax_filing",
+    agency_template: "Pennsylvania Department of Revenue",
+    frequency: "quarterly",
+    due_date_rule: { kind: "next_md", month: 0, day: 20 },
+    applies_when: { state: "PA", entity_in: ["llc", "s_corp", "c_corp", "sole_proprietor"] },
+    severity_tier: "high",
+    penalty_estimate_cents: 25000,
+    source_url: "https://www.revenue.pa.gov/TaxTypes/SUT/Pages/default.aspx",
+    statute_citation: "72 P.S. §7217",
+  },
+
+  // ── GA-specific (WS-1.3 expansion) ──
+  {
+    id: "20000000-0000-4000-8000-000000000084",
+    rule_key: "state-ga-annual-registration",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "GA",
+    industry_slug: null,
+    name_template: "Georgia Annual Registration",
+    description_template:
+      "All Georgia business entities must file an annual registration with the Secretary of State between January 1 and April 1. $50 for LLCs and profit corporations. Late filings incur a $25 penalty after April 1; failure to file may result in administrative dissolution.",
+    deadline_type: "entity_filing",
+    agency_template: "Georgia Secretary of State, Corporations Division",
+    frequency: "annual",
+    due_date_rule: { kind: "next_md", month: 3, day: 1 },
+    applies_when: { state: "GA", entity_in: ["llc", "s_corp", "c_corp"] },
+    severity_tier: "high",
+    penalty_estimate_cents: 2500,
+    source_url: "https://sos.ga.gov/corporations-division",
+    statute_citation: "O.C.G.A. §14-2-1622",
+  },
+  {
+    id: "20000000-0000-4000-8000-000000000085",
+    rule_key: "state-ga-sales-tax",
+    rule_version: 1,
+    jurisdiction_type: "state",
+    jurisdiction_code: "GA",
+    industry_slug: null,
+    name_template: "Georgia Sales & Use Tax (ST-3)",
+    description_template:
+      "Georgia ST-3 sales & use tax return. Filing frequency (monthly, quarterly, annual) is set by the Georgia Department of Revenue based on liability. Due the 20th of the month following the reporting period.",
+    deadline_type: "tax_filing",
+    agency_template: "Georgia Department of Revenue",
+    frequency: "quarterly",
+    due_date_rule: { kind: "next_md", month: 0, day: 20 },
+    applies_when: { state: "GA", entity_in: ["llc", "s_corp", "c_corp", "sole_proprietor"] },
+    severity_tier: "high",
+    penalty_estimate_cents: 25000,
+    source_url: "https://dor.georgia.gov/taxes/business-taxes/sales-use-tax",
+    statute_citation: "O.C.G.A. §48-8-49",
   },
 
   // ── Industry: Restaurant ──

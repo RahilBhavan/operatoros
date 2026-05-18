@@ -3,6 +3,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import MarkCompliantButton from "@/components/dashboard/MarkCompliantButton";
 import DocumentUpload from "@/components/dashboard/DocumentUpload";
+import FileItForMeCta from "@/components/dashboard/FileItForMeCta";
+import {
+  matchFilingKind,
+  FILING_CATALOG,
+  isFilingsConfigured,
+} from "@/lib/filings";
 import type { Database } from "@/types/supabase";
 import { LinkButton } from "@/components/doctrine/Button";
 import { StampChip } from "@/components/doctrine/StampChip";
@@ -271,6 +277,26 @@ export default async function DeadlineDetailPage({
             <LinkButton href={`/deadlines/${id}/edit`} variant="ghost">
               ✎ Edit deadline
             </LinkButton>
+            {(() => {
+              // WS-4.1 — if the deadline matches a known filing kind,
+              // offer the partner-routed "File this for me" CTA.
+              const kind = matchFilingKind({
+                deadlineName: deadline.name,
+                agency: deadline.governing_agency,
+              });
+              if (!kind) return null;
+              const f = FILING_CATALOG[kind];
+              return (
+                <FileItForMeCta
+                  deadlineId={deadline.id}
+                  filingKind={kind}
+                  label={f.label}
+                  priceCents={f.priceCents}
+                  description={f.description}
+                  available={isFilingsConfigured()}
+                />
+              );
+            })()}
             {isUrgent ? (
               <div className="border-2 border-[var(--color-mark)] p-4">
                 <div className="t-utility text-[var(--color-mark)] mb-2">
