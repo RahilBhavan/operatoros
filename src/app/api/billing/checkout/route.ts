@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStripe, getPriceId, PLANS, type PaidPlanTier } from "@/lib/stripe";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { BILLING_CHECKOUT_LIMIT } from "@/lib/security/rate-limits";
+import { getAppUrl } from "@/lib/app-url";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -60,10 +61,7 @@ export async function POST(req: NextRequest) {
       .eq("id", business.id);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
-  }
+  const appUrl = getAppUrl();
 
   const session = await getStripe().checkout.sessions.create({
     customer: customerId,

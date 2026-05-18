@@ -54,7 +54,7 @@ export async function POST(
   // depth lockdown in the audit-remediation migration). The route-level
   // requirePlatformAdminForRoute above is now the authorization boundary.
   const admin = createAdminClient();
-  const rpc = admin.rpc as unknown as (
+  const rpc = admin.rpc.bind(admin) as unknown as (
     fn: "version_regulatory_rule",
     params: { p_rule_id: string; p_changes: Record<string, unknown> }
   ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;

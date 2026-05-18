@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20
       - name: Install
-        run: bun install
+        run: npm ci
       - name: Dependency audit
-        run: bun audit
+        run: npm audit
         continue-on-error: true
 
   semgrep:
@@ -48,4 +48,5 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
+      - run: npm run build
       - run: npm test

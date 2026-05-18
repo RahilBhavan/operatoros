@@ -88,7 +88,7 @@ export function PortfolioPreview() {
           return (
             <div
               key={client.name}
-              className={`grid grid-cols-[1fr_auto] items-center px-5 py-4 ${
+              className={`grid grid-cols-[1fr_auto] items-center px-4 py-2.5 ${
                 last ? "" : "border-b border-[var(--color-ground)]"
               }`}
             >

@@ -154,7 +154,7 @@ export default async function AccountantPortalPage({
             />
             <section className="border-2 border-[var(--color-ground)] mb-10">
               <header className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
-                <Utility className="!text-[var(--color-field)] !opacity-100">
+                <Utility className="!text-[var(--color-field)]">
                   TOTAL EXPOSURE ACROSS PORTFOLIO
                 </Utility>
                 <Index className="!text-[var(--color-field)] !text-[15px]">
@@ -212,7 +212,7 @@ export default async function AccountantPortalPage({
         {/* Business identity strip */}
         <div className="border-2 border-[var(--color-ground)] mb-10">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between gap-2 flex-wrap">
-            <Utility className="!text-[var(--color-field)] !opacity-100">
+            <Utility className="!text-[var(--color-field)]">
               CLIENT MANIFEST
             </Utility>
             <Index className="!text-[var(--color-field)] !text-[12px] ">
@@ -461,7 +461,7 @@ function DeadlineGroup({
         }`}
       >
         <div className="flex items-center gap-3">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
+          <Utility className="!text-[var(--color-field)]">
             {STATUS_LABEL[statusKey]}
           </Utility>
           <Index className="!text-[var(--color-field)] !text-[12px] ">
@@ -489,7 +489,7 @@ function DeadlineGroup({
                       href={d.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className=" hover:opacity-100 hover:text-[var(--color-mark)] transition-opacity"
+                      className=" hover:text-[var(--color-mark)] "
                       aria-label="source"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />

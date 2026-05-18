@@ -45,23 +45,26 @@ export default function DeadlineFilters({
   return (
     <div className="flex flex-col sm:flex-row sm:items-end gap-4">
       <FormField label="Status" className="flex-1 min-w-0">
-        <div className="flex border-2 border-[var(--color-ground)] overflow-hidden">
+        <div
+          role="group"
+          aria-label="Filter by status"
+          className="grid grid-cols-3 sm:flex sm:flex-row border-2 border-[var(--color-ground)] overflow-hidden"
+        >
           {STATUSES.map(({ value, label }, i) => {
             const active = (currentStatus ?? "") === value;
+            const isLastRow = i >= STATUSES.length - (STATUSES.length % 3 || 3);
             return (
               <button
                 key={value}
                 type="button"
                 onClick={() => applyFilter("status", value)}
-                className={`flex-1 px-3 py-2 t-utility min-h-[44px] flex items-center justify-center ${
-                  i < STATUSES.length - 1
-                    ? "border-r-2 border-[var(--color-ground)]"
-                    : ""
-                } ${
-                  active
+                className={`sm:flex-1 px-3 py-2 t-utility min-h-[44px] flex items-center justify-center text-center
+                  ${i < STATUSES.length - 1 ? "sm:border-r-2 sm:border-[var(--color-ground)]" : ""}
+                  ${!isLastRow ? "border-b-2 sm:border-b-0 border-[var(--color-ground)]" : ""}
+                  ${((i + 1) % 3 !== 0) ? "border-r-2 sm:border-r-2 border-[var(--color-ground)]" : ""}
+                  ${active
                     ? "bg-[var(--color-ground)] text-[var(--color-field)]"
-                    : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
-                }`}
+                    : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"}`}
                 aria-pressed={active}
               >
                 {label}

@@ -52,15 +52,15 @@ export default async function LocationsIndex() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5 flex items-end justify-between flex-wrap gap-4">
+    <div className="flex flex-col gap-5">
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="t-utility mb-2">PA-LOC</div>
           <h1
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 900,
-              fontSize: "clamp(36px, 5vw, 56px)",
+              fontSize: "clamp(30px, 4vw, 44px)",
               lineHeight: 1,
               letterSpacing: "-0.02em",
               textTransform: "uppercase",
@@ -105,7 +105,7 @@ export default async function LocationsIndex() {
         </div>
       ) : (
         <section className="border-2 border-[var(--color-ground)]">
-          <div className="panel-ink px-5 py-3 flex items-center justify-between">
+          <div className="panel-ink px-4 py-2 flex items-center justify-between">
             <span className="t-utility" style={{ color: "var(--color-field)" }}>
               Roster
             </span>
@@ -131,7 +131,7 @@ export default async function LocationsIndex() {
                 >
                   <Link
                     href={`/locations/${l.id}`}
-                    className="grid grid-cols-[1fr_auto_auto] items-center gap-6 px-5 py-4 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+                    className="grid grid-cols-[1fr_auto_auto] items-center gap-6 px-4 py-2.5 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
                   >
                     <div>
                       <div

@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 import IssueCoiForm from "@/components/coi/IssueCoiForm";
 
 export const dynamic = "force-dynamic";
@@ -48,14 +49,21 @@ export default async function CoiRecipientDetail({
     .order("expiry_date", { ascending: false });
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
+    <div className="flex flex-col gap-5">
+      <Breadcrumb
+        items={[
+          { label: "COI", href: "/coi" },
+          { label: "Recipients", href: "/coi" },
+          { label: recipient.name },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div className="t-utility mb-2">PA-COI · {id.slice(0, 6).toUpperCase()}</div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -71,13 +79,13 @@ export default async function CoiRecipientDetail({
 
       {recipient.requirements ? (
         <section className="border-2 border-[var(--color-ground)]">
-          <div className="panel-ink px-5 py-3">
+          <div className="panel-ink px-4 py-2">
             <span className="t-utility" style={{ color: "var(--color-field)" }}>
               Required coverage
             </span>
           </div>
           <div
-            className="bg-[var(--color-field)] px-5 py-5 whitespace-pre-wrap"
+            className="bg-[var(--color-field)] px-4 py-3 whitespace-pre-wrap"
             style={{ fontFamily: "var(--font-index)", fontSize: 14 }}
           >
             {recipient.requirements}
@@ -86,7 +94,7 @@ export default async function CoiRecipientDetail({
       ) : null}
 
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             Issued certificates
           </span>
@@ -112,7 +120,7 @@ export default async function CoiRecipientDetail({
                     : "border-b border-[var(--color-ground)]"
                 }
               >
-                <div className="grid grid-cols-[1fr_auto] gap-4 px-5 py-4">
+                <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5">
                   <div>
                     <div
                       className="font-bold text-[15px]"

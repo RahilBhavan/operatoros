@@ -18,7 +18,7 @@ describe("BillingActions", () => {
 
   it("renders portal button when hasCustomer and no plan", () => {
     render(<BillingActions hasCustomer={true} />);
-    expect(screen.getByRole("button", { name: /reroute plan/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /manage subscription/i })).toBeDefined();
   });
 
   it("renders checkout button for new subscription", () => {
@@ -63,7 +63,7 @@ describe("BillingActions", () => {
       json: async () => ({ error: "Portal unavailable" }),
     }));
     render(<BillingActions hasCustomer={true} />);
-    fireEvent.click(screen.getByRole("button", { name: /reroute plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /manage subscription/i }));
     await waitFor(() => {
       expect(screen.getByText("Portal unavailable")).toBeDefined();
     });
@@ -72,7 +72,7 @@ describe("BillingActions", () => {
   it("shows generic error when portal fetch throws", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network")));
     render(<BillingActions hasCustomer={true} />);
-    fireEvent.click(screen.getByRole("button", { name: /reroute plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /manage subscription/i }));
     await waitFor(() => {
       expect(screen.getByText(/something went wrong/i)).toBeDefined();
     });

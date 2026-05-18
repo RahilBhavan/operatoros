@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 import AddProjectDeadlineForm from "@/components/projects/AddProjectDeadlineForm";
 
 export const dynamic = "force-dynamic";
@@ -48,37 +49,48 @@ export default async function ProjectDetail({
     .order("due_date", { ascending: true });
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
-        <div className="t-utility mb-2">
-          PA-PROJ · {id.slice(0, 6).toUpperCase()}
-        </div>
-        <h1
-          style={{
+    <div className="flex flex-col gap-5">
+      <Breadcrumb
+        items={[
+          { label: "Projects", href: "/projects" },
+          { label: project.name },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="t-utility mb-2">
+            PA-PROJ · {id.slice(0, 6).toUpperCase()}
+          </div>
+          <h1
+            style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
           }}
-        >
-          {project.name}
-        </h1>
-        <div className="t-utility mt-3">
-          {project.address ?? "—"}
-          {project.jurisdiction_code ? ` · ${project.jurisdiction_code}` : ""}
-          {project.gc_business_name ? ` · GC ${project.gc_business_name}` : ""}
-          {project.start_date
-            ? ` · ${formatDate(project.start_date)} → ${formatDate(project.end_date)}`
-            : ""}
-          {" · "}
-          {project.status}
+          >
+            {project.name}
+          </h1>
+          <div className="t-utility mt-3">
+            {project.address ?? "—"}
+            {project.jurisdiction_code ? ` · ${project.jurisdiction_code}` : ""}
+            {project.gc_business_name ? ` · GC ${project.gc_business_name}` : ""}
+            {project.start_date
+              ? ` · ${formatDate(project.start_date)} → ${formatDate(project.end_date)}`
+              : ""}
+            {" · "}
+            {project.status}
+          </div>
         </div>
+        <LinkButton href={`/projects/${id}/edit`} variant="ghost" size="sm">
+          Edit →
+        </LinkButton>
       </header>
 
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             Project deadlines
           </span>
@@ -104,7 +116,7 @@ export default async function ProjectDetail({
                     : "border-b border-[var(--color-ground)]"
                 }
               >
-                <div className="grid grid-cols-[1fr_auto] gap-4 px-5 py-4">
+                <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5">
                   <div>
                     <div
                       className="font-bold text-[15px]"

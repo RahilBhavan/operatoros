@@ -153,7 +153,7 @@ export async function completeOnboarding(
 
   // RPC types are regenerated via `bun run db:types` after the migration
   // deploys. Cast at the call site so the rest of the file stays type-checked.
-  const rpcClient = supabase.rpc as unknown as (
+  const rpcClient = supabase.rpc.bind(supabase) as unknown as (
     fn: "complete_onboarding",
     params: typeof rpcPayload
   ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;

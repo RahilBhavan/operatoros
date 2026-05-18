@@ -68,10 +68,10 @@ export default function BillingActions({
     return (
       <div className="flex flex-col gap-1">
         <Button onClick={handlePortal} disabled={loading} variant="ghost">
-          {loading ? "Loading…" : "Reroute plan →"}
+          {loading ? "Loading…" : "Manage subscription →"}
         </Button>
         {error && (
-          <Caption className="!text-[var(--color-mark)] !opacity-100">
+          <Caption className="!text-[var(--color-mark)]">
             {error}
           </Caption>
         )}
@@ -95,7 +95,7 @@ export default function BillingActions({
           {loading ? "Loading…" : buttonLabel}
         </Button>
         {error && (
-          <Caption className="!text-[var(--color-mark)] !opacity-100">
+          <Caption className="!text-[var(--color-mark)]">
             {error}
           </Caption>
         )}
@@ -114,7 +114,7 @@ export default function BillingActions({
         {loading ? "Loading…" : buttonLabel}
       </Button>
       {error && (
-        <Caption className="!text-[var(--color-mark)] !opacity-100">
+        <Caption className="!text-[var(--color-mark)]">
           {error}
         </Caption>
       )}

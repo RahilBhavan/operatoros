@@ -5,6 +5,7 @@ import { sendReminderEmail } from "@/lib/email";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
 import { track } from "@/lib/analytics";
 import { computeRiskWeightedScore, computeAutoStatus } from "@/lib/deadline-utils";
+import { getAppUrl } from "@/lib/app-url";
 
 const SEVERITY_RANK: Record<string, number> = {
   critical: 4,
@@ -168,7 +169,7 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl = getAppUrl();
 
   let processed = 0;
   let errors = 0;
@@ -404,9 +405,10 @@ export async function GET(req: NextRequest) {
   // fresh by admin moderation, but a once-a-day backstop covers rules that
   // haven't been touched) and prune old auth-rate-limit rows so the table
   // doesn't grow without bound under credential-stuffing attacks.
+  const reminderRpc = supabase.rpc.bind(supabase) as unknown as (fn: string) => Promise<unknown>;
   await Promise.allSettled([
-    (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("refresh_rule_confidence"),
-    (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("cleanup_auth_rate_limits"),
+    reminderRpc("refresh_rule_confidence"),
+    reminderRpc("cleanup_auth_rate_limits"),
   ]);
 
   return NextResponse.json({

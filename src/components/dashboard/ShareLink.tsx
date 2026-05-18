@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/doctrine/Button";
+import { useToast } from "@/components/doctrine/Toast";
 
 interface Props {
   canShare: boolean;
@@ -57,6 +58,7 @@ export default function ShareLink({ canShare }: Props) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [active, setActive] = useState<ShareTemplate | null>(null);
+  const toast = useToast();
 
   async function handleGenerate(template: ShareTemplate) {
     setLoading(true);
@@ -74,11 +76,14 @@ export default function ShareLink({ canShare }: Props) {
       const data = await res.json();
       if (data.url) {
         setShareUrl(data.url);
+        toast.success("Share link ready", `${template.recipient} · ${template.expiryDays}-day expiry`);
       } else {
         setError(data.error ?? "Failed to generate link.");
+        toast.error("Couldn't generate link", data.error ?? "Please try again.");
       }
     } catch {
       setError("Something went wrong. Please try again.");
+      toast.error("Network error", "Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,6 +94,7 @@ export default function ShareLink({ canShare }: Props) {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
+      toast.success("Link copied");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       /* ignore */
@@ -97,7 +103,7 @@ export default function ShareLink({ canShare }: Props) {
 
   return (
     <div className="border-2 border-[var(--color-ground)] flex flex-col">
-      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+      <div className="panel-ink px-4 py-2 flex items-center justify-between">
         <span
           className="t-utility"
           style={{ color: "var(--color-field)" }}
@@ -112,7 +118,7 @@ export default function ShareLink({ canShare }: Props) {
         </span>
       </div>
 
-      <div className="bg-[var(--color-field)] px-5 py-5 flex-1 flex flex-col gap-3">
+      <div className="bg-[var(--color-field)] px-4 py-4 flex-1 flex flex-col gap-3">
         {!canShare ? (
           <>
             <p
@@ -174,7 +180,7 @@ export default function ShareLink({ canShare }: Props) {
                   type="button"
                   onClick={() => handleGenerate(t)}
                   disabled={loading}
-                  className="text-left border-2 border-[var(--color-ground)] -mb-[2px] px-4 py-3 bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-left border-2 border-[var(--color-ground)] -mb-[2px] px-4 py-3 bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] disabled:cursor-not-allowed"
                 >
                   <div
                     className="font-bold text-[14px]"

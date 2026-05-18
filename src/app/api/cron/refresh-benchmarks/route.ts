@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const rpc = supabase.rpc as unknown as (
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
     fn: "refresh_industry_benchmarks"
   ) => Promise<{ data: null; error: { message: string } | null }>;
 
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   // Weekly backstop refresh of rule_confidence in addition to the daily one
   // in /api/cron/reminders and the event-driven one in admin corrections.
-  await (supabase.rpc as unknown as (fn: string) => Promise<unknown>)("refresh_rule_confidence");
+  await (supabase.rpc.bind(supabase) as unknown as (fn: string) => Promise<unknown>)("refresh_rule_confidence");
 
   return NextResponse.json({ ok: true, refreshed_at: new Date().toISOString() });
 }

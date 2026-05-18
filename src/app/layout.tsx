@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Slab, Atkinson_Hyperlegible } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { ToastProvider } from "@/components/doctrine/Toast";
+import { getAppUrl } from "@/lib/app-url";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,9 +26,7 @@ const atkinson = Atkinson_Hyperlegible({
   display: "swap",
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-  "https://operatoros.com";
+const siteUrl = getAppUrl();
 
 const siteTitle = "OperatorOS — Never miss a compliance deadline again";
 const siteDescription =
@@ -97,7 +97,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-field text-ground font-destination">
         <ServiceWorkerRegister />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

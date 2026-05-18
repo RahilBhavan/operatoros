@@ -99,12 +99,12 @@ export default function NotificationPreferencesForm({
   return (
     <form onSubmit={onSave} className="flex flex-col gap-6">
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3">
+        <div className="panel-ink px-4 py-2">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             Email
           </span>
         </div>
-        <label className="bg-[var(--color-field)] px-5 py-4 flex items-center gap-3">
+        <label className="bg-[var(--color-field)] px-4 py-2.5 flex items-center gap-3">
           <input
             type="checkbox"
             checked={form.email_enabled}
@@ -117,12 +117,12 @@ export default function NotificationPreferencesForm({
       </section>
 
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3">
+        <div className="panel-ink px-4 py-2">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             SMS
           </span>
         </div>
-        <div className="bg-[var(--color-field)] px-5 py-4 flex flex-col gap-4">
+        <div className="bg-[var(--color-field)] px-4 py-2.5 flex flex-col gap-4">
           <label className="flex items-center gap-3">
             <input
               type="checkbox"

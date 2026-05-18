@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 import StaffCredentialAdder from "@/components/staff/StaffCredentialAdder";
 
 export const dynamic = "force-dynamic";
@@ -90,31 +91,42 @@ export default async function StaffDetailPage({
   });
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
-        <div className="t-utility mb-2">PA-STAF · {id.slice(0, 6).toUpperCase()}</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          {staff.full_name}
-        </h1>
-        <div className="t-utility mt-3">
-          {staff.role ?? "—"}
-          {staff.employment_type ? ` · ${staff.employment_type}` : ""}
-          {staff.hire_date ? ` · hired ${formatDate(staff.hire_date)}` : ""}
-          {staff.email ? ` · ${staff.email}` : ""}
+    <div className="flex flex-col gap-5">
+      <Breadcrumb
+        items={[
+          { label: "Staff", href: "/staff" },
+          { label: staff.full_name },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="t-utility mb-2">PA-STAF · {id.slice(0, 6).toUpperCase()}</div>
+          <h1
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontWeight: 900,
+              fontSize: "clamp(30px, 4vw, 44px)",
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+            }}
+          >
+            {staff.full_name}
+          </h1>
+          <div className="t-utility mt-3">
+            {staff.role ?? "—"}
+            {staff.employment_type ? ` · ${staff.employment_type}` : ""}
+            {staff.hire_date ? ` · hired ${formatDate(staff.hire_date)}` : ""}
+            {staff.email ? ` · ${staff.email}` : ""}
+          </div>
         </div>
+        <LinkButton href={`/staff/${id}/edit`} variant="ghost" size="sm">
+          Edit →
+        </LinkButton>
       </header>
 
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between flex-wrap gap-2">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between flex-wrap gap-2">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             Credentials
           </span>
@@ -142,7 +154,7 @@ export default async function StaffDetailPage({
                       : "border-b border-[var(--color-ground)]"
                   }
                 >
-                  <div className="grid grid-cols-[1fr_auto] gap-4 px-5 py-4">
+                  <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5">
                     <div>
                       <div
                         className="font-bold text-[15px]"

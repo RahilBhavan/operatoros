@@ -540,7 +540,7 @@ export default function LandingPage() {
 
           <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="bg-[var(--color-ground)] text-[var(--color-field)]">
                   <th className="t-utility px-4 py-3 w-[40%]">Capability</th>
                   <th className="t-utility px-4 py-3">Spreadsheet</th>

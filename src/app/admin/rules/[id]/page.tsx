@@ -37,7 +37,7 @@ export default async function AdminRuleDetailPage({
 
       {versioned === "1" && (
         <div className="mt-4 border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3">
-          <Utility className="!opacity-100 mb-1">VERSIONED</Utility>
+          <Utility className="mb-1">VERSIONED</Utility>
           <Body className="!text-[14px]">
             New version saved. This is v{rule.version} — the prior row was
             superseded. Re-verifying the rule is automatic on save.
@@ -47,7 +47,7 @@ export default async function AdminRuleDetailPage({
 
       {isSuperseded && (
         <div className="mt-4 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
-          <Utility className="!opacity-100 mb-1 !text-[var(--color-field)]">SUPERSEDED</Utility>
+          <Utility className="mb-1 !text-[var(--color-field)]">SUPERSEDED</Utility>
           <Body className="!text-[var(--color-field)] !text-[14px]">
             This rule has been superseded by a newer version. Read-only.{" "}
             {supersededBy && (
@@ -117,9 +117,9 @@ export default async function AdminRuleDetailPage({
 
       <section className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3">
-          <Utility className="!text-[var(--color-field)] !opacity-100">VERIFICATION</Utility>
+          <Utility className="!text-[var(--color-field)]">VERIFICATION</Utility>
         </div>
-        <div className="bg-[var(--color-field)] px-5 py-5">
+        <div className="bg-[var(--color-field)] px-4 py-3">
           <Body className="!text-[14px] mb-4">
             Stamp this rule as having been re-checked against the agency source.
             Updates <code>last_verified_at</code> and writes a{" "}
@@ -142,9 +142,9 @@ export default async function AdminRuleDetailPage({
       {!isSuperseded && (
         <section className="border-2 border-[var(--color-ground)] mb-6">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3">
-            <Utility className="!text-[var(--color-field)] !opacity-100">EDIT (CREATES NEW VERSION)</Utility>
+            <Utility className="!text-[var(--color-field)]">EDIT (CREATES NEW VERSION)</Utility>
           </div>
-          <div className="bg-[var(--color-field)] px-5 py-5">
+          <div className="bg-[var(--color-field)] px-4 py-3">
             <Body className="!text-[14px] mb-4">
               Every save creates v{rule.version + 1} and points{" "}
               <code>superseded_by</code> at it. The lookup index excludes

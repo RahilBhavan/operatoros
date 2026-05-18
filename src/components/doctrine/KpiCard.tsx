@@ -43,18 +43,18 @@ export function KpiCard({
   return (
     <div
       className={clsx(
-        "p-6 flex flex-col gap-3 min-h-[132px]",
+        "px-4 py-3 flex flex-col gap-1.5",
         surface,
         className,
       )}
     >
       <div className="t-utility">{label}</div>
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline gap-1.5">
         <span
           className={clsx("font-black leading-none tracking-tight", valueClass)}
           style={{
             fontFamily: "var(--font-destination)",
-            fontSize: 56,
+            fontSize: 40,
             letterSpacing: "-0.02em",
           }}
         >
@@ -62,7 +62,7 @@ export function KpiCard({
         </span>
         {suffix ? (
           <span
-            className="t-subhead"
+            className="text-[15px]"
             style={{ fontFamily: "var(--font-index)", fontWeight: 500 }}
           >
             {suffix}

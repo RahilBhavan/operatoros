@@ -252,7 +252,7 @@ export default function RuleEditForm({ ruleId, initial }: RuleEditFormProps) {
 
       {error && (
         <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
-          <Utility className="!opacity-100 mb-1 !text-[var(--color-field)]">ERROR</Utility>
+          <Utility className="mb-1 !text-[var(--color-field)]">ERROR</Utility>
           <Body className="!text-[var(--color-field)] !text-[14px]">{error}</Body>
         </div>
       )}

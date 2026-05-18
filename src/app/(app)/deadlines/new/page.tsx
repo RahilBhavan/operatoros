@@ -27,7 +27,7 @@ export default async function NewDeadlinePage() {
 
   return (
     <div className="max-w-2xl">
-      <header className="flex items-end justify-between border-b-2 border-[var(--color-ground)] pb-6 mb-8 flex-wrap gap-4">
+      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-3 mb-5 flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3 mb-3">
             <Index className="!text-[15px]">PA-DL-NEW</Index>

@@ -87,7 +87,7 @@ export default async function AdminOverviewPage() {
       {/* Risk strip — red-leaning */}
       <section className="border-2 border-[var(--color-ground)] mb-8">
         <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
+          <Utility className="!text-[var(--color-field)]">
             OPERATIONAL EXPOSURE
           </Utility>
           <Caption className="!text-[var(--color-field)]  !text-[12px]">

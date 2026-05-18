@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashToken } from "@/lib/security/token-hash";
 import { SHARE_TOKEN_LIMIT } from "@/lib/security/rate-limits";
+import { getAppUrl } from "@/lib/app-url";
 
 const EXPIRY_DAYS = new Set([7, 30, 90, 365]);
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
   // IP/user rate limit: 20 share-link creates per hour per user. Keeps a
   // compromised session from minting unlimited public links.
   const adminForRate = createAdminClient();
-  const rateRpc = adminForRate.rpc as unknown as (
+  const rateRpc = adminForRate.rpc.bind(adminForRate) as unknown as (
     fn: "try_consume_auth_rate_limit",
     params: { p_key: string; p_max_attempts: number; p_window_seconds: number }
   ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/share/${plaintextToken}`;
+  const url = `${getAppUrl()}/share/${plaintextToken}`;
   return NextResponse.json({
     id: token.id,
     url,

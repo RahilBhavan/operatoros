@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 import AcceptBaaForm from "@/components/settings/AcceptBaaForm";
 
 export const dynamic = "force-dynamic";
@@ -36,14 +37,20 @@ export default async function BaaPage() {
   const isHealthcare = HEALTHCARE_NAICS.has(business.industry_slug ?? "");
 
   return (
-    <div className="flex flex-col gap-8 max-w-[720px]">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
+    <div className="flex flex-col gap-5 max-w-[720px]">
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" },
+          { label: "BAA" },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div className="t-utility mb-2">PA-BAA</div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -62,7 +69,7 @@ export default async function BaaPage() {
       </header>
 
       {!isHealthcare ? (
-        <div className="border-2 border-[var(--color-ground)] px-5 py-4">
+        <div className="border-2 border-[var(--color-ground)] px-4 py-2.5">
           <p style={{ fontFamily: "var(--font-index)", fontSize: 14 }}>
             Your industry is not flagged as healthcare. A BAA is not required
             for your account. If that&rsquo;s wrong, update your industry in
@@ -78,7 +85,7 @@ export default async function BaaPage() {
               BAA on file
             </span>
           </div>
-          <div className="bg-[var(--color-field)] px-5 py-4 flex flex-col gap-2">
+          <div className="bg-[var(--color-field)] px-4 py-2.5 flex flex-col gap-2">
             <div>
               <span className="t-utility">Version: </span>
               <span style={{ fontFamily: "var(--font-index)" }}>
@@ -98,16 +105,46 @@ export default async function BaaPage() {
       ) : (
         <>
           <section className="border-2 border-[var(--color-ground)]">
-            <div className="panel-ink px-5 py-3">
+            <div className="panel-ink px-4 py-2 flex items-center justify-between flex-wrap gap-2">
               <span className="t-utility" style={{ color: "var(--color-field)" }}>
-                Agreement preview (v1.0 · draft pending legal review)
+                What is a BAA?
+              </span>
+              <span className="t-utility" style={{ color: "var(--color-field)" }}>
+                Required · HIPAA
               </span>
             </div>
-            <div
-              className="bg-[var(--color-field)] px-5 py-5 text-[14px] whitespace-pre-wrap"
+            <div className="bg-[var(--color-field)] px-4 py-3 text-[14px] flex flex-col gap-3"
               style={{ fontFamily: "var(--font-index)" }}
             >
-              {`OperatorOS, Inc. (“Business Associate”) and ${business.name} (“Covered Entity”) enter into this Business Associate Agreement to comply with the requirements of HIPAA (45 CFR Parts 160 and 164).
+              <p>
+                A Business Associate Agreement is a contract between a HIPAA-covered
+                entity (you) and a service provider (us) that defines how we may
+                handle Protected Health Information on your behalf.
+              </p>
+              <p>
+                Sign once per business. We countersign automatically and email
+                you the executed copy. Until a BAA is on file, OperatorOS will
+                reject any write to PHI-adjacent tables (staff credentials,
+                project documents, audit binders).
+              </p>
+            </div>
+          </section>
+
+          <section className="border-2 border-[var(--color-ground)]">
+            <details>
+              <summary className="panel-ink px-4 py-2 cursor-pointer list-none flex items-center justify-between">
+                <span className="t-utility" style={{ color: "var(--color-field)" }}>
+                  Agreement preview (v1.0 · draft pending legal review)
+                </span>
+                <span className="t-utility" style={{ color: "var(--color-field)" }}>
+                  Show ▾
+                </span>
+              </summary>
+              <div
+                className="bg-[var(--color-field)] px-4 py-3 text-[14px] whitespace-pre-wrap border-t-2 border-[var(--color-ground)]"
+                style={{ fontFamily: "var(--font-index)" }}
+              >
+                {`OperatorOS, Inc. (“Business Associate”) and ${business.name} (“Covered Entity”) enter into this Business Associate Agreement to comply with the requirements of HIPAA (45 CFR Parts 160 and 164).
 
 [PLACEHOLDER TEXT — DRAFTED BY HEALTHCARE-DATA ATTORNEY BEFORE PRODUCTION USE]
 
@@ -131,7 +168,8 @@ Key terms (final version pending attorney review):
 
 — DO NOT EXECUTE THIS DRAFT IN PRODUCTION. Replace with attorney-drafted
 text before enabling acceptance flow for live customers.`}
-            </div>
+              </div>
+            </details>
           </section>
 
           <AcceptBaaForm businessName={business.name} />

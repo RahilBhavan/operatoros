@@ -113,7 +113,7 @@ export default async function DeadlineDetailPage({
   const idCode = deadline.id.slice(0, 8).toUpperCase();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       {/* Crumb */}
       <div className="t-utility text-[var(--color-ground)]">
         <Link href="/deadlines" className="t-link">
@@ -122,7 +122,7 @@ export default async function DeadlineDetailPage({
         {" · "}Detail · PA-DL-{idCode}
       </div>
 
-      <div className="grid lg:grid-cols-[1.3fr_1fr] gap-8 items-start">
+      <div className="grid lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
         {/* Left: the destination card */}
         <article className="border-2 border-[var(--color-ground)] p-6 sm:p-8">
           <div className="flex items-center justify-between pb-5 border-b border-[var(--color-ground)] flex-wrap gap-3">
@@ -168,7 +168,7 @@ export default async function DeadlineDetailPage({
           />
 
           {/* Metadata grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-0 border-2 border-[var(--color-ground)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 border-2 border-[var(--color-ground)]">
             <MetaCell label="Due" value={dueLong} />
             <MetaCell label="Frequency" value={FREQ_LABELS[deadline.frequency] ?? deadline.frequency} />
             <MetaCell label="Severity" value={deadline.severity_tier.toUpperCase()} />
@@ -329,7 +329,7 @@ function MetaCell({
   mark?: boolean;
 }) {
   return (
-    <div className="px-4 py-3 border-r border-b border-[var(--color-ground)] last:border-r-0">
+    <div className="px-4 py-3 border-b sm:border-r last:border-b-0 sm:last:border-r-0 border-[var(--color-ground)]">
       <div className="t-utility mb-1">{label}</div>
       <div
         className={`text-[15px] font-bold ${

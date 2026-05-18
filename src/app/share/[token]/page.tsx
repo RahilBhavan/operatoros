@@ -352,7 +352,7 @@ function DeadlineTable({
         }`}
       >
         <div className="flex items-center gap-3">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
+          <Utility className="!text-[var(--color-field)]">
             {STATUS_LABEL[statusKey]}
           </Utility>
           <Index className="!text-[var(--color-field)] !text-[12px] ">
@@ -379,7 +379,7 @@ function DeadlineTable({
                       href={d.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className=" hover:opacity-100 hover:text-[var(--color-mark)] transition-opacity"
+                      className=" hover:text-[var(--color-mark)] "
                       aria-label="source"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />

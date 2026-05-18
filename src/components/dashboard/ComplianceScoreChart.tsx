@@ -21,7 +21,7 @@ export default function ComplianceScoreChart({
   if (history.length < 2) {
     return (
       <div className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between">
           <span
             className="t-utility"
             style={{ color: "var(--color-field)" }}
@@ -35,7 +35,7 @@ export default function ComplianceScoreChart({
             PA-SCR
           </span>
         </div>
-        <div className="bg-[var(--color-field)] px-5 py-5">
+        <div className="bg-[var(--color-field)] px-4 py-3">
           <p
             className="text-[14px]"
             style={{ fontFamily: "var(--font-index)" }}
@@ -75,7 +75,7 @@ export default function ComplianceScoreChart({
 
   return (
     <div className="border-2 border-[var(--color-ground)]">
-      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+      <div className="panel-ink px-4 py-2 flex items-center justify-between">
         <span
           className="t-utility"
           style={{ color: "var(--color-field)" }}
@@ -96,7 +96,7 @@ export default function ComplianceScoreChart({
         ) : null}
       </div>
 
-      <div className="bg-[var(--color-field)] px-5 py-5">
+      <div className="bg-[var(--color-field)] px-4 py-3">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="w-full block"

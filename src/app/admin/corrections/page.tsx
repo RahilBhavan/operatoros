@@ -72,8 +72,8 @@ export default async function AdminCorrectionsPage({
                 <Utility
                   className={
                     active
-                      ? "!text-[var(--color-field)] !opacity-100"
-                      : "!opacity-100"
+                      ? "!text-[var(--color-field)]"
+                      : ""
                   }
                 >
                   {s.toUpperCase()}
@@ -167,7 +167,7 @@ function StatCell({
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="text-left px-4 py-3">
-      <Utility className="!text-[11px] !text-[var(--color-field)] !opacity-100">
+      <Utility className="!text-[11px] !text-[var(--color-field)]">
         {children}
       </Utility>
     </th>

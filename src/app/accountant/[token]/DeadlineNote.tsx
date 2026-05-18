@@ -41,7 +41,7 @@ export default function DeadlineNote({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="t-utility !text-[12px] !text-[var(--color-ground)]  hover:opacity-100 hover:text-[var(--color-mark)] mt-2 transition-colors"
+        className="t-utility !text-[12px] !text-[var(--color-ground)]  hover:text-[var(--color-mark)] mt-2 transition-colors"
       >
         + ADD NOTE
       </button>

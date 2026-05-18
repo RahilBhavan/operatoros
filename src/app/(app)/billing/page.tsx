@@ -48,7 +48,7 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 mb-5">
         <div className="flex items-center gap-3 mb-3">
           <Index className="!text-[15px]">PA-BILL</Index>
           <Utility className="">BILLING / SUBSCRIPTION</Utility>
@@ -61,20 +61,20 @@ export default async function BillingPage() {
       {isActive && business.plan_tier !== "free" && (
         <div className="border-2 border-[var(--color-mark)] mb-10">
           <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
-            <Utility className="!text-[var(--color-field)] !opacity-100">
+            <Utility className="!text-[var(--color-field)]">
               CURRENT PLAN · {business.billing_status === "trialing" ? "TRIAL" : "ACTIVE"}
             </Utility>
             <Index className="!text-[var(--color-field)] !text-[12px] ">
               {PLAN_CODES[business.plan_tier]?.code ?? business.plan_tier.toUpperCase()}
             </Index>
           </div>
-          <div className="bg-[var(--color-field)] px-5 py-5 flex items-end justify-between flex-wrap gap-4">
+          <div className="bg-[var(--color-field)] px-4 py-3 flex items-end justify-between flex-wrap gap-4">
             <div>
               <Utility className=" mb-1">PLAN</Utility>
               <H2 className="!capitalize">{business.plan_tier}</H2>
               {business.trial_ends_at &&
                 business.billing_status === "trialing" && (
-                  <Caption className="!mt-2 !text-[var(--color-mark)] !opacity-100">
+                  <Caption className="!mt-2 !text-[var(--color-mark)]">
                     Trial ends{" "}
                     <Index className="!text-[13px]">
                       {new Date(business.trial_ends_at).toLocaleDateString(
@@ -96,12 +96,12 @@ export default async function BillingPage() {
       {liteSuggested && business.plan_tier !== "accountant" ? (
         <div className="border-2 border-[var(--color-ground)] mb-10">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
-            <Utility className="!text-[var(--color-field)] !opacity-100">
+            <Utility className="!text-[var(--color-field)]">
               SUGGESTED · LITE TIER · COMING SOON
             </Utility>
             <Index className="!text-[var(--color-field)] !text-[12px]">L-039</Index>
           </div>
-          <div className="bg-[var(--color-field)] px-5 py-5">
+          <div className="bg-[var(--color-field)] px-4 py-3">
             <H2>Your shape may fit our Lite tier.</H2>
             <Caption className="!mt-2">
               Solo-or-near-solo operators in thin-compliance industries
@@ -152,8 +152,8 @@ export default async function BillingPage() {
                   ))}
                 </ul>
                 {isCurrent ? (
-                  <div className="border-2 border-[var(--color-ground)] text-center py-3 t-utility">
-                    CURRENT PLAN ✓
+                  <div className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] text-center py-3 t-utility">
+                    CURRENT PLAN
                   </div>
                 ) : (
                   <BillingActions

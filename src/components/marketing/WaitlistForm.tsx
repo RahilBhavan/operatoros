@@ -78,7 +78,7 @@ export function WaitlistForm() {
   if (submitted) {
     return (
       <div className="max-w-[520px] flex flex-col gap-5">
-        <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-5 py-4 flex items-center gap-3">
+        <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-2.5 flex items-center gap-3">
           <StampChip tone="mark">On list</StampChip>
           <p
             className="t-body"

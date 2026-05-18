@@ -20,7 +20,7 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
 
     return (
       <div className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between">
           <span
             className="t-utility"
             style={{ color: "var(--color-field)" }}
@@ -34,7 +34,7 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
             PA-PEER
           </span>
         </div>
-        <div className="bg-[var(--color-field)] px-5 py-5">
+        <div className="bg-[var(--color-field)] px-4 py-3">
           <p
             className="text-[14px]"
             style={{ fontFamily: "var(--font-index)" }}
@@ -67,7 +67,7 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
 
   return (
     <div className="border-2 border-[var(--color-ground)]">
-      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+      <div className="panel-ink px-4 py-2 flex items-center justify-between">
         <span
           className="t-utility"
           style={{ color: "var(--color-field)" }}
@@ -86,7 +86,7 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
         </span>
       </div>
 
-      <div className="bg-[var(--color-field)] px-5 py-5">
+      <div className="bg-[var(--color-field)] px-4 py-3">
         <p
           className="text-[14px] mb-4"
           style={{ fontFamily: "var(--font-index)" }}

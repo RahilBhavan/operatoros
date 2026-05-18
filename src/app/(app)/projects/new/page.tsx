@@ -63,7 +63,7 @@ export default function NewProjectPage() {
 
   return (
     <div className="max-w-[680px] flex flex-col gap-6">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div className="t-utility mb-2">PA-PROJ / NEW</div>
         <h1
           style={{

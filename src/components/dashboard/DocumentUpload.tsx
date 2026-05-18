@@ -305,7 +305,7 @@ export default function DocumentUpload({
               const versions = versionsByDoc[doc.id];
               return (
                 <li key={doc.id}>
-                  <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] px-4 py-3 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                     <div className="flex items-center gap-3 min-w-0">
                       <Index className="!text-[12px]  shrink-0 w-8">
                         {String(idx + 1).padStart(3, "0")}
@@ -346,10 +346,10 @@ export default function DocumentUpload({
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 flex-wrap shrink-0 justify-end">
                       <button
                         onClick={() => loadVersions(doc.id)}
-                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
                         title="Version history"
                         aria-label="Version history"
                       >
@@ -360,7 +360,7 @@ export default function DocumentUpload({
                           setReplacingId(doc.id);
                           replaceInputRef.current?.click();
                         }}
-                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
                         title="Replace"
                         aria-label="Replace"
                       >
@@ -368,7 +368,7 @@ export default function DocumentUpload({
                       </button>
                       <button
                         onClick={() => downloadByPath(doc.file_path)}
-                        className="p-2 text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[var(--color-ground)] hover:bg-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-ground)]"
                         title="Download"
                         aria-label="Download"
                       >
@@ -376,7 +376,7 @@ export default function DocumentUpload({
                       </button>
                       <button
                         onClick={() => handleDelete(doc)}
-                        className="p-2 text-[var(--color-mark)] hover:bg-[var(--color-mark)] hover:text-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-mark)]"
+                        className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[var(--color-mark)] hover:bg-[var(--color-mark)] hover:text-[var(--color-field)] transition-colors border-2 border-transparent hover:border-[var(--color-mark)]"
                         title="Delete"
                         aria-label="Delete"
                       >

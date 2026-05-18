@@ -238,7 +238,7 @@ export default function SecurityPage() {
               production data, no social engineering of our team or customers.
             </Body>
             <div className="border-2 border-[var(--color-field)] p-5 sm:p-6 inline-flex flex-wrap items-center gap-4">
-              <Utility className="!text-[var(--color-field)] !opacity-100">
+              <Utility className="!text-[var(--color-field)]">
                 Report to
               </Utility>
               <a

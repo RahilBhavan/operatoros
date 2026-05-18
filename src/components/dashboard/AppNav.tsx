@@ -33,10 +33,10 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
       aria-label="App navigation"
       className="w-full bg-[var(--color-field)] border-t-4 border-b-2 border-t-[var(--color-ground)] border-b-[var(--color-ground)]"
     >
-      <div className="max-w-[1160px] mx-auto flex items-center gap-6 px-6 h-16">
+      <div className="max-w-[1240px] mx-auto flex items-center gap-4 px-4 sm:px-6 h-16">
         <Wordmark href="/dashboard" size={18} />
 
-        <div className="flex items-stretch self-stretch ml-4 -mb-[2px]">
+        <div className="flex items-stretch self-stretch ml-2 sm:ml-4 -mb-[2px] overflow-x-auto no-scrollbar">
           {NAV_ITEMS.map(({ href, label }) => {
             const active =
               pathname === href || pathname?.startsWith(href + "/");
@@ -45,7 +45,7 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`px-4 flex items-center t-utility no-underline text-[var(--color-ground)] border-b-4 ${
+                className={`px-3 sm:px-4 flex items-center t-utility whitespace-nowrap no-underline text-[var(--color-ground)] border-b-4 ${
                   active ? "border-[var(--color-mark)]" : "border-transparent"
                 } hover:text-[var(--color-mark)] transition-colors`}
               >
@@ -55,16 +55,16 @@ export default function AppNav({ userEmail }: { userEmail: string }) {
           })}
         </div>
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-3 shrink-0">
           <span
-            className="hidden sm:inline text-[13px]"
+            className="hidden md:inline text-[13px] truncate max-w-[180px]"
             style={{ fontFamily: "var(--font-index)" }}
           >
             {userEmail}
           </span>
           <button
             onClick={handleSignOut}
-            className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline"
+            className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] transition-colors no-underline whitespace-nowrap"
           >
             Sign out →
           </button>

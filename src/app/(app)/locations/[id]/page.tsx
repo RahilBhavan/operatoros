@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 import { computeRiskWeightedScore, formatDueDate } from "@/lib/deadline-utils";
 
 export const dynamic = "force-dynamic";
@@ -45,15 +46,21 @@ export default async function LocationDetail({
   );
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5 flex items-end justify-between flex-wrap gap-4">
+    <div className="flex flex-col gap-5">
+      <Breadcrumb
+        items={[
+          { label: "Locations", href: "/locations" },
+          { label: location.name ?? `${location.city ?? "Primary"} location` },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="t-utility mb-2">PA-LOC · {id.slice(0, 6).toUpperCase()}</div>
           <h1
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 900,
-              fontSize: "clamp(36px, 5vw, 56px)",
+              fontSize: "clamp(30px, 4vw, 44px)",
               lineHeight: 1,
               letterSpacing: "-0.02em",
               textTransform: "uppercase",
@@ -67,22 +74,27 @@ export default async function LocationDetail({
             {location.zip ? ` · ${location.zip}` : ""}
           </div>
         </div>
-        <div
-          className="font-bold"
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontSize: 56,
-            lineHeight: 1,
-            color: "var(--color-mark)",
-          }}
-        >
-          {score}
-          <span style={{ fontSize: 18, marginLeft: 4 }}>/100</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div
+            className="font-bold tabular-nums"
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontSize: 56,
+              lineHeight: 1,
+              color: "var(--color-mark)",
+            }}
+          >
+            {score}
+            <span style={{ fontSize: 18, marginLeft: 4 }}>/100</span>
+          </div>
+          <LinkButton href={`/locations/${id}/edit`} variant="ghost" size="sm">
+            Edit →
+          </LinkButton>
         </div>
       </header>
 
       <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-5 py-3 flex items-center justify-between">
+        <div className="panel-ink px-4 py-2 flex items-center justify-between">
           <span className="t-utility" style={{ color: "var(--color-field)" }}>
             Per-location deadlines
           </span>
@@ -110,7 +122,7 @@ export default async function LocationDetail({
               >
                 <Link
                   href={`/deadlines/${d.id}`}
-                  className="grid grid-cols-[1fr_auto] gap-4 px-5 py-4 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+                  className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
                 >
                   <div>
                     <div

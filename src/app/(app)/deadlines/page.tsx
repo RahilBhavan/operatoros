@@ -89,15 +89,21 @@ export default async function DeadlinesPage({
   const confidenceMap = await loadRuleConfidence([...new Set(ruleIds)]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-5 flex-wrap gap-4">
+    <div className="flex flex-col gap-5">
+      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-3 flex-wrap gap-3">
         <div>
-          <div className="t-utility mb-2">Manifest · all routes</div>
+          <div className="t-utility mb-1">
+            Manifest · all routes ·{" "}
+            <span className="text-[var(--color-mark)]">
+              {String(deadlineRows.length).padStart(3, "0")}
+            </span>{" "}
+            entries
+          </div>
           <h1
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 900,
-              fontSize: "clamp(36px, 5vw, 56px)",
+              fontSize: "clamp(30px, 4vw, 44px)",
               lineHeight: 1,
               letterSpacing: "-0.02em",
               textTransform: "uppercase",
@@ -105,14 +111,8 @@ export default async function DeadlinesPage({
           >
             Deadlines
           </h1>
-          <div className="t-utility mt-3">
-            <span className="text-[var(--color-mark)]">
-              {String(deadlineRows.length).padStart(3, "0")}
-            </span>{" "}
-            entries on file
-          </div>
         </div>
-        <LinkButton href="/deadlines/new" variant="mark">
+        <LinkButton href="/deadlines/new" variant="mark" size="sm">
           + File new deadline
         </LinkButton>
       </header>
@@ -121,7 +121,7 @@ export default async function DeadlinesPage({
 
       {deadlineRows.length > 0 ? (
         <div className="border-2 border-[var(--color-ground)]">
-          <div className="panel-ink px-5 py-3 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
+          <div className="panel-ink px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
             <span
               className="t-utility"
               style={{ color: "var(--color-field)" }}
@@ -155,11 +155,11 @@ export default async function DeadlinesPage({
                 >
                   <Link
                     href={`/deadlines/${d.id}`}
-                    className="grid grid-cols-[1fr_auto_auto] gap-4 items-center px-5 py-4 hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] no-underline group"
+                    className="grid grid-cols-[1fr_auto_auto] gap-4 items-center px-4 py-2.5 hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] no-underline group"
                   >
                     <div className="min-w-0 flex items-baseline gap-3">
                       <span
-                        className="t-utility shrink-0 w-10 text-[var(--color-mark)] group-hover:text-[var(--color-field)]"
+                        className="t-utility shrink-0 w-10 text-[var(--color-mark)] group-hover:text-[var(--color-field)] tabular-nums"
                       >
                         {String(idx + 1).padStart(3, "0")}
                       </span>
@@ -173,7 +173,7 @@ export default async function DeadlinesPage({
                           </span>
                           <ConfidenceBadge confidence={confidence} />
                         </div>
-                        <div className="t-utility mt-1">
+                        <div className="t-utility mt-0.5">
                           {(
                             DEADLINE_TYPE_LABELS[d.deadline_type] ??
                             d.deadline_type

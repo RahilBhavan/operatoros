@@ -52,7 +52,7 @@ export function CreateLinkForm({ appUrl }: { appUrl: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="self-start bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 text-[12px] uppercase tracking-wider font-bold disabled:opacity-50"
+        className="self-start bg-[var(--color-ground)] text-[var(--color-field)] px-4 py-2 text-[12px] uppercase tracking-wider font-bold disabled:cursor-not-allowed"
         style={{ fontFamily: "var(--font-index)" }}
       >
         {pending ? "Creating…" : "Create link"}
@@ -66,7 +66,7 @@ export function CreateLinkForm({ appUrl }: { appUrl: string }) {
         </div>
       ) : null}
       {created ? (
-        <div className="bg-[var(--color-field-soft)] border border-[var(--color-ground)] p-3 flex flex-col gap-2">
+        <div className="bg-[var(--color-field)] border-2 border-[var(--color-ground)] p-3 flex flex-col gap-2">
           <div
             className="text-[11px] uppercase tracking-wider text-[var(--color-ground)]"
             style={{ fontFamily: "var(--font-utility)" }}
@@ -85,6 +85,25 @@ export function CreateLinkForm({ appUrl }: { appUrl: string }) {
         </div>
       ) : null}
     </form>
+  );
+}
+
+export function CopyLinkButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard?.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="border-2 border-[var(--color-ground)] px-3 py-1 text-[11px] uppercase tracking-wider hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+      style={{ fontFamily: "var(--font-index)" }}
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -122,7 +141,7 @@ export function RevokeLinkButton({ linkId }: { linkId: string }) {
             setConfirming(false);
           })
         }
-        className="bg-[var(--color-mark)] text-white px-3 py-1 text-[11px] uppercase tracking-wider disabled:opacity-50"
+        className="bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-1 text-[11px] uppercase tracking-wider disabled:cursor-not-allowed"
         style={{ fontFamily: "var(--font-index)" }}
       >
         {pending ? "…" : "Yes"}
@@ -131,7 +150,7 @@ export function RevokeLinkButton({ linkId }: { linkId: string }) {
         type="button"
         disabled={pending}
         onClick={() => setConfirming(false)}
-        className="border border-[var(--color-ground)] px-3 py-1 text-[11px] uppercase tracking-wider disabled:opacity-50"
+        className="border border-[var(--color-ground)] px-3 py-1 text-[11px] uppercase tracking-wider disabled:cursor-not-allowed"
         style={{ fontFamily: "var(--font-index)" }}
       >
         No

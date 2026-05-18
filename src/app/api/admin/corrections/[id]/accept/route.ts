@@ -32,7 +32,7 @@ export async function POST(
   }
 
   const admin = createAdminClient();
-  const rpc = admin.rpc as unknown as (
+  const rpc = admin.rpc.bind(admin) as unknown as (
     fn: "accept_correction",
     params: { p_correction_id: string }
   ) => Promise<{ data: string | null; error: { code?: string; message: string } | null }>;
@@ -75,7 +75,7 @@ export async function POST(
   }
 
   // Best-effort refresh of the materialized view. Service-role only.
-  const refreshRpc = admin.rpc as unknown as (
+  const refreshRpc = admin.rpc.bind(admin) as unknown as (
     fn: "refresh_rule_confidence"
   ) => Promise<{ error: { message: string } | null }>;
   const { error: refreshError } = await refreshRpc("refresh_rule_confidence");

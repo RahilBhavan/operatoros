@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
 import { Button, Utility, Index } from "@/components/doctrine";
+import { useToast } from "@/components/doctrine/Toast";
 
 type DeadlineRow = Database["public"]["Tables"]["deadlines"]["Row"];
 
@@ -49,10 +50,29 @@ export default function DeadlineForm({ businessId, existing }: Props) {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [dueDateError, setDueDateError] = useState("");
+  const toast = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !dueDate) return;
+    let ok = true;
+    if (!name.trim()) {
+      setNameError("Name is required.");
+      ok = false;
+    } else if (name.trim().length > 200) {
+      setNameError("Keep this under 200 characters.");
+      ok = false;
+    } else {
+      setNameError("");
+    }
+    if (!dueDate) {
+      setDueDateError("Pick a due date.");
+      ok = false;
+    } else {
+      setDueDateError("");
+    }
+    if (!ok) return;
 
     setLoading(true);
     setError("");
@@ -76,9 +96,11 @@ export default function DeadlineForm({ businessId, existing }: Props) {
 
         if (err) {
           setError("Failed to update deadline. Please try again.");
+          toast.error("Update failed", err.message ?? "Please try again.");
           return;
         }
 
+        toast.success("Deadline updated", name.trim());
         router.push(`/deadlines/${existing.id}`);
         router.refresh();
       } else {
@@ -100,9 +122,11 @@ export default function DeadlineForm({ businessId, existing }: Props) {
 
         if (err || !data) {
           setError("Failed to save deadline. Please try again.");
+          toast.error("Save failed", err?.message ?? "Please try again.");
           return;
         }
 
+        toast.success("Deadline added", name.trim());
         router.push(`/deadlines/${data.id}`);
         router.refresh();
       }
@@ -135,12 +159,19 @@ export default function DeadlineForm({ businessId, existing }: Props) {
           <Utility>· ESSENTIALS</Utility>
         </div>
 
-        <FormField label="DEADLINE NAME" required>
+        <FormField label="DEADLINE NAME" required error={nameError}>
           <input
             type="text"
             required
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (nameError) setNameError("");
+            }}
+            onBlur={() => {
+              if (!name.trim()) setNameError("Name is required.");
+            }}
+            aria-invalid={nameError ? "true" : undefined}
             placeholder="e.g. Illinois LLC Annual Report"
             className="t-input"
           />
@@ -183,12 +214,19 @@ export default function DeadlineForm({ businessId, existing }: Props) {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <FormField label="DUE DATE" required>
+          <FormField label="DUE DATE" required error={dueDateError}>
             <input
               type="date"
               required
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => {
+                setDueDate(e.target.value);
+                if (dueDateError) setDueDateError("");
+              }}
+              onBlur={() => {
+                if (!dueDate) setDueDateError("Pick a due date.");
+              }}
+              aria-invalid={dueDateError ? "true" : undefined}
               className="t-input"
             />
           </FormField>
@@ -276,10 +314,12 @@ export default function DeadlineForm({ businessId, existing }: Props) {
 function FormField({
   label,
   required,
+  error,
   children,
 }: {
   label: string;
   required?: boolean;
+  error?: string;
   /** Wraps the control as a child so the surrounding <label> becomes its programmatic label. */
   children: React.ReactNode;
 }) {
@@ -294,6 +334,11 @@ function FormField({
         </Utility>
       </span>
       {children}
+      {error ? (
+        <span className="t-utility !text-[11px] !text-[var(--color-mark)] block mt-1">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

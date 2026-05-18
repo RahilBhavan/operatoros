@@ -53,7 +53,7 @@ export default function CreateAdminInviteForm() {
       <div className="border-b-2 border-[var(--color-ground)] px-5 py-3">
         <Utility>INVITE NEW PLATFORM ADMIN</Utility>
       </div>
-      <div className="px-5 py-4">
+      <div className="px-4 py-2.5">
         <Caption className="mb-4">
           Generates a one-time invite token valid for 7 days. The recipient must
           already have a regular OperatorOS account (or sign up with this email),
@@ -79,7 +79,7 @@ export default function CreateAdminInviteForm() {
 
         {error && (
           <div className="mt-3 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
-            <Caption className="!text-[var(--color-field)] !opacity-100">
+            <Caption className="!text-[var(--color-field)]">
               {error}
             </Caption>
           </div>

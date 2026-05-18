@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import NotificationPreferencesForm from "@/components/settings/NotificationPreferencesForm";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,20 @@ export default async function NotificationsSettingsPage() {
   const smsConfigured = Boolean(process.env.TWILIO_ACCOUNT_SID);
 
   return (
-    <div className="flex flex-col gap-8 max-w-[720px]">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
+    <div className="flex flex-col gap-5 max-w-[720px]">
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" },
+          { label: "Notifications" },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div className="t-utility mb-2">PA-NTF</div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -45,7 +52,7 @@ export default async function NotificationsSettingsPage() {
       </header>
 
       {!smsConfigured ? (
-        <div className="border-2 border-[var(--color-ground)] px-5 py-4">
+        <div className="border-2 border-[var(--color-ground)] px-4 py-2.5">
           <div className="t-utility mb-1">SMS not configured on this deployment</div>
           <p style={{ fontFamily: "var(--font-index)", fontSize: 14 }}>
             Your operator hasn&rsquo;t connected a Twilio account yet, so the

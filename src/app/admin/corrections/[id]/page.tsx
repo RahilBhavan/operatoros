@@ -87,7 +87,7 @@ export default async function AdminCorrectionDetailPage({
 
       <section className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3">
-          <Utility className="!text-[var(--color-field)] !opacity-100">RATIONALE</Utility>
+          <Utility className="!text-[var(--color-field)]">RATIONALE</Utility>
         </div>
         <div className="bg-[var(--color-field)] px-5 py-4">
           <Body className="!text-[14px] whitespace-pre-wrap">{correction.rationale}</Body>
@@ -109,7 +109,7 @@ export default async function AdminCorrectionDetailPage({
 
       <section className="border-2 border-[var(--color-ground)] mb-6">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3">
-          <Utility className="!text-[var(--color-field)] !opacity-100">
+          <Utility className="!text-[var(--color-field)]">
             PROPOSED CHANGES ({diffRows.length})
           </Utility>
         </div>
@@ -148,9 +148,9 @@ export default async function AdminCorrectionDetailPage({
       {!isResolved && (
         <section className="border-2 border-[var(--color-ground)] mb-6">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3">
-            <Utility className="!text-[var(--color-field)] !opacity-100">REVIEW</Utility>
+            <Utility className="!text-[var(--color-field)]">REVIEW</Utility>
           </div>
-          <div className="bg-[var(--color-field)] px-5 py-5">
+          <div className="bg-[var(--color-field)] px-4 py-3">
             <CorrectionReviewActions correctionId={correction.id} />
           </div>
         </section>
@@ -193,7 +193,7 @@ function Code({ value }: { value: unknown }) {
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="text-left px-4 py-3">
-      <Utility className="!text-[11px] !text-[var(--color-ground)] !opacity-100">
+      <Utility className="!text-[11px] !text-[var(--color-ground)]">
         {children}
       </Utility>
     </th>

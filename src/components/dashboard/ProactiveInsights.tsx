@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { StampChip } from "@/components/doctrine/StampChip";
+import { useToast } from "@/components/doctrine/Toast";
 
 interface Insight {
   title: string;
@@ -43,6 +44,7 @@ export default function ProactiveInsights() {
   const [shareStatus, setShareStatus] = useState<
     { index: number; ok: boolean; message: string } | null
   >(null);
+  const toast = useToast();
 
   async function load() {
     setLoading(true);
@@ -88,12 +90,14 @@ export default function ProactiveInsights() {
           ok: true,
           message: `Sent to ${data.sent_to}`,
         });
+        toast.success("Shared with accountant", `${insight.title} sent to ${data.sent_to}`);
       } else {
         setShareStatus({
           index: idx,
           ok: false,
           message: data.error ?? "Failed to send.",
         });
+        toast.error("Share failed", data.error ?? "Please try again.");
       }
     } catch {
       setShareStatus({
@@ -101,6 +105,7 @@ export default function ProactiveInsights() {
         ok: false,
         message: "Network error.",
       });
+      toast.error("Network error", "Please try again.");
     } finally {
       setSharingIndex(null);
     }
@@ -112,7 +117,7 @@ export default function ProactiveInsights() {
         type="button"
         onClick={load}
         disabled={loading}
-        className="panel-ink px-5 py-3 flex items-center justify-between w-full text-left group disabled:cursor-not-allowed"
+        className="panel-ink px-4 py-2 flex items-center justify-between w-full text-left group disabled:cursor-not-allowed"
       >
         <span className="flex items-center gap-3">
           <span
@@ -137,7 +142,7 @@ export default function ProactiveInsights() {
         </span>
       </button>
 
-      <div className="bg-[var(--color-field)] px-5 py-5">
+      <div className="bg-[var(--color-field)] px-4 py-4">
         {loading ? (
           <div className="flex items-center gap-3">
             <span
@@ -283,7 +288,7 @@ export default function ProactiveInsights() {
                         type="button"
                         onClick={() => shareWithAccountant(insight, i)}
                         disabled={sharingIndex === i}
-                        className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] disabled:opacity-50"
+                        className="t-utility text-[var(--color-ground)] hover:text-[var(--color-mark)] disabled:cursor-not-allowed"
                       >
                         {sharingIndex === i
                           ? "Sending…"

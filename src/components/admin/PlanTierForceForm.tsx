@@ -57,7 +57,7 @@ export default function PlanTierForceForm({
         <Utility className="!text-[var(--color-field)] !text-[12px] mb-1">
           WARNING · OVERRIDE
         </Utility>
-        <Caption className="!text-[var(--color-field)] !opacity-100 !text-[12px]">
+        <Caption className="!text-[var(--color-field)] !text-[12px]">
           Forces tier or billing_status without going through Stripe. Use only
           for emergencies (refunds, comp accounts, recovery). Every change is
           logged.
@@ -110,14 +110,14 @@ export default function PlanTierForceForm({
 
       {error && (
         <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-3 py-2">
-          <Caption className="!text-[var(--color-field)] !opacity-100">
+          <Caption className="!text-[var(--color-field)]">
             {error}
           </Caption>
         </div>
       )}
       {success && (
         <div className="border-2 border-[var(--color-ground)] bg-[var(--color-ground)] text-[var(--color-field)] px-3 py-2">
-          <Caption className="!text-[var(--color-field)] !opacity-100">
+          <Caption className="!text-[var(--color-field)]">
             {success}
           </Caption>
         </div>

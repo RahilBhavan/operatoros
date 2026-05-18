@@ -191,7 +191,7 @@ function SignUpInner() {
                     Owner-operator?{" "}
                     <Link
                       href="/sign-up"
-                      className="underline underline-offset-4 hover:opacity-100"
+                      className="underline underline-offset-4"
                       style={{ color: "var(--color-field)" }}
                     >
                       Business account →

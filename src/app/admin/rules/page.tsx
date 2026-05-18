@@ -81,7 +81,7 @@ export default async function AdminRulesPage({
       {stats.missing_states.length > 0 && (
         <section className="border-2 border-[var(--color-ground)] mb-6">
           <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3">
-            <Utility className="!text-[var(--color-field)] !opacity-100">
+            <Utility className="!text-[var(--color-field)]">
               50-STATE COVERAGE GAPS
             </Utility>
           </div>
@@ -244,7 +244,7 @@ function FilterSelect({
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="text-left px-4 py-3">
-      <Utility className="!text-[11px] !text-[var(--color-field)] !opacity-100">
+      <Utility className="!text-[11px] !text-[var(--color-field)]">
         {children}
       </Utility>
     </th>

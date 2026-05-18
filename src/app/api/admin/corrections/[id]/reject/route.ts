@@ -44,7 +44,7 @@ export async function POST(
   // remediation migration. requirePlatformAdminForRoute above proves the
   // caller is an admin; routing through the admin client is safe.
   const admin = createAdminClient();
-  const rpc = admin.rpc as unknown as (
+  const rpc = admin.rpc.bind(admin) as unknown as (
     fn: "reject_correction",
     params: { p_correction_id: string; p_review_note: string }
   ) => Promise<{ data: unknown; error: { code?: string; message: string } | null }>;
@@ -86,7 +86,7 @@ export async function POST(
   }
 
   // Refresh confidence so rejected_count bumps reflect immediately.
-  const refreshRpc = admin.rpc as unknown as (
+  const refreshRpc = admin.rpc.bind(admin) as unknown as (
     fn: "refresh_rule_confidence"
   ) => Promise<{ error: { message: string } | null }>;
   const { error: refreshError } = await refreshRpc("refresh_rule_confidence");

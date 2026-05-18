@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PROVIDERS, isProviderConfigured } from "@/lib/integrations/providers";
 import { LinkButton } from "@/components/doctrine/Button";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -29,15 +30,28 @@ export default async function IntegrationsPage() {
 
   const list = Object.values(PROVIDERS);
 
+  const PROVIDER_MARK: Record<string, string> = {
+    simplepractice: "SP",
+    karbon: "K",
+    qbo: "QB",
+    taxdome: "TD",
+  };
+
   return (
-    <div className="flex flex-col gap-8 max-w-[820px]">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
+    <div className="flex flex-col gap-5 max-w-[820px]">
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" },
+          { label: "Integrations" },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div className="t-utility mb-2">PA-INT</div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -72,7 +86,20 @@ export default async function IntegrationsPage() {
                 }
               >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
+                  <div className="flex items-start gap-4 min-w-0">
+                    <span
+                      aria-hidden
+                      className="shrink-0 inline-flex items-center justify-center w-12 h-12 border-2 border-[var(--color-ground)] text-[var(--color-ground)] tabular-nums"
+                      style={{
+                        fontFamily: "var(--font-destination)",
+                        fontWeight: 900,
+                        fontSize: 18,
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {PROVIDER_MARK[p.id] ?? p.id.slice(0, 2).toUpperCase()}
+                    </span>
+                  <div className="min-w-0">
                     <div
                       className="font-bold text-[16px]"
                       style={{ fontFamily: "var(--font-index)" }}
@@ -98,9 +125,10 @@ export default async function IntegrationsPage() {
                       </div>
                     ) : null}
                   </div>
+                  </div>
                   <div className="shrink-0">
                     {!configured ? (
-                      <span className="t-utility text-[var(--color-ground)]/60">
+                      <span className="t-utility text-[var(--color-ground)]">
                         Admin must configure
                       </span>
                     ) : connected ? (

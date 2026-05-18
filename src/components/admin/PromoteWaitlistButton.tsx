@@ -70,7 +70,7 @@ export default function PromoteWaitlistButton({
           setError("");
         }}
         disabled={stage === "busy"}
-        className="t-utility !text-[12px] !text-[var(--color-ground)]  hover:opacity-100"
+        className="t-utility !text-[12px] !text-[var(--color-ground)] "
       >
         CANCEL
       </button>

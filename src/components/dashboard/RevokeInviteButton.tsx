@@ -48,11 +48,11 @@ export default function RevokeInviteButton({
             type="button"
             onClick={handleRevoke}
             disabled={phase === "busy"}
-            className="t-utility !text-[11px] text-[var(--color-field)] underline underline-offset-2 hover:opacity-80"
+            className="t-utility !text-[11px] text-[var(--color-field)] underline underline-offset-2 hover:no-underline focus-visible:underline"
           >
             {phase === "busy" ? "Revoking…" : "Confirm"}
           </button>
-          <span className="text-[var(--color-field)] opacity-60">·</span>
+          <span aria-hidden className="text-[var(--color-field)]">·</span>
           <button
             type="button"
             onClick={() => {
@@ -60,7 +60,7 @@ export default function RevokeInviteButton({
               setError("");
             }}
             disabled={phase === "busy"}
-            className="t-utility !text-[11px] text-[var(--color-field)] hover:opacity-80"
+            className="t-utility !text-[11px] text-[var(--color-field)] hover:no-underline focus-visible:underline"
           >
             Cancel
           </button>

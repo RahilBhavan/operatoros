@@ -4,22 +4,32 @@ import { useState } from "react";
 import { Button } from "@/components/doctrine/Button";
 import { FormField } from "@/components/doctrine/FormField";
 import { StampChip } from "@/components/doctrine/StampChip";
+import { useToast } from "@/components/doctrine/Toast";
 
 interface Props {
   canInvite: boolean;
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AccountantInvite({ canInvite }: Props) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [portalUrl, setPortalUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!EMAIL_RE.test(email)) {
+      setEmailError("Looks like an invalid email address.");
+      return;
+    }
+    setEmailError("");
     setLoading(true);
 
     const res = await fetch("/api/accountant/invite", {
@@ -33,6 +43,7 @@ export default function AccountantInvite({ canInvite }: Props) {
 
     if (!res.ok) {
       setError(data.error ?? "Failed to send invite");
+      toast.error("Couldn't send invite", data.error ?? "Please try again.");
       return;
     }
 
@@ -40,17 +51,19 @@ export default function AccountantInvite({ canInvite }: Props) {
     setPortalUrl(`${appUrl}/accountant/${data.token}`);
     setEmail("");
     setName("");
+    toast.success("Invite sent", `Portal link emailed to ${email}.`);
   }
 
   async function copyLink() {
     await navigator.clipboard.writeText(portalUrl);
     setCopied(true);
+    toast.success("Link copied");
     setTimeout(() => setCopied(false), 2000);
   }
 
   return (
     <div className="border-2 border-[var(--color-ground)] flex flex-col">
-      <div className="panel-ink px-5 py-3 flex items-center justify-between">
+      <div className="panel-ink px-4 py-2 flex items-center justify-between">
         <span
           className="t-utility"
           style={{ color: "var(--color-field)" }}
@@ -65,7 +78,7 @@ export default function AccountantInvite({ canInvite }: Props) {
         </span>
       </div>
 
-      <div className="bg-[var(--color-field)] px-5 py-5 flex-1 flex flex-col gap-4">
+      <div className="bg-[var(--color-field)] px-4 py-4 flex-1 flex flex-col gap-3">
         {!canInvite ? (
           <>
             <p
@@ -111,7 +124,7 @@ export default function AccountantInvite({ canInvite }: Props) {
             </button>
           </>
         ) : (
-          <form onSubmit={handleInvite} className="flex flex-col gap-4">
+          <form onSubmit={handleInvite} className="flex flex-col gap-4" noValidate>
             <FormField label="Name (optional)" htmlFor="acc-name">
               <input
                 id="acc-name"
@@ -122,21 +135,35 @@ export default function AccountantInvite({ canInvite }: Props) {
                 className="t-input"
               />
             </FormField>
-            <FormField label="Email" htmlFor="acc-email">
+            <FormField
+              label="Email"
+              htmlFor="acc-email"
+              error={emailError}
+              hint={!emailError ? "We'll email a portal link to this address." : undefined}
+            >
               <div className="flex gap-2">
                 <input
                   id="acc-email"
                   type="email"
                   placeholder="accountant@firm.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError("");
+                  }}
+                  onBlur={() => {
+                    if (email && !EMAIL_RE.test(email)) {
+                      setEmailError("Looks like an invalid email address.");
+                    }
+                  }}
+                  aria-invalid={emailError ? "true" : undefined}
                   required
                   className="t-input flex-1 min-w-0"
                 />
                 <Button
                   variant="mark"
                   type="submit"
-                  disabled={loading || !email}
+                  disabled={loading || !email || Boolean(emailError)}
                   className="shrink-0"
                 >
                   {loading ? "Sending…" : "Invite"}

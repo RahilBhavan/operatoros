@@ -60,7 +60,7 @@ export default function StateCoverageBanner({ state, industrySlug }: Props) {
           Template fallback
         </span>
       </div>
-      <div className="bg-[var(--color-field)] px-5 py-5 flex flex-col gap-3">
+      <div className="bg-[var(--color-field)] px-4 py-3 flex flex-col gap-3">
         <p className="text-[14px]" style={{ fontFamily: "var(--font-index)" }}>
           Federal deadlines for {state} are deep. State-specific deadlines are
           on a template fallback — common annual filings are covered, but

@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   CreateLinkForm,
   RevokeLinkButton,
+  CopyLinkButton,
 } from "@/components/settings/NetworkInviteControls";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://operatoros.app";
 
@@ -28,19 +30,20 @@ export default async function NetworkSettingsPage() {
 
   if (business.plan_tier !== "accountant") {
     return (
-      <div className="max-w-[700px]">
-        <header className="border-b-2 border-[var(--color-ground)] pb-6 mb-8">
-          <div
-            className="text-[12px] uppercase tracking-wider mb-2"
-            style={{ fontFamily: "var(--font-utility)" }}
-          >
-            PA-NET · SETTINGS / NETWORK
-          </div>
+      <div className="max-w-[700px] flex flex-col gap-5">
+        <Breadcrumb
+          items={[
+            { label: "Settings", href: "/settings" },
+            { label: "Network growth" },
+          ]}
+        />
+        <header className="border-b-4 border-[var(--color-ground)] pb-3">
+          <div className="t-utility mb-1">PA-NET</div>
           <h1
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 900,
-              fontSize: "clamp(32px, 4vw, 48px)",
+              fontSize: "clamp(30px, 4vw, 44px)",
               lineHeight: 1,
               letterSpacing: "-0.02em",
               textTransform: "uppercase",
@@ -86,19 +89,24 @@ export default async function NetworkSettingsPage() {
   );
 
   return (
-    <div className="max-w-[900px] flex flex-col gap-8">
-      <header className="border-b-2 border-[var(--color-ground)] pb-6">
+    <div className="max-w-[900px] flex flex-col gap-5">
+      <Breadcrumb
+        items={[
+          { label: "Settings", href: "/settings" },
+          { label: "Network growth" },
+        ]}
+      />
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
         <div
-          className="text-[12px] uppercase tracking-wider mb-2"
-          style={{ fontFamily: "var(--font-utility)" }}
+          className="t-utility mb-1"
         >
-          PA-NET · SETTINGS / NETWORK
+          PA-NET
         </div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(32px, 4vw, 48px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -168,11 +176,14 @@ export default async function NetworkSettingsPage() {
                   </code>
                 </div>
                 <div
-                  className="flex items-center gap-6 text-[12px] uppercase tracking-wider"
+                  className="flex items-center gap-4 text-[12px] uppercase tracking-wider flex-wrap"
                   style={{ fontFamily: "var(--font-utility)" }}
                 >
-                  <span>{link.signups_count ?? 0} signups</span>
-                  <span>{link.paid_conversions_count ?? 0} paid</span>
+                  <span className="tabular-nums">{link.signups_count ?? 0} signups</span>
+                  <span className="tabular-nums">{link.paid_conversions_count ?? 0} paid</span>
+                  <CopyLinkButton
+                    url={`${APP_URL.replace(/\/$/, "")}/i/${link.code}`}
+                  />
                   <RevokeLinkButton linkId={link.id} />
                 </div>
               </li>
@@ -184,12 +195,12 @@ export default async function NetworkSettingsPage() {
       {revoked.length > 0 ? (
         <section>
           <h2
-            className="text-[14px] font-bold uppercase tracking-wider mb-3 opacity-60"
+            className="t-utility mb-3"
             style={{ fontFamily: "var(--font-index)" }}
           >
             Revoked · {revoked.length}
           </h2>
-          <ul className="border-2 border-[var(--color-ground)] opacity-60">
+          <ul className="border-2 border-[var(--color-ground)]">
             {revoked.map((link, i) => (
               <li
                 key={link.id}

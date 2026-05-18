@@ -124,8 +124,8 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-field)] flex flex-col">
-      <header className="border-b-2 border-[var(--color-ground)] px-6 py-5">
-        <div className="max-w-[1160px] mx-auto flex items-center justify-between">
+      <header className="border-t-4 border-[var(--color-ground)] border-b border-[var(--color-ground)] px-6 py-4">
+        <div className="max-w-[1240px] mx-auto flex items-center justify-between">
           <Wordmark size={20} />
           <span className="t-utility text-[var(--color-ground)]">
             Manifest · build your calendar
@@ -133,7 +133,7 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-start justify-center px-6 py-12">
+      <main className="flex-1 flex items-center justify-center px-6 py-8">
         <div className="w-full max-w-[680px]">
           <ProgressLadder step={step} />
 

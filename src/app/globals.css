@@ -272,11 +272,29 @@ body {
   color: var(--color-field);
   border-color: var(--color-mark);
 }
-.btn:disabled {
-  background: var(--color-ground);
-  color: var(--color-field);
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  background: var(--color-field);
+  color: var(--color-ground);
   border-color: var(--color-ground);
   cursor: not-allowed;
+  pointer-events: none;
+}
+.btn-mark:disabled,
+.btn-mark[aria-disabled="true"] {
+  background: var(--color-field);
+  color: var(--color-mark);
+  border-color: var(--color-mark);
+}
+.btn-inverse:disabled,
+.btn-inverse[aria-disabled="true"] {
+  background: transparent;
+  color: var(--color-field);
+  border-color: var(--color-field);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--color-mark);
+  outline-offset: 2px;
 }
 
 .btn-lg {
@@ -431,8 +449,44 @@ select.t-input {
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
-.t-link:hover {
+.t-link:hover,
+.t-link:focus-visible {
   color: var(--color-mark);
+}
+
+/* Hide horizontal scrollbar but keep scrollability (nav overflow on mobile). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ============================================================
+   Skeleton — solid Ink shimmer for loading. Doctrine-pure: no
+   opacity, no gradient. Visual interest comes from a sliding
+   inverse-color cap that wipes left → right.
+   ============================================================ */
+.skeleton {
+  position: relative;
+  display: inline-block;
+  background: var(--color-ground);
+  overflow: hidden;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-field);
+  transform: translateX(-100%);
+  animation: skeleton-wipe 1.4s linear infinite;
+  width: 30%;
+}
+@keyframes skeleton-wipe {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; transform: translateX(-100%); }
 }
 
 /* ============================================================

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
   // Rate limit: 10/hr per connection. Reuses the generic auth rate-limit
   // RPC from workstream A — it takes an arbitrary key + window + max.
-  const rateRpc = admin.rpc as unknown as (
+  const rateRpc = admin.rpc.bind(admin) as unknown as (
     fn: "try_consume_auth_rate_limit",
     params: { p_key: string; p_max_attempts: number; p_window_seconds: number }
   ) => Promise<{ data: boolean | null; error: { message: string } | null }>;

@@ -7,9 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "The compliance operating system for the 1–50 employee business.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#FFFFFF",
     theme_color: "#FFFFFF",
+    categories: ["business", "productivity"],
     icons: [
       {
         src: "/icon.svg",

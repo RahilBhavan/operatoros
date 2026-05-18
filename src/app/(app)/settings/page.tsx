@@ -35,14 +35,14 @@ export default function SettingsIndex() {
     },
   ];
   return (
-    <div className="flex flex-col gap-8 max-w-[720px]">
-      <header className="border-b-2 border-[var(--color-ground)] pb-5">
-        <div className="t-utility mb-2">PA-SET</div>
+    <div className="flex flex-col gap-5 max-w-[720px]">
+      <header className="border-b-4 border-[var(--color-ground)] pb-3">
+        <div className="t-utility mb-1">PA-SET</div>
         <h1
           style={{
             fontFamily: "var(--font-destination)",
             fontWeight: 900,
-            fontSize: "clamp(36px, 5vw, 56px)",
+            fontSize: "clamp(30px, 4vw, 44px)",
             lineHeight: 1,
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
@@ -65,7 +65,7 @@ export default function SettingsIndex() {
             >
               <Link
                 href={s.href}
-                className="px-5 py-4 flex items-center justify-between no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+                className="px-4 py-3 flex items-center justify-between no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
               >
                 <div>
                   <div
@@ -74,7 +74,7 @@ export default function SettingsIndex() {
                   >
                     {s.title}
                   </div>
-                  <div className="t-utility mt-1">{s.blurb}</div>
+                  <div className="t-utility mt-0.5">{s.blurb}</div>
                 </div>
                 <span className="t-utility shrink-0">Open →</span>
               </Link>

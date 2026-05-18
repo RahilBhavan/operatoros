@@ -145,4 +145,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deployment
 
-Deploy to Vercel. The `vercel.json` cron job runs daily reminder emails at 9am UTC.
+Deploy to [Vercel](https://vercel.com). Full checklist: [docs/vercel/DEPLOYMENT.md](docs/vercel/DEPLOYMENT.md).
+
+**Quick start**
+
+1. Link the repo in Vercel (Framework: **Next.js**, Output Directory: **empty**, Node **20**).
+2. Set environment variables from [`.env.example`](.env.example) (Production + Preview).
+3. `npm run deploy:prod` or push to `main`.
+
+**Cron jobs** ([`vercel.json`](vercel.json)): daily reminders at 09:00 UTC; peer benchmarks Sunday 02:00 UTC. Requires `CRON_SECRET` in Vercel env.
+
+```bash
+npm run env:pull      # sync secrets from Vercel
+npm run deploy:preview
+npm run deploy:prod
+```

@@ -123,7 +123,7 @@ export default function FlagRuleButton({
       <button
         type="button"
         onClick={() => setMode("open")}
-        className="inline-flex items-center gap-1 text-[var(--color-ground)]  hover:opacity-100 hover:text-[var(--color-mark)] t-utility !text-[11px]"
+        className="inline-flex items-center gap-1 text-[var(--color-ground)]  hover:text-[var(--color-mark)] t-utility !text-[11px]"
         aria-label={`Flag rule: ${ruleName}`}
       >
         <Flag className="w-3 h-3" />
@@ -151,7 +151,7 @@ export default function FlagRuleButton({
             setMode("idle");
             setError(null);
           }}
-          className="t-utility !text-[11px]  hover:opacity-100"
+          className="t-utility !text-[11px] "
         >
           ✕ CLOSE
         </button>

@@ -103,7 +103,7 @@ export default function StaffCredentialAdder({
       </div>
       <form
         onSubmit={onSubmit}
-        className="bg-[var(--color-field)] px-5 py-5 grid sm:grid-cols-2 gap-4"
+        className="bg-[var(--color-field)] px-4 py-3 grid sm:grid-cols-2 gap-4"
       >
         <label className="flex flex-col gap-1 sm:col-span-2">
           <span className="t-utility">Credential</span>
