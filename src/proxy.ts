@@ -48,5 +48,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api|share).*)"],
+  // Static/PWA paths excluded so sw.js and share/accountant token routes skip auth proxy.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon\\.svg|apple-icon|manifest\\.webmanifest|sw\\.js|offline\\.html|robots\\.txt|sitemap\\.xml|api|share|accountant).*)",
+  ],
 };

@@ -23,6 +23,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async rewrites() {
+    // Guarantee PWA assets on Vercel when public/ static serving is skipped.
+    return [
+      { source: "/sw.js", destination: "/api/pwa/sw" },
+      { source: "/offline.html", destination: "/api/pwa/offline" },
+    ];
+  },
   async headers() {
     const base = [
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -51,6 +58,7 @@ const nextConfig: NextConfig = {
 
     return [
       { source: "/sw.js", headers: swHeaders },
+      { source: "/api/pwa/sw", headers: swHeaders },
       { source: "/(.*)", headers: base },
     ];
   },

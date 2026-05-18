@@ -2,32 +2,36 @@
 
 import { useEffect } from "react";
 
+const SW_URL = "/sw.js";
+
 /**
- * Registers /sw.js once on mount. Idempotent — re-registers cheaply on the
- * client. No-op in browsers without ServiceWorker. WS-3.5 scaffolding.
+ * Registers /sw.js once on mount. Unregisters stale workers when the script is
+ * missing (broken deploy) so cached bad responses cannot hijack navigation.
  */
 export default function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
-    // Only register in production. In dev, HMR can fight an active SW and
-    // surface confusing cached responses.
     if (process.env.NODE_ENV !== "production") return;
 
-    const onLoad = () => {
-      navigator.serviceWorker
-        .register("/sw.js", { scope: "/", updateViaCache: "none" })
-        .catch((err) => {
-          console.warn("[sw] registration failed:", err);
-        });
-    };
+    async function setup() {
+      const check = await fetch(SW_URL, { method: "HEAD", cache: "no-store" });
+      const regs = await navigator.serviceWorker.getRegistrations();
 
-    if (document.readyState === "complete") {
-      onLoad();
-    } else {
-      window.addEventListener("load", onLoad);
-      return () => window.removeEventListener("load", onLoad);
+      if (!check.ok) {
+        await Promise.all(regs.map((r) => r.unregister()));
+        return;
+      }
+
+      await navigator.serviceWorker.register(SW_URL, {
+        scope: "/",
+        updateViaCache: "none",
+      });
     }
+
+    void setup().catch((err) => {
+      console.warn("[sw] setup failed:", err);
+    });
   }, []);
 
   return null;
