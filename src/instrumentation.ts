@@ -3,8 +3,12 @@
  * Validates env so Vercel deploys fail fast when secrets are missing.
  */
 export async function register() {
-  // Fail fast on Vercel when Supabase/CRON secrets are missing (build + cold start).
-  if (process.env.VERCEL === "1" && process.env.NODE_ENV === "production") {
+  // Fail the Vercel *build* when secrets are missing — do not throw on cold start
+  // (that would 500 every route including the marketing homepage).
+  if (
+    process.env.NEXT_PHASE === "phase-production-build" &&
+    process.env.VERCEL === "1"
+  ) {
     const { validateEnv } = await import("@/lib/env");
     validateEnv();
   }

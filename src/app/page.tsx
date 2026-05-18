@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LinkButton } from "@/components/doctrine/Button";
 import { StampChip } from "@/components/doctrine/StampChip";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
+import { SupabaseSetupBanner } from "@/components/marketing/SupabaseSetupBanner";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { PenaltyCalc } from "@/components/marketing/PenaltyCalc";
@@ -194,6 +195,7 @@ const FAQ_ITEMS = [
 export default function LandingPage() {
   return (
     <div className="bg-[var(--color-field)] text-[var(--color-ground)] flex flex-col min-h-screen">
+      <SupabaseSetupBanner />
       <MarketingNav />
 
       {/* HERO */}

@@ -8,6 +8,8 @@ import {
 const ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
 ] as const;
 
@@ -31,6 +33,18 @@ describe("getSupabasePublicConfig", () => {
       anonKey: "anon-key",
     });
     expect(isSupabasePublicConfigured()).toBe(true);
+  });
+
+  it("reads SUPABASE_URL / SUPABASE_ANON_KEY aliases", () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    process.env.SUPABASE_URL = "https://alias.supabase.co";
+    process.env.SUPABASE_ANON_KEY = "alias-anon";
+
+    expect(getSupabasePublicConfig()).toEqual({
+      url: "https://alias.supabase.co",
+      anonKey: "alias-anon",
+    });
   });
 
   it("throws a clear error when public vars are missing", () => {

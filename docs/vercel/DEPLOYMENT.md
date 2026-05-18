@@ -69,9 +69,13 @@ Vercel is missing Supabase env vars (or they were added without a **redeploy**).
    - `NEXT_PUBLIC_SUPABASE_URL` = Project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key
    - `SUPABASE_SERVICE_ROLE_KEY` = service_role key (server-only; never expose to the browser)
-3. **Redeploy** (env changes do not apply to existing deployments until you redeploy).
+3. **Redeploy** (required — env changes do not apply until you redeploy; `NEXT_PUBLIC_*` vars are also inlined at build time).
 
 Check: `GET /api/health` should return `"supabase": { "public": true, "serviceRole": true }`.
+
+Until env is set, `/` should still load (yellow setup banner). If you still see the generic Supabase error, the deployment is on an **older commit** — open the latest deployment in Vercel and confirm it includes commit `fix(supabase): allow missing env on marketing routes` or newer.
+
+Aliases accepted: `SUPABASE_URL` / `SUPABASE_ANON_KEY` (in addition to the `NEXT_PUBLIC_*` names).
 
 Optional: link the [Supabase Vercel integration](https://vercel.com/integrations/supabase) to auto-inject these variables.
 

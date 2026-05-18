@@ -10,10 +10,28 @@ export type SupabaseAdminConfig = SupabasePublicConfig & {
   serviceRoleKey: string;
 };
 
+function readSupabaseUrl(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+    process.env.SUPABASE_URL?.trim()
+  );
+}
+
+function readSupabaseAnonKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    process.env.SUPABASE_ANON_KEY?.trim()
+  );
+}
+
+function readServiceRoleKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+}
+
 /** Public Supabase URL + anon key (browser and server user sessions). */
 export function getSupabasePublicConfig(): SupabasePublicConfig {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const url = readSupabaseUrl();
+  const anonKey = readSupabaseAnonKey();
 
   if (!url || !anonKey) {
     throw new Error(
@@ -27,7 +45,7 @@ export function getSupabasePublicConfig(): SupabasePublicConfig {
 /** Service-role client (server-only). */
 export function getSupabaseAdminConfig(): SupabaseAdminConfig {
   const { url, anonKey } = getSupabasePublicConfig();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const serviceRoleKey = readServiceRoleKey();
 
   if (!serviceRoleKey) {
     throw new Error(
@@ -39,8 +57,5 @@ export function getSupabaseAdminConfig(): SupabaseAdminConfig {
 }
 
 export function isSupabasePublicConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
-  );
+  return Boolean(readSupabaseUrl() && readSupabaseAnonKey());
 }
