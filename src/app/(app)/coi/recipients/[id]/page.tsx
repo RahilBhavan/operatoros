@@ -57,24 +57,29 @@ export default async function CoiRecipientDetail({
           { label: recipient.name },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-COI · {id.slice(0, 6).toUpperCase()}</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(30px, 4vw, 44px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          {recipient.name}
-        </h1>
-        <div className="t-utility mt-3">
-          {recipient.email ?? "no email"}
-          {recipient.recurring ? " · recurring" : ""}
+      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="t-utility mb-2">PA-COI · {id.slice(0, 6).toUpperCase()}</div>
+          <h1
+            style={{
+              fontFamily: "var(--font-destination)",
+              fontWeight: 900,
+              fontSize: "clamp(30px, 4vw, 44px)",
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+            }}
+          >
+            {recipient.name}
+          </h1>
+          <div className="t-utility mt-3">
+            {recipient.email ?? "no email"}
+            {recipient.recurring ? " · recurring" : ""}
+          </div>
         </div>
+        <LinkButton href={`/coi/recipients/${id}/edit`} variant="ghost" size="sm">
+          Edit →
+        </LinkButton>
       </header>
 
       {recipient.requirements ? (
