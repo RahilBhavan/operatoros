@@ -3,6 +3,7 @@ import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
 import { dbError } from "@/lib/api/respond";
+import { writeAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -37,24 +38,13 @@ export async function POST(
     return dbError("admin:rules/verify", error);
   }
 
-  // Platform-level event (no specific business_id). The audit_events.business_id
-  // column was made nullable in 20260515000009_platform_audit_events.sql.
-  const { error: auditError } = await admin.from("audit_events").insert({
+  await writeAuditEvent(admin, {
     business_id: null,
     actor_user_id: auth.user.id,
     event_type: "platform.rule_verified",
     target_id: id,
     metadata: { verified_at: verifiedAt },
   });
-  if (auditError) {
-    // The verify itself succeeded; the audit insert failing shouldn't roll
-    // back the user-visible action. Log it and continue.
-    console.error("audit_insert_failed", {
-      event_type: "platform.rule_verified",
-      target_id: id,
-      error: auditError.message,
-    });
-  }
 
   // Mark the in-process rule cache stale so the next onboarding read
   // pulls the updated last_verified_at (which feeds Workstream B

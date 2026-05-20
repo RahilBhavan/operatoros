@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import LockBinderButton from "@/components/audit-prep/LockBinderButton";
 import { LinkButton } from "@/components/doctrine/Button";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -66,35 +68,21 @@ export default async function BinderDetailPage({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Audit prep", href: "/audit-prep" },
           { label: binder.name },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <div className="t-utility mb-2">
-            PA-AUD · {id.slice(0, 6).toUpperCase()}
-          </div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            {binder.name}
-          </h1>
-          <div className="t-utility mt-3">
+      <PageHeader
+        title={binder.name}
+        meta={
+          <>
             {binder.agency ?? "All agencies"} ·{" "}
             {binder.status === "locked" ? (
               <span className="text-[var(--color-mark)]">
-                LOCKED
+                Locked
                 {binder.locked_at
                   ? ` ${new Date(binder.locked_at).toLocaleDateString()}`
                   : ""}
@@ -102,12 +90,14 @@ export default async function BinderDetailPage({
             ) : (
               "Draft"
             )}
-          </div>
-        </div>
-        {binder.status === "draft" ? (
-          <LockBinderButton binderId={id} />
-        ) : null}
-      </header>
+          </>
+        }
+        actions={
+          binder.status === "draft" ? (
+            <LockBinderButton binderId={id} />
+          ) : null
+        }
+      />
 
       {binder.scope ? (
         <section className="border-2 border-[var(--color-ground)]">
@@ -186,6 +176,6 @@ export default async function BinderDetailPage({
           ← Back to binders
         </LinkButton>
       </div>
-    </div>
+    </PageShell>
   );
 }

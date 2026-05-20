@@ -2,6 +2,11 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { Body } from "@/components/doctrine/Typography";
+import { nav } from "@/lib/ui-copy";
 import AddProjectDeadlineForm from "@/components/projects/AddProjectDeadlineForm";
 
 export const dynamic = "force-dynamic";
@@ -48,110 +53,79 @@ export default async function ProjectDetail({
     .eq("project_id", id)
     .order("due_date", { ascending: true });
 
+  const deadlineRows = deadlines ?? [];
+  const metaParts = [
+    project.address ?? null,
+    project.jurisdiction_code ?? null,
+    project.gc_business_name ? `GC: ${project.gc_business_name}` : null,
+    project.start_date
+      ? `${formatDate(project.start_date)} → ${formatDate(project.end_date)}`
+      : null,
+    project.status,
+  ].filter(Boolean);
+
   return (
-    <div className="flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Projects", href: "/projects" },
           { label: project.name },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <div className="t-utility mb-2">
-            PA-PROJ · {id.slice(0, 6).toUpperCase()}
-          </div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            {project.name}
-          </h1>
-          <div className="t-utility mt-3">
-            {project.address ?? "—"}
-            {project.jurisdiction_code ? ` · ${project.jurisdiction_code}` : ""}
-            {project.gc_business_name ? ` · GC ${project.gc_business_name}` : ""}
-            {project.start_date
-              ? ` · ${formatDate(project.start_date)} → ${formatDate(project.end_date)}`
-              : ""}
-            {" · "}
-            {project.status}
-          </div>
-        </div>
-        <LinkButton href={`/projects/${id}/edit`} variant="ghost" size="sm">
-          Edit →
-        </LinkButton>
-      </header>
 
-      <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-4 py-2 flex items-center justify-between">
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            Project deadlines
-          </span>
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            {String((deadlines ?? []).length).padStart(2, "0")}
-          </span>
-        </div>
-        {(deadlines ?? []).length === 0 ? (
-          <div className="bg-[var(--color-field)] px-5 py-6">
-            <p style={{ fontFamily: "var(--font-index)" }}>
-              No deadlines yet. Add permits, inspection windows, lien filing
-              dates, certified payroll submissions, and close-out items.
-            </p>
-          </div>
+      <PageHeader
+        title={project.name}
+        meta={metaParts.join(" · ")}
+        actions={
+          <LinkButton href={`/projects/${id}/edit`} variant="ghost" size="sm">
+            {nav.edit}
+          </LinkButton>
+        }
+      />
+
+      <PageSection
+        title="Project deadlines"
+        count={deadlineRows.length}
+        subtitle="Permits, inspections, lien dates, payroll, and close-out items for this job"
+      >
+        {deadlineRows.length === 0 ? (
+          <Body className="bg-[var(--color-field)] px-5 py-6">
+            No deadlines yet. Add the first obligation for this jobsite below.
+          </Body>
         ) : (
           <ul className="bg-[var(--color-field)]">
-            {(deadlines ?? []).map((d, i) => (
+            {deadlineRows.map((d, i) => (
               <li
                 key={d.id}
                 className={
-                  i === (deadlines ?? []).length - 1
+                  i === deadlineRows.length - 1
                     ? ""
                     : "border-b border-[var(--color-ground)]"
                 }
               >
-                <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5">
-                  <div>
-                    <div
-                      className="font-bold text-[15px]"
-                      style={{ fontFamily: "var(--font-index)" }}
-                    >
-                      {d.name}
-                    </div>
-                    <div className="t-utility mt-1">
-                      {d.governing_agency ?? "—"} · {d.status} ·{" "}
+                <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-3">
+                  <div className="min-w-0">
+                    <Body className="font-bold">{d.name}</Body>
+                    <p className="t-utility mt-1">
+                      {d.governing_agency ?? "—"} · {d.status.replace(/_/g, " ")} ·{" "}
                       {d.severity_tier}
-                    </div>
+                    </p>
                   </div>
-                  <div
-                    className="font-bold text-[15px]"
-                    style={{
-                      fontFamily: "var(--font-index)",
-                      color: "var(--color-mark)",
-                    }}
-                  >
+                  <Body className="font-bold tabular-nums text-[var(--color-mark)] shrink-0">
                     {formatDate(d.due_date)}
-                  </div>
+                  </Body>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </PageSection>
 
       <AddProjectDeadlineForm projectId={id} />
 
-      <div>
-        <LinkButton href="/projects" variant="ghost">
-          ← Back to projects
-        </LinkButton>
-      </div>
-    </div>
+      <LinkButton href="/projects" variant="ghost">
+        {nav.backToProjects}
+      </LinkButton>
+    </PageShell>
   );
 }

@@ -6,6 +6,9 @@ import {
   CopyLinkButton,
 } from "@/components/settings/NetworkInviteControls";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { settings } from "@/lib/ui-copy";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://operatoros.app";
 
@@ -30,28 +33,14 @@ export default async function NetworkSettingsPage() {
 
   if (business.plan_tier !== "accountant") {
     return (
-      <div className="max-w-[700px] flex flex-col gap-5">
+      <PageShell width="narrow">
         <Breadcrumb
           items={[
             { label: "Settings", href: "/settings" },
             { label: "Network growth" },
           ]}
         />
-        <header className="border-b-4 border-[var(--color-ground)] pb-3">
-          <div className="t-utility mb-1">PA-NET</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            Network growth
-          </h1>
-        </header>
+        <PageHeader title={settings.network.title} size="compact" />
         <div className="border-2 border-[var(--color-ground)] p-8">
           <p
             className="text-[14px] leading-relaxed"
@@ -65,7 +54,7 @@ export default async function NetworkSettingsPage() {
             to invite clients and track MRR you bring in.
           </p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -89,39 +78,17 @@ export default async function NetworkSettingsPage() {
   );
 
   return (
-    <div className="max-w-[900px] flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Settings", href: "/settings" },
           { label: "Network growth" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div
-          className="t-utility mb-1"
-        >
-          PA-NET
-        </div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(30px, 4vw, 44px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Network growth
-        </h1>
-        <p
-          className="mt-3 text-[14px] text-[var(--color-ground)] leading-relaxed"
-          style={{ fontFamily: "var(--font-body)" }}
-        >
-          Share a tracked link with a client; signups attribute back to you;
-          paid conversions count toward your network.
-        </p>
-      </header>
+      <PageHeader
+        title={settings.network.title}
+        description={settings.network.description}
+      />
 
       <section className="grid grid-cols-2 gap-3">
         <Stat label="Total signups" value={totals.signups} />
@@ -226,7 +193,7 @@ export default async function NetworkSettingsPage() {
           </ul>
         </section>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   validateRationale,
   validateCitationUrl,
 } from "@/lib/corrections";
+import { writeAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -166,11 +167,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to record correction" }, { status: 500 });
   }
 
-  // Audit event — platform-level (business_id null) since corrections
-  // aren't scoped to one tenant. actor_user_id is null because accountants
-  // don't have auth.users rows; the connection id is the actor and lives
-  // in metadata.
-  const { error: auditError } = await admin.from("audit_events").insert({
+  await writeAuditEvent(admin, {
     business_id: connection.business_id,
     actor_user_id: null,
     event_type: "accountant.correction_submitted",
@@ -181,13 +178,6 @@ export async function POST(req: NextRequest) {
       proposed_field_count: Object.keys(changes.value).length,
     },
   });
-  if (auditError) {
-    console.error("audit_insert_failed", {
-      event_type: "accountant.correction_submitted",
-      target_id: inserted.id,
-      error: auditError.message,
-    });
-  }
 
   return NextResponse.json({ ok: true, correction_id: inserted.id });
 }

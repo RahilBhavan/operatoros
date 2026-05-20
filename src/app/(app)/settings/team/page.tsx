@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import InviteMemberForm from "@/components/dashboard/InviteMemberForm";
 import RevokeInviteButton from "@/components/dashboard/RevokeInviteButton";
 import {
-  H1,
   H2,
   Body,
   Caption,
@@ -12,6 +11,9 @@ import {
   StampChip,
   Breadcrumb,
 } from "@/components/doctrine";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { settings } from "@/lib/ui-copy";
 
 export default async function TeamSettingsPage() {
   const supabase = await createClient();
@@ -67,28 +69,27 @@ export default async function TeamSettingsPage() {
   const renderedAt = new Date();
 
   return (
-    <div className="max-w-[900px] flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Settings", href: "/settings" },
           { label: "Team" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="flex items-center gap-3 mb-2">
-          <Index className="!text-[13px]">PA-TEAM</Index>
-        </div>
-        <H1>Team.</H1>
-        <Caption className="!mt-1">
-          Members of <strong>{business.name}</strong>. Admins manage billing and team. Members use the app.
-        </Caption>
-      </header>
+      <PageHeader
+        title={settings.team.title}
+        description={
+          <>
+            Members of <strong>{business.name}</strong>. {settings.team.description}
+          </>
+        }
+      />
 
-      <section className="mb-10">
+      <section className="mb-5">
         <InviteMemberForm />
       </section>
 
-      <section className="border-2 border-[var(--color-ground)] mb-8">
+      <section className="border-2 border-[var(--color-ground)] mb-4">
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-2.5 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
           <Utility className="!text-[var(--color-field)] ">
             MEMBER / EMAIL
@@ -155,6 +156,6 @@ export default async function TeamSettingsPage() {
           </ul>
         </section>
       )}
-    </div>
+    </PageShell>
   );
 }

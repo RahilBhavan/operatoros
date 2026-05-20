@@ -56,12 +56,12 @@ const PRICING_TIERS = [
     description: "For CPAs and bookkeepers managing client portfolios.",
     features: [
       "Up to 200 client portfolios",
-      "Bulk client onboarding",
-      "White-labelled audit reports",
       "Per-client score dashboard",
       "Notes + flags portal",
-      "Priority API access",
-      "Dedicated account manager",
+      "Bulk client onboarding · coming soon",
+      "White-labelled audit reports · coming soon",
+      "Priority API access · coming soon",
+      "Dedicated account manager · coming soon",
     ],
     highlighted: false,
     cta: "Start as an accountant",
@@ -83,7 +83,7 @@ const PAIN_STATS = [
     stat: "47",
     label:
       "Median annual compliance obligations OperatorOS pre-populates for a 25-employee, multi-state business.",
-    source: "Federal taxonomy + 5 states deep · 46 template-fallback",
+    source: "Federal taxonomy + 8 states deep · 43 template-fallback",
   },
   {
     code: "P-03",
@@ -111,7 +111,7 @@ const HOW_IT_WORKS = [
     step: "03",
     title: "Never get blindsided",
     description:
-      "Reminders at 120, 90, 60, 30, 14, 7, 1 days out. Documents stored, versioned, audit-ready behind a revocable share link with view tracking.",
+      "Reminders at 90, 60, 30, 7, 1 days out. Documents stored, versioned, audit-ready behind a revocable share link with view tracking.",
   },
 ];
 
@@ -176,7 +176,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "How do you know what applies to my state?",
-    a: "On signup you give us four inputs — industry (NAICS slug), state, entity type, employee count. Federal deadlines are deep across every taxonomy. Five states (CA, TX, NY, DE, FL) have hand-curated state-specific rule sets; the remaining 46 ride a template-fallback rule set that covers the most common annual filings but does not yet name every county- or industry-specific obligation. Every deadline carries its statute citation and the responsible agency's URL so you (or your accountant) can verify in seconds. We're working state-by-state — request priority curation for yours from the homepage form.",
+    a: "On signup you give us four inputs — industry (NAICS slug), state, entity type, employee count. Federal deadlines are deep across every taxonomy. Eight states (CA, TX, NY, DE, FL, IL, PA, GA) have hand-curated state-specific rule sets; the remaining 43 ride a template-fallback rule set that covers the most common annual filings but does not yet name every county- or industry-specific obligation. Every deadline carries its statute citation and the responsible agency's URL so you (or your accountant) can verify in seconds. We're working state-by-state — request priority curation for yours from the homepage form.",
   },
   {
     q: "What happens after the 14-day free trial?",
@@ -199,11 +199,10 @@ export default function LandingPage() {
       <MarketingNav />
 
       {/* HERO */}
-      <section className="px-6 pt-12 pb-20 sm:pt-20 sm:pb-24 border-b-2 border-[var(--color-ground)]">
-        <div className="max-w-[1160px] mx-auto grid md:grid-cols-[1.4fr_1fr] gap-10 md:gap-16 items-start">
+      <section className="px-6 pt-8 pb-12 sm:pt-12 sm:pb-14 border-b-2 border-[var(--color-ground)]">
+        <div className="max-w-[1160px] mx-auto grid md:grid-cols-[1.4fr_1fr] gap-6 md:gap-10 items-start">
           <div className="order-2 md:order-1">
-            <div className="flex flex-wrap gap-2 mb-8">
-              <StampChip tone="mark" dot>Phase 01 · Chicago</StampChip>
+            <div className="flex flex-wrap gap-2 mb-5">
               <StampChip tone="field">14-day trial · no card</StampChip>
             </div>
 
@@ -225,7 +224,7 @@ export default function LandingPage() {
             </h1>
 
             <p
-              className="mb-10 max-w-[560px]"
+              className="mb-6 max-w-[560px]"
               style={{
                 fontFamily: "var(--font-index)",
                 fontWeight: 400,
@@ -236,11 +235,11 @@ export default function LandingPage() {
             >
               A federal compliance calendar with statute citations,
               severity-tiered risk scoring, and a portfolio view your accountant
-              can actually use. Five states (CA · TX · NY · DE · FL) ship with
-              hand-curated state rule sets today; the rest are on a template
-              fallback with deep curation rolling out. Pre-populated in 30
-              seconds; audit-ready behind a share link your auditor can verify
-              with one click.
+              can actually use. Eight states (CA · TX · NY · DE · FL · IL · PA
+              · GA) ship with hand-curated state rule sets today; the rest are
+              on a template fallback with deep curation rolling out.
+              Pre-populated in 30 seconds; audit-ready behind a share link your
+              auditor can verify with one click.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 items-start">
@@ -266,7 +265,7 @@ export default function LandingPage() {
               <PanAmTag
                 serial="004221"
                 destination="IRS"
-                city="SEP · 30 · 2026"
+                city="OCT · 31 · 2026"
                 agency="irs"
                 routing="D"
                 routingMark
@@ -281,7 +280,7 @@ export default function LandingPage() {
               <PanAmTag
                 serial="004221"
                 destination="IRS"
-                city="SEP · 30 · 2026"
+                city="OCT · 31 · 2026"
                 agency="irs"
                 routing="D"
                 routingMark
@@ -297,13 +296,13 @@ export default function LandingPage() {
       </section>
 
       {/* PAIN STATS — inverse ink panel */}
-      <section className="panel-ink px-6 py-20">
+      <section className="panel-ink px-6 py-12">
         <div className="max-w-[1160px] mx-auto">
           <div className="t-utility text-[var(--color-field)] mb-3">
             The maths
           </div>
           <h2
-            className="mb-12 max-w-[860px]"
+            className="mb-8 max-w-[860px]"
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 800,
@@ -368,12 +367,12 @@ export default function LandingPage() {
       {/* HOW IT WORKS */}
       <section
         id="how-it-works"
-        className="px-6 py-20 sm:py-24 border-b-2 border-[var(--color-ground)]"
+        className="px-6 py-12 sm:py-14 border-b-2 border-[var(--color-ground)]"
       >
         <div className="max-w-[1160px] mx-auto">
           <div className="t-utility mb-3">The route</div>
           <h2
-            className="mb-12 max-w-[760px]"
+            className="mb-8 max-w-[760px]"
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 800,
@@ -433,7 +432,7 @@ export default function LandingPage() {
       </section>
 
       {/* MOAT */}
-      <section className="px-6 py-20 border-b-2 border-[var(--color-ground)]">
+      <section className="px-6 py-12 border-b-2 border-[var(--color-ground)]">
         <div className="max-w-[1160px] mx-auto">
           <div className="t-utility mb-3">The moat</div>
           <h2
@@ -451,7 +450,7 @@ export default function LandingPage() {
             A jurisdiction-aware rule engine.
           </h2>
           <p
-            className="mb-10 max-w-[640px]"
+            className="mb-6 max-w-[640px]"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,
@@ -466,9 +465,9 @@ export default function LandingPage() {
             {[
               {
                 code: "M-01",
-                hero: "5 states deep · 46 fallback",
-                kicker: "CA · TX · NY · DE · FL deeply curated",
-                body: "Federal cadences ship deep across every taxonomy. Five states have hand-curated rule sets with named agencies + statute citations. The remaining 46 ride a template-fallback set we're upgrading state-by-state — request priority curation for yours.",
+                hero: "8 states deep · 43 fallback",
+                kicker: "CA · TX · NY · DE · FL · IL · PA · GA curated",
+                body: "Federal cadences ship deep across every taxonomy. Eight states have hand-curated rule sets with named agencies + statute citations. The remaining 43 ride a template-fallback set we're upgrading state-by-state — request priority curation for yours.",
               },
               {
                 code: "M-02",
@@ -523,11 +522,11 @@ export default function LandingPage() {
       </section>
 
       {/* COMPARISON */}
-      <section className="px-6 py-20 border-b-2 border-[var(--color-ground)]">
+      <section className="px-6 py-12 border-b-2 border-[var(--color-ground)]">
         <div className="max-w-[1160px] mx-auto">
           <div className="t-utility mb-3">Side by side</div>
           <h2
-            className="mb-10"
+            className="mb-6"
             style={{
               fontFamily: "var(--font-destination)",
               fontWeight: 800,
@@ -602,7 +601,7 @@ export default function LandingPage() {
       </section>
 
       {/* PENALTY CALC */}
-      <section className="px-6 py-20 border-b-2 border-[var(--color-ground)]">
+      <section className="px-6 py-12 border-b-2 border-[var(--color-ground)]">
         <div className="max-w-[820px] mx-auto">
           <div className="t-utility mb-3">Run the numbers</div>
           <h2
@@ -619,7 +618,7 @@ export default function LandingPage() {
             What does one missed deposit actually cost?
           </h2>
           <p
-            className="mb-10"
+            className="mb-6"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,
@@ -633,7 +632,7 @@ export default function LandingPage() {
       </section>
 
       {/* DEADLINE CATEGORIES — inverse ink panel */}
-      <section className="panel-ink px-6 py-20">
+      <section className="panel-ink px-6 py-12">
         <div className="max-w-[1160px] mx-auto">
           <div className="t-utility text-[var(--color-field)] mb-3">
             Taxonomy
@@ -653,7 +652,7 @@ export default function LandingPage() {
             We track what your<br />calendar forgets.
           </h2>
           <p
-            className="mb-10 max-w-[640px]"
+            className="mb-6 max-w-[640px]"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,
@@ -713,7 +712,7 @@ export default function LandingPage() {
       {/* ACCOUNTANT */}
       <section
         id="accountants"
-        className="px-6 py-20 sm:py-24 border-b-2 border-[var(--color-ground)]"
+        className="px-6 py-12 sm:py-14 border-b-2 border-[var(--color-ground)]"
       >
         <div className="max-w-[1160px] mx-auto grid md:grid-cols-[1.1fr_1fr] gap-12 items-start">
           <div>
@@ -746,16 +745,17 @@ export default function LandingPage() {
             >
               If you&apos;re a CPA or bookkeeper running 40–200 small-business
               clients, the Accountant plan gives you per-client compliance
-              scores, bulk onboarding, white-labelled audit reports, and an
-              action portal where the notes you leave show up on your
-              client&apos;s dashboard.
+              scores and an action portal where the notes and correction flags
+              you leave show up on your client&apos;s dashboard. Bulk
+              onboarding, white-labelled audit reports, and priority API access
+              are on the near-term roadmap.
             </p>
-            <ul className="flex flex-col gap-3 mb-8 border-t border-[var(--color-ground)] pt-4">
+            <ul className="flex flex-col gap-3 mb-5 border-t border-[var(--color-ground)] pt-4">
               {[
                 "Onboard up to 200 client portfolios",
-                "White-labelled compliance reports",
                 "Per-client compliance score dashboard",
-                "Bulk reminders + portfolio-wide notes",
+                "Portfolio-wide notes + correction flags",
+                "White-labelled reports · coming soon",
               ].map((item) => (
                 <li
                   key={item}
@@ -790,9 +790,9 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="px-6 py-20 sm:py-24 border-b-2 border-[var(--color-ground)]">
+      <section id="pricing" className="px-6 py-12 sm:py-14 border-b-2 border-[var(--color-ground)]">
         <div className="max-w-[920px] mx-auto">
-          <div className="t-utility mb-3">Manifest · pricing</div>
+          <div className="t-utility mb-3">Pricing</div>
           <h2
             className="mb-3"
             style={{
@@ -807,7 +807,7 @@ export default function LandingPage() {
             Three tiers · pick your shape.
           </h2>
           <p
-            className="mb-12 max-w-[560px]"
+            className="mb-8 max-w-[560px]"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,
@@ -825,7 +825,7 @@ export default function LandingPage() {
               return (
                 <div
                   key={tier.name}
-                  className={`p-8 flex flex-col gap-6 ${
+                  className={`p-6 flex flex-col gap-4 ${
                     inverse
                       ? "panel-ink"
                       : "bg-[var(--color-field)] text-[var(--color-ground)]"
@@ -936,7 +936,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section className="px-6 py-20 border-b-2 border-[var(--color-ground)]">
+      <section className="px-6 py-12 border-b-2 border-[var(--color-ground)]">
         <div className="max-w-[820px] mx-auto">
           <div className="t-utility mb-3">FAQ</div>
           <h2
@@ -953,7 +953,7 @@ export default function LandingPage() {
             Frequently asked.
           </h2>
           <p
-            className="mb-10"
+            className="mb-6"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,
@@ -1008,7 +1008,7 @@ export default function LandingPage() {
       </section>
 
       {/* WAITLIST */}
-      <section id="waitlist" className="px-6 py-20">
+      <section id="waitlist" className="px-6 py-12">
         <div className="max-w-[820px] mx-auto">
           <div className="t-utility mb-3">Waitlist</div>
           <h2
@@ -1025,7 +1025,7 @@ export default function LandingPage() {
             Not ready? Join the cohort waitlist.
           </h2>
           <p
-            className="mb-10 max-w-[640px]"
+            className="mb-6 max-w-[640px]"
             style={{
               fontFamily: "var(--font-index)",
               fontSize: 17,

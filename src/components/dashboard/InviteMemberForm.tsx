@@ -55,7 +55,7 @@ export default function InviteMemberForm() {
           INVITE TEAMMATE
         </Utility>
         <Index className="!text-[var(--color-field)] !text-[12px] ">
-          PA-INV
+          Invite member
         </Index>
       </div>
       <div className="bg-[var(--color-field)] px-4 py-3 flex flex-col sm:flex-row gap-3 sm:items-end">

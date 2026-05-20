@@ -13,6 +13,9 @@ interface Prefs {
   quiet_hours_start?: string | null;
   quiet_hours_end?: string | null;
   tcpa_opted_in_at?: string | null;
+  slack_enabled?: boolean;
+  slack_webhook_url?: string | null;
+  slack_severity_threshold?: string;
 }
 
 interface Props {
@@ -33,6 +36,9 @@ export default function NotificationPreferencesForm({
     quiet_hours_start: initial?.quiet_hours_start ?? "",
     quiet_hours_end: initial?.quiet_hours_end ?? "",
     tcpa_acknowledged: Boolean(initial?.tcpa_opted_in_at),
+    slack_enabled: initial?.slack_enabled ?? false,
+    slack_webhook_url: initial?.slack_webhook_url ?? "",
+    slack_severity_threshold: initial?.slack_severity_threshold ?? "high",
   });
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<
@@ -63,6 +69,19 @@ export default function NotificationPreferencesForm({
       });
       return;
     }
+    if (
+      form.slack_enabled &&
+      !/^https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/]+$/.test(
+        form.slack_webhook_url
+      )
+    ) {
+      setStatus({
+        kind: "error",
+        message:
+          "Slack webhook URL must start with https://hooks.slack.com/services/",
+      });
+      return;
+    }
     setSaving(true);
     setStatus(null);
     try {
@@ -77,6 +96,9 @@ export default function NotificationPreferencesForm({
           quiet_hours_start: form.quiet_hours_start || null,
           quiet_hours_end: form.quiet_hours_end || null,
           tcpa_acknowledged: form.tcpa_acknowledged,
+          slack_enabled: form.slack_enabled,
+          slack_webhook_url: form.slack_webhook_url.trim() || null,
+          slack_severity_threshold: form.slack_severity_threshold,
         }),
       });
       const data = await res.json();
@@ -202,6 +224,61 @@ export default function NotificationPreferencesForm({
               </span>
             </label>
           ) : null}
+        </div>
+      </section>
+
+      <section className="border-2 border-[var(--color-ground)]">
+        <div className="panel-ink px-4 py-2">
+          <span className="t-utility" style={{ color: "var(--color-field)" }}>
+            Slack
+          </span>
+        </div>
+        <div className="bg-[var(--color-field)] px-4 py-2.5 flex flex-col gap-4">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={form.slack_enabled}
+              onChange={(e) => update("slack_enabled", e.target.checked)}
+            />
+            <span style={{ fontFamily: "var(--font-index)" }}>
+              Send reminders to a Slack channel
+            </span>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="t-utility">Slack incoming-webhook URL</span>
+            <input
+              type="url"
+              placeholder="https://hooks.slack.com/services/T.../B.../..."
+              value={form.slack_webhook_url}
+              onChange={(e) => update("slack_webhook_url", e.target.value)}
+              className="t-input"
+              disabled={!form.slack_enabled}
+            />
+            <span
+              className="text-[12px] opacity-70"
+              style={{ fontFamily: "var(--font-index)" }}
+            >
+              Create one at api.slack.com/messaging/webhooks — pick a channel,
+              copy the URL. We never see your messages, only the webhook
+              endpoint.
+            </span>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="t-utility">Send Slack for severity ≥</span>
+            <select
+              value={form.slack_severity_threshold}
+              onChange={(e) =>
+                update("slack_severity_threshold", e.target.value)
+              }
+              className="t-input"
+              disabled={!form.slack_enabled}
+            >
+              <option value="critical">Critical only</option>
+              <option value="high">High and above</option>
+              <option value="medium">Medium and above</option>
+              <option value="low">Everything</option>
+            </select>
+          </label>
         </div>
       </section>
 

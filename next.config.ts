@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
-// 'unsafe-eval' is needed for Next.js dev HMR; it is dropped in production.
+// Static fallback CSP for routes the proxy middleware doesn't cover (api/*,
+// _next static assets). HTML routes get a nonce-based CSP set in src/proxy.ts
+// that drops 'unsafe-inline' from script-src — this fallback only protects
+// non-HTML routes, where 'unsafe-inline' is needed by /api/export/pdf's
+// server-rendered print script.
 const scriptSrc = isProd
   ? "script-src 'self' 'unsafe-inline'"
   : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";

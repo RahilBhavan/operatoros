@@ -17,7 +17,7 @@ export default function ConfidenceBadge({ confidence }: { confidence: RuleConfid
   return (
     <span
       title={tooltipFor(tier, confidence)}
-      className={`inline-flex items-center gap-1 border-2 px-1.5 py-0.5 t-utility !text-[10px] ${variant.className}`}
+      className={`inline-flex items-center gap-1 border-2 px-1.5 py-0.5 t-caption normal-case !text-[11px] ${variant.className}`}
     >
       <variant.Icon className="w-3 h-3" />
       <span>{variant.label}</span>
@@ -30,23 +30,23 @@ const VARIANTS: Record<
   { label: string; className: string; Icon: typeof Check }
 > = {
   community_validated: {
-    label: "VERIFIED",
+    label: "Verified",
     className:
       "border-[var(--color-ground)] bg-[var(--color-field)] text-[var(--color-ground)]",
     Icon: Check,
   },
   unverified: {
-    label: "UNVERIFIED",
+    label: "Unverified",
     className: "border-[var(--color-ground)] bg-[var(--color-field)] ",
     Icon: AlertTriangle,
   },
   stale: {
-    label: "STALE",
+    label: "Outdated",
     className: "border-[var(--color-ground)] bg-[var(--color-field)] ",
     Icon: Clock,
   },
   low: {
-    label: "DISPUTED",
+    label: "Disputed",
     className: "border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)]",
     Icon: AlertTriangle,
   },

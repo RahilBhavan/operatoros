@@ -32,7 +32,7 @@ export default async function AdminWaitlistPage({
         <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-6 py-5 flex items-end justify-between flex-wrap gap-4">
           <div>
             <Index className="!text-[var(--color-field)] !text-[15px] ">
-              WAITLIST · MANIFEST
+              WAITLIST
             </Index>
             <H1 className="!text-[var(--color-field)] mt-1">WAITLIST</H1>
           </div>

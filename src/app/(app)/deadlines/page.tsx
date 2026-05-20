@@ -6,6 +6,10 @@ import ConfidenceBadge from "@/components/dashboard/ConfidenceBadge";
 import { loadRuleConfidence } from "@/lib/admin/data";
 import type { Database } from "@/types/supabase";
 import { LinkButton } from "@/components/doctrine/Button";
+import { PageEmptyState } from "@/components/doctrine/PageEmptyState";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
 import { StampChip } from "@/components/doctrine/StampChip";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
@@ -33,7 +37,7 @@ const STATUS_CHIP: Record<StatusKey, "mark" | "ground" | "field"> = {
 
 const STATUS_LABEL: Record<StatusKey, string> = {
   overdue: "Overdue",
-  in_progress: "Due ≤ 30d",
+  in_progress: "Due ≤ 30 days",
   upcoming: "Upcoming",
   compliant: "Compliant",
 };
@@ -89,59 +93,34 @@ export default async function DeadlinesPage({
   const confidenceMap = await loadRuleConfidence([...new Set(ruleIds)]);
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-3 flex-wrap gap-3">
-        <div>
-          <div className="t-utility mb-1">
-            Manifest · all routes ·{" "}
-            <span className="text-[var(--color-mark)]">
-              {String(deadlineRows.length).padStart(3, "0")}
-            </span>{" "}
-            entries
-          </div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            Deadlines
-          </h1>
-        </div>
-        <LinkButton href="/deadlines/new" variant="mark" size="sm">
-          + File new deadline
-        </LinkButton>
-      </header>
+    <PageShell>
+      <PageHeader
+        code={`${deadlineRows.length} deadline${deadlineRows.length === 1 ? "" : "s"}`}
+        title="Deadlines"
+        description="Every obligation you're tracking. Filter by status or type, then open a row to update proof or due dates."
+        actions={
+          <LinkButton href="/deadlines/new" variant="mark" size="sm">
+            + Add deadline
+          </LinkButton>
+        }
+      />
 
       <DeadlineFilters currentStatus={params.status} currentType={params.type} />
 
       {deadlineRows.length > 0 ? (
-        <div className="border-2 border-[var(--color-ground)]">
-          <div className="panel-ink px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-4 items-center">
-            <span
-              className="t-utility"
-              style={{ color: "var(--color-field)" }}
-            >
-              Deadline · agency
-            </span>
-            <span
-              className="t-utility"
-              style={{ color: "var(--color-field)" }}
-            >
-              Status
-            </span>
-            <span
-              className="t-utility hidden sm:block"
-              style={{ color: "var(--color-field)" }}
-            >
-              Due
-            </span>
+        <PageSection
+          title="All deadlines"
+          count={deadlineRows.length}
+          subtitle="Tap a row to open details, upload proof, or edit the due date"
+        >
+          <div
+            className="hidden sm:grid panel-ink px-4 py-2 grid-cols-[1fr_auto_auto] gap-4 items-center border-b-2 border-[var(--color-ground)]"
+            aria-hidden
+          >
+            <span className="t-utility text-[var(--color-field)]">Deadline</span>
+            <span className="t-utility text-[var(--color-field)]">Status</span>
+            <span className="t-utility text-[var(--color-field)]">Due date</span>
           </div>
-
           <ul className="bg-[var(--color-field)]">
             {deadlineRows.map((d, idx) => {
               const confidence = d.regulatory_rule_id
@@ -174,12 +153,10 @@ export default async function DeadlinesPage({
                           <ConfidenceBadge confidence={confidence} />
                         </div>
                         <div className="t-utility mt-0.5">
-                          {(
-                            DEADLINE_TYPE_LABELS[d.deadline_type] ??
-                            d.deadline_type
-                          ).toUpperCase()}
+                          {DEADLINE_TYPE_LABELS[d.deadline_type] ??
+                            d.deadline_type}
                           {d.governing_agency ? (
-                            <> · {d.governing_agency.toUpperCase()}</>
+                            <> · {d.governing_agency}</>
                           ) : null}
                         </div>
                       </div>
@@ -204,46 +181,39 @@ export default async function DeadlinesPage({
               );
             })}
           </ul>
-        </div>
+        </PageSection>
       ) : (
-        <div className="border-2 border-[var(--color-ground)] p-10 flex flex-col gap-4 items-start">
-          <StampChip tone="field">No matches</StampChip>
-          <h2
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 800,
-              fontSize: 32,
-              lineHeight: 1.05,
-              letterSpacing: "-0.015em",
-              textTransform: "uppercase",
-            }}
-          >
-            {params.status || params.type
-              ? "No deadlines match these filters."
-              : "Empty manifest."}
-          </h2>
-          {!params.status && !params.type ? (
-            <LinkButton href="/deadlines/new" variant="ground">
-              + File your first deadline
-            </LinkButton>
-          ) : (
-            <Link href="/deadlines" className="t-link">
-              Clear filters →
-            </Link>
-          )}
-        </div>
+        <PageEmptyState
+          chip={<StampChip tone="field">No matches</StampChip>}
+          title={
+            params.status || params.type
+              ? "No deadlines match these filters"
+              : "No deadlines yet"
+          }
+          description={
+            params.status || params.type
+              ? "Try clearing filters or add a new deadline."
+              : undefined
+          }
+          actions={
+            !params.status && !params.type ? (
+              <LinkButton href="/deadlines/new" variant="ground">
+                + Add your first deadline
+              </LinkButton>
+            ) : (
+              <Link href="/deadlines" className="t-link">
+                Clear filters →
+              </Link>
+            )
+          }
+        />
       )}
 
-      <div className="t-utility text-[var(--color-ground)] flex items-center justify-between">
-        <span>Showing {deadlineRows.length} of {deadlineRows.length}</span>
-        <span>
-          Last verified · {new Date().toLocaleDateString("en-US", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          })}
-        </span>
-      </div>
-    </div>
+      {deadlineRows.length > 0 ? (
+        <p className="t-caption text-[var(--color-ground)]/75">
+          {deadlineRows.length} result{deadlineRows.length === 1 ? "" : "s"}
+        </p>
+      ) : null}
+    </PageShell>
   );
 }

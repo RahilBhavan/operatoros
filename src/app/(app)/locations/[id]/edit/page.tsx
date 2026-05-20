@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditLocationForm from "@/components/locations/EditLocationForm";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,7 @@ export default async function EditLocationPage({
     location.name ?? `${location.city ?? "Primary"} location`;
 
   return (
-    <div className="max-w-[680px] flex flex-col gap-5">
+    <PageShell width="narrow">
       <Breadcrumb
         items={[
           { label: "Locations", href: "/locations" },
@@ -44,22 +46,11 @@ export default async function EditLocationPage({
           { label: "Edit" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-LOC · EDIT · {id.slice(0, 6).toUpperCase()}</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(28px, 4vw, 40px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Edit location
-        </h1>
-      </header>
-
+      <PageHeader
+        title="Edit location"
+        description={`Update details for ${displayName}.`}
+        size="compact"
+      />
       <EditLocationForm
         initial={{
           id: location.id,
@@ -72,6 +63,6 @@ export default async function EditLocationPage({
           open_date: location.open_date ?? "",
         }}
       />
-    </div>
+    </PageShell>
   );
 }

@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditProjectForm from "@/components/projects/EditProjectForm";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,7 @@ export default async function EditProjectPage({
   if (!project) notFound();
 
   return (
-    <div className="max-w-[680px] flex flex-col gap-5">
+    <PageShell width="narrow">
       <Breadcrumb
         items={[
           { label: "Projects", href: "/projects" },
@@ -43,22 +45,11 @@ export default async function EditProjectPage({
           { label: "Edit" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-PROJ · EDIT · {id.slice(0, 6).toUpperCase()}</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(28px, 4vw, 40px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Edit project
-        </h1>
-      </header>
-
+      <PageHeader
+        title="Edit project"
+        description={`Update details for ${project.name}.`}
+        size="compact"
+      />
       <EditProjectForm
         initial={{
           id: project.id,
@@ -75,6 +66,6 @@ export default async function EditProjectPage({
               : "",
         }}
       />
-    </div>
+    </PageShell>
   );
 }

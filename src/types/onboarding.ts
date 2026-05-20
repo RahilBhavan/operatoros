@@ -20,6 +20,8 @@ export type EntityType =
 
 export type EmployeeRange = "1" | "2-5" | "6-15" | "16-30" | "31-50";
 
+export type IntendedPlan = "business" | "accountant";
+
 export interface OnboardingData {
   businessName: string;
   industry: Industry | null;
@@ -27,4 +29,7 @@ export interface OnboardingData {
   entityType: EntityType | null;
   employeeRange: EmployeeRange | null;
   hiresContractors: boolean | null;
+  // Optional — only set by the in-flow plan picker; the RPC and seed
+  // builder ignore it.
+  intendedPlan?: IntendedPlan | null;
 }

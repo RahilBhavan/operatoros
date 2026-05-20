@@ -7,6 +7,7 @@ import {
   loadNetworkDensity,
 } from "@/lib/admin/data";
 import { Body, Caption, H1, Index, Utility } from "@/components/doctrine";
+import { validateStripeConfig } from "@/lib/billing/env";
 
 export const dynamic = "force-dynamic";
 
@@ -214,6 +215,12 @@ export default async function AdminOverviewPage() {
         </CardPanel>
       </section>
 
+      {/* Billing env tile — surfaces missing Stripe vars without grepping logs. */}
+      <section className="mb-8">
+        <SectionHeader title="BILLING · STRIPE CONFIG" href="/billing" linkText="VIEW /billing →" />
+        <StripeConfigTile />
+      </section>
+
       {/* Newest businesses */}
       <section className="mb-8">
         <SectionHeader
@@ -349,6 +356,100 @@ function StatCell({
         <span className={mark ? "text-[var(--color-mark)]" : ""}>{value}</span>
       </div>
       <Caption className="!text-[12px] !mt-1">{sub}</Caption>
+    </div>
+  );
+}
+
+function StripeConfigTile() {
+  const r = validateStripeConfig();
+  const modeColor =
+    r.mode === "live"
+      ? "var(--color-mark)"
+      : r.mode === "test"
+        ? "var(--color-ground)"
+        : "var(--color-mark)";
+  const readyBg = r.ready ? "var(--color-ground)" : "var(--color-mark)";
+  return (
+    <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)]">
+      <div
+        className="px-5 py-3 flex items-center justify-between gap-3"
+        style={{ background: readyBg, color: "var(--color-field)" }}
+      >
+        <Utility className="!text-[var(--color-field)]">
+          {r.ready ? "READY" : "NOT READY"} · MODE: {r.mode.toUpperCase()}
+        </Utility>
+        <span
+          className="t-index !text-[12px] px-2 py-1"
+          style={{ background: modeColor, color: "var(--color-field)" }}
+        >
+          {r.secretKeyPresent ? "KEY ✓" : "KEY ✗"} ·{" "}
+          {r.webhookSecretPresent ? "WHSEC ✓" : "WHSEC ✗"}
+        </span>
+      </div>
+      <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="grid grid-cols-3 gap-3">
+          <PriceRow label="BUSINESS" id={r.priceIds.business} required />
+          <PriceRow label="ACCOUNTANT" id={r.priceIds.accountant} required />
+          <PriceRow label="LITE · OPTIONAL" id={r.priceIds.lite} />
+        </div>
+        {r.issues.length > 0 ? (
+          <ul className="flex flex-col gap-1">
+            {r.issues.map((i) => (
+              <li
+                key={i}
+                className="t-caption !text-[12px] text-[var(--color-mark)]"
+              >
+                → {i}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Caption className="!text-[12px]">
+            All required vars are present. Smoke-test by starting a Business
+            trial with card <span className="font-mono">4242 4242 4242 4242</span>.
+          </Caption>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PriceRow({
+  label,
+  id,
+  required,
+}: {
+  label: string;
+  id: string | null;
+  required?: boolean;
+}) {
+  const present = Boolean(id);
+  const dangerous = required && !present;
+  return (
+    <div
+      className="border-2 px-3 py-2"
+      style={{
+        borderColor: dangerous
+          ? "var(--color-mark)"
+          : present
+            ? "var(--color-ground)"
+            : "var(--color-ground)",
+        background: dangerous ? "var(--color-mark)" : "var(--color-field)",
+        color: dangerous ? "var(--color-field)" : "var(--color-ground)",
+      }}
+    >
+      <span
+        className="t-utility !text-[11px]"
+        style={dangerous ? { color: "var(--color-field)" } : undefined}
+      >
+        {label}
+      </span>
+      <div
+        className="t-index !text-[12px] font-mono truncate"
+        title={id ?? "missing"}
+      >
+        {id ? id : "— missing —"}
+      </div>
     </div>
   );
 }

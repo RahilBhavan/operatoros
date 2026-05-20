@@ -7,6 +7,7 @@ import type {
   Industry,
   EntityType,
   EmployeeRange,
+  IntendedPlan,
   OnboardingData,
 } from "@/types/onboarding";
 import { Button } from "@/components/doctrine/Button";
@@ -52,8 +53,8 @@ const US_STATES = [
   "VA","WA","WV","WI","WY","DC",
 ];
 
-const TOTAL_STEPS = 5;
-const STEP_LABELS = ["Business", "Industry", "Location", "Employees", "Contractors"] as const;
+const TOTAL_STEPS = 6;
+const STEP_LABELS = ["Business", "Industry", "Location", "Employees", "Contractors", "Plan"] as const;
 
 function ProgressLadder({ step }: { step: number }) {
   return (
@@ -84,6 +85,7 @@ export default function OnboardingPage() {
     entityType: null,
     employeeRange: null,
     hiresContractors: null,
+    intendedPlan: "business",
   });
 
   function update<K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) {
@@ -96,6 +98,7 @@ export default function OnboardingPage() {
     if (step === 3) return data.state.length > 0 && data.entityType !== null;
     if (step === 4) return data.employeeRange !== null;
     if (step === 5) return data.hiresContractors !== null;
+    if (step === 6) return data.intendedPlan !== null;
     return false;
   }
 
@@ -128,16 +131,16 @@ export default function OnboardingPage() {
         <div className="max-w-[1240px] mx-auto flex items-center justify-between">
           <Wordmark size={20} />
           <span className="t-utility text-[var(--color-ground)]">
-            Manifest · build your calendar
+            Build your compliance calendar
           </span>
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-8">
+      <main className="flex-1 flex items-center justify-center px-6 py-5">
         <div className="w-full max-w-[680px]">
           <ProgressLadder step={step} />
 
-          <div className="flex items-center justify-between mt-6 mb-8">
+          <div className="flex items-center justify-between mt-6 mb-4">
             <span className="t-utility text-[var(--color-ground)]">
               Step {String(step).padStart(2, "0")} / {String(TOTAL_STEPS).padStart(2, "0")}
             </span>
@@ -176,6 +179,13 @@ export default function OnboardingPage() {
               onChange={(v) => update("hiresContractors", v)}
             />
           )}
+          {step === 6 && (
+            <StepPlan
+              value={data.intendedPlan ?? null}
+              onChange={(v) => update("intendedPlan", v)}
+              industry={data.industry}
+            />
+          )}
 
           {error ? (
             <div className="mt-6 border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-3">
@@ -197,7 +207,7 @@ export default function OnboardingPage() {
             </div>
           ) : null}
 
-          <div className="flex items-center justify-between mt-10 pt-6 border-t-2 border-[var(--color-ground)]">
+          <div className="flex items-center justify-between mt-6 pt-4 border-t-2 border-[var(--color-ground)]">
             {step > 1 ? (
               <button
                 onClick={() => setStep((s) => s - 1)}
@@ -229,7 +239,7 @@ export default function OnboardingPage() {
             )}
           </div>
 
-          <div className="mt-10 t-utility text-[var(--color-ground)]">
+          <div className="mt-6 t-utility text-[var(--color-ground)]">
             <Link href="/" className="t-link">
               ← Back to home
             </Link>
@@ -509,6 +519,106 @@ function StepContractors({
               style={{ fontFamily: "var(--font-index)" }}
             >
               {opt.sub}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepPlan({
+  value,
+  onChange,
+  industry,
+}: {
+  value: IntendedPlan | null;
+  onChange: (v: IntendedPlan) => void;
+  industry: Industry | null;
+}) {
+  const isAccountantLeaning = industry === "business_services";
+  const opts: { v: IntendedPlan; label: string; price: string; sub: string; rec: boolean }[] = [
+    {
+      v: "business",
+      label: "Business · $79/mo",
+      price: "B-079",
+      sub: "For operators tracking their own compliance. AI insights, share link, accountant portal, up to 5 team members.",
+      rec: !isAccountantLeaning,
+    },
+    {
+      v: "accountant",
+      label: "Accountant · $299/mo",
+      price: "A-299",
+      sub: "For CPAs and bookkeepers managing 5+ client portfolios. Bulk onboarding, white-labeled reports, per-client dashboards.",
+      rec: isAccountantLeaning,
+    },
+  ];
+  return (
+    <div>
+      <StepHeading
+        title="Pick your plan."
+        subtitle="14-day free trial — no card needed. You'll start checkout later from the billing page."
+      />
+      <div className="border-t-2 border-[var(--color-ground)]">
+        {opts.map((opt) => (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => onChange(opt.v)}
+            className={`text-left w-full px-5 py-5 border-2 border-[var(--color-ground)] -mb-[2px] flex items-start justify-between gap-4 ${
+              value === opt.v
+                ? "bg-[var(--color-ground)] text-[var(--color-field)]"
+                : "bg-[var(--color-field)] text-[var(--color-ground)] hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+            }`}
+          >
+            <div className="min-w-0 flex-1">
+              <div
+                className="text-[20px] font-bold mb-1"
+                style={{
+                  fontFamily: "var(--font-destination)",
+                  textTransform: "uppercase",
+                  letterSpacing: "-0.005em",
+                }}
+              >
+                {opt.label}
+              </div>
+              <div
+                className="text-[14px]"
+                style={{ fontFamily: "var(--font-index)" }}
+              >
+                {opt.sub}
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {opt.rec ? (
+                <span
+                  className="t-utility !text-[10px] border-2 px-2 py-0.5"
+                  style={
+                    value === opt.v
+                      ? {
+                          borderColor: "var(--color-field)",
+                          color: "var(--color-field)",
+                        }
+                      : {
+                          borderColor: "var(--color-mark)",
+                          background: "var(--color-mark)",
+                          color: "var(--color-field)",
+                        }
+                  }
+                >
+                  RECOMMENDED
+                </span>
+              ) : null}
+              <span
+                className="t-index !text-[12px] tabular-nums"
+                style={
+                  value === opt.v
+                    ? { color: "var(--color-field)" }
+                    : undefined
+                }
+              >
+                {opt.price}
+              </span>
             </div>
           </button>
         ))}

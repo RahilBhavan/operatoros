@@ -2,6 +2,11 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { Body } from "@/components/doctrine/Typography";
+import { nav } from "@/lib/ui-copy";
 import StaffCredentialAdder from "@/components/staff/StaffCredentialAdder";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +47,12 @@ function statusFor(c: CredRow): "ok" | "soon" | "expired" {
   return "ok";
 }
 
+function statusLabel(dot: ReturnType<typeof statusFor>): string {
+  if (dot === "expired") return "Expired";
+  if (dot === "soon") return "Renew within 30 days";
+  return "Current";
+}
+
 export default async function StaffDetailPage({
   params,
 }: {
@@ -72,7 +83,7 @@ export default async function StaffDetailPage({
   const { data: creds } = await supabase
     .from("staff_credentials")
     .select(
-      "id, credential_type_id, identifier, issued_date, expires_date, status"
+      "id, credential_type_id, identifier, issued_date, expires_date, status",
     )
     .eq("staff_member_id", id);
 
@@ -90,61 +101,48 @@ export default async function StaffDetailPage({
     return ax.localeCompare(bx);
   });
 
+  const metaParts = [
+    staff.role ?? null,
+    staff.employment_type ?? null,
+    staff.hire_date ? `Hired ${formatDate(staff.hire_date)}` : null,
+    staff.email ?? null,
+  ].filter(Boolean);
+
   return (
-    <div className="flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Staff", href: "/staff" },
           { label: staff.full_name },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <div className="t-utility mb-2">PA-STAF · {id.slice(0, 6).toUpperCase()}</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            {staff.full_name}
-          </h1>
-          <div className="t-utility mt-3">
-            {staff.role ?? "—"}
-            {staff.employment_type ? ` · ${staff.employment_type}` : ""}
-            {staff.hire_date ? ` · hired ${formatDate(staff.hire_date)}` : ""}
-            {staff.email ? ` · ${staff.email}` : ""}
-          </div>
-        </div>
-        <LinkButton href={`/staff/${id}/edit`} variant="ghost" size="sm">
-          Edit →
-        </LinkButton>
-      </header>
 
-      <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-4 py-2 flex items-center justify-between flex-wrap gap-2">
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            Credentials
-          </span>
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            {String(sortedCreds.length).padStart(2, "0")}
-          </span>
-        </div>
+      <PageHeader
+        title={staff.full_name}
+        meta={metaParts.join(" · ")}
+        actions={
+          <LinkButton href={`/staff/${id}/edit`} variant="ghost" size="sm">
+            {nav.edit}
+          </LinkButton>
+        }
+      />
+
+      <PageSection
+        title="Credentials"
+        count={sortedCreds.length}
+        subtitle="Licenses, certifications, and training that renew on a cycle"
+      >
         {sortedCreds.length === 0 ? (
-          <div className="bg-[var(--color-field)] px-5 py-6">
-            <p style={{ fontFamily: "var(--font-index)" }}>
-              No credentials added yet. Use the picker below to add one.
-            </p>
-          </div>
+          <Body className="bg-[var(--color-field)] px-5 py-6">
+            No credentials yet. Add one below to start tracking renewals.
+          </Body>
         ) : (
           <ul className="bg-[var(--color-field)]">
             {sortedCreds.map((c, i) => {
               const t = credTypeMap.get(c.credential_type_id);
               const dot = statusFor(c);
+              const urgent = dot === "expired" || dot === "soon";
+
               return (
                 <li
                   key={c.id}
@@ -154,42 +152,28 @@ export default async function StaffDetailPage({
                       : "border-b border-[var(--color-ground)]"
                   }
                 >
-                  <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5">
-                    <div>
-                      <div
-                        className="font-bold text-[15px]"
-                        style={{ fontFamily: "var(--font-index)" }}
-                      >
-                        {t?.name ?? "Unknown credential"}
-                      </div>
-                      <div className="t-utility mt-1">
+                  <div className="grid grid-cols-[1fr_auto] gap-4 px-4 py-3">
+                    <div className="min-w-0">
+                      <Body className="font-bold">{t?.name ?? "Unknown credential"}</Body>
+                      <p className="t-utility mt-1">
                         {t?.agency ?? "—"}
                         {c.identifier ? ` · ${c.identifier}` : ""}
                         {c.issued_date
-                          ? ` · issued ${formatDate(c.issued_date)}`
+                          ? ` · Issued ${formatDate(c.issued_date)}`
                           : ""}
-                      </div>
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <div
-                        className="font-bold text-[15px]"
-                        style={{
-                          fontFamily: "var(--font-index)",
-                          color:
-                            dot === "expired"
-                              ? "var(--color-mark)"
-                              : "var(--color-ground)",
-                        }}
+                    <div className="text-right shrink-0">
+                      <Body
+                        className={`font-bold tabular-nums ${urgent ? "text-[var(--color-mark)]" : ""}`}
                       >
                         {formatDate(c.expires_date)}
-                      </div>
-                      <div className="t-utility mt-1">
-                        {dot === "expired"
-                          ? "Expired"
-                          : dot === "soon"
-                          ? "Renew soon"
-                          : "Current"}
-                      </div>
+                      </Body>
+                      <p
+                        className={`t-utility mt-1 ${dot === "expired" ? "text-[var(--color-mark)]" : ""}`}
+                      >
+                        {statusLabel(dot)}
+                      </p>
                     </div>
                   </div>
                 </li>
@@ -197,18 +181,16 @@ export default async function StaffDetailPage({
             })}
           </ul>
         )}
-      </section>
+      </PageSection>
 
       <StaffCredentialAdder
         staffMemberId={id}
         credentialTypes={(credTypes ?? []) as CredType[]}
       />
 
-      <div>
-        <LinkButton href="/staff" variant="ghost">
-          ← Back to staff
-        </LinkButton>
-      </div>
-    </div>
+      <LinkButton href="/staff" variant="ghost">
+        {nav.backToStaff}
+      </LinkButton>
+    </PageShell>
   );
 }

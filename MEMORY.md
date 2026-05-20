@@ -4,6 +4,51 @@ Per `~/.claude/CLAUDE.md`: project decision log. Read at the start of every sess
 
 ---
 
+## 2026-05-19 — World-class push: nonce CSP, audit-log helper migration, Slack reminder channel
+
+What: User said "start implementing the remaining features to make it worldclass." Audit found that MEMORY.md was significantly behind the real `main` — commit `ca7f229 feat(launch-ready): wave-2/3 buyer-panel + WS-D/E/F/H` had already bundled Workstreams D (viral attribution), E (PostHog analytics), F (Stripe-truth MRR), and H.2 (audit_events CHECK constraint). WS-G.SMS was also already shipped via `20260518000007_sms_notifications.sql`. Stale local branches `workstream/f-stripe-truth-mrr`, `workstream/e-analytics-foundation`, `workstream/e-call-site-wires`, `workstream/h-ops-polish`, `workstream/h1-impersonation` predate that bundle and now diverge from main; safe to delete after user review.
+
+Genuinely-missing items shipped this pass:
+
+- **WS-H.6 Nonce-based CSP** — `src/lib/security/csp.ts` (`generateNonce`, `buildCsp`). `src/proxy.ts` now generates a fresh nonce per request, propagates it as `x-nonce` on the inbound request so Next 16 auto-nonces its built-in hydration scripts, and sets `Content-Security-Policy` on the response. Prod drops `'unsafe-inline'` from script-src entirely; `'strict-dynamic'` lets nonced scripts load Next chunks. `next.config.ts` retains the looser `'unsafe-inline'` CSP only as a fallback for `/api/*` (the proxy matcher excludes them, and `/api/export/pdf` emits an inline print script for puppeteer). Why: WS-H.6 closes the publish-readiness deferred item; nonce CSP is the table-stakes security posture for enterprise sales. How to apply: any new inline `<script>` in a server component needs `nonce={(await headers()).get("x-nonce")}` — but the grep showed zero such scripts in `src/app`/`src/components`, so no per-component changes were needed.
+- **WS-H.3 audit-insert error logging consolidation** — `src/lib/audit-log.ts` already existed (`writeAuditEvent`); 5 raw-insert sites migrated to it: `/api/admin/rules/[id]/verify`, `/api/admin/rules/[id]/edit`, `/api/admin/corrections/[id]/accept`, `/api/admin/corrections/[id]/reject`, `/api/accountant/corrections`. Each had a bespoke `console.error("audit_insert_failed", {...})` — replaced with the centralized helper that logs `[audit] insert failed` with a uniform shape (event_type + business_id + actor_user_id + target_id + code + message). The Stripe webhook `/api/billing/webhook` uses `.then()` fire-and-forget with its own error log — already meets H.3's spirit, left in place. Why: uniform log shape makes log-based alerting tractable; removes 5 copies of try-error boilerplate.
+- **WS-G.Slack — webhook-URL v1** — Webhook-URL flow, NOT OAuth. User creates an incoming webhook at api.slack.com/messaging/webhooks, pastes the URL into `/settings/notifications`, the cron reminders fan-out POSTs reminder text to it. Schema in `20260518000017_slack_notifications.sql` adds `slack_enabled / slack_webhook_url / slack_severity_threshold / slack_team_id / slack_team_name / slack_channel_name / slack_connected_at` to `notification_preferences` (the OAuth-upgrade columns are nullable and unused by v1 — schema is additive-compatible with a future OAuth flow). `slack_log` table stores delivery audit keyed by sha256(webhook_url) so we never persist the URL plaintext. `reminder_log.reminder_type` CHECK extended to accept `slack-7_day`/`slack-1_day`. Why webhook-URL not OAuth: ships today without registering a Slack app, requesting SLACK_CLIENT_ID/SECRET, or doing pgsodium token encryption. Common pattern (Stripe, Linear, GitHub) and operationally fine for our 1-50-employee SMB target. OAuth is a future workstream when channel-picker UX matters more than time-to-ship. How to apply: when sending Slack from anywhere else, use `sendSlack` from `src/lib/slack.ts`; never persist or log the raw webhook URL — it's a bearer secret.
+
+Verification: `tsc --noEmit` clean · `vitest run` 368 / 369 pass (the 1 failure is the pre-existing `DeadlineFilters.test.tsx` regression from the user's in-flight uncommitted Tag Doctrine UI refactor — not introduced by this pass) · `eslint` 0 errors on touched files. 14 new tests across 2 new files (5 CSP + 7 Slack — `csp.test.ts` was preexisting in the file count baseline; net delta was +1 file and +7 tests).
+
+Already-done items I confirmed by spot-check while auditing (so MEMORY records reflect main accurately):
+
+- **WS-H.4 Promote-button tooltip** — `src/components/admin/PromoteWaitlistButton.tsx` already has `title={email}` on the truncated `.t-caption max-w-[160px]` span. The native tooltip ships the full email on hover. Met.
+- **WS-D viral attribution** — `/i/[code]` route, `src/lib/viral-attribution.ts`, `accountant_invite_links` migration, webhook paid_conversions_count increment, signup linkage. Met.
+- **WS-E PostHog analytics** — `src/lib/analytics.ts` typed emitter wired into `(onboarding)/onboarding/actions`, Stripe webhook, reminders cron, viral `/i/[code]` route. Identify-on-auth + event taxonomy in place. Met.
+- **WS-F Stripe-truth MRR** — `stripe_subscriptions` table populated from `customer.subscription.{created,updated,deleted}` webhook events; admin `/admin` reads MRR from this table not from `plan_tier × count`. Met.
+- **WS-G.SMS** — Twilio wrapper, TCPA opt-in flow, quiet hours, severity threshold. Met.
+- **WS-H.2 audit_events CHECK** — `20260518000016_audit_events_check.sql` enforces at-least-one-of (business_id, actor_user_id). Met.
+
+Remaining for the next session (in priority order):
+
+- **WS-H.1 Impersonation** — Not started. The largest remaining piece: needs `impersonation_sessions` table + `/api/admin/impersonate` route + write-block enforcement (POST/PUT/PATCH/DELETE refused while session active) + banner UI in `(app)/layout.tsx` + audit events on start/end. Properly scoped this is 200-500 LOC and a focused session — attempting it as the tail of a multi-feature session would produce a half-finished surface. Reason: Supabase has no native `auth.uid()` impersonation, so v1 needs to choose between (a) shadow-login that logs admin out and into the target's session, (b) cookie-driven "view as user" where every server component reads the impersonation cookie and uses service-role with explicit user_id filters, or (c) a Supabase JWT-mint trick via admin SDK. The architectural choice should be made deliberately, not rushed.
+- **Finish Tag Doctrine UI refactor** — 2 pages still on legacy layout: `(app)/billing/success/page.tsx` (untouched on main, no doctrine primitives) and `(app)/deadlines/[id]/page.tsx` (modified for other reasons but uses custom grid/flex). 22 pages don't yet import from `src/lib/ui-copy.ts`. The 50-file uncommitted doctrine refactor in the working tree was the user's parallel work; finishing these 2 pages plus expanding ui-copy adoption can ship on the same commit.
+- **WS-H.5 Vercel WAF rate-limit on `/api/waitlist`** — Non-code; Vercel dashboard config the founder applies. Document in `docs/security/threat-models.md` once applied.
+- **WS-I.1 Real legal review** — Founder action; engage law firm or Termly/iubenda before any paying customer.
+
+Quirks committed knowingly:
+
+- The CSP `next.config.ts` fallback still has `'unsafe-inline'` because `/api/export/pdf` server-renders HTML with an inline `<script>window.onload = () => window.print()</script>` for puppeteer; that route isn't covered by middleware and we'd break PDF generation by dropping `'unsafe-inline'` site-wide. The route is opaque to browsers and the inline script is a self-contained `window.print()` — risk is essentially zero. If the print-PDF flow ever moves out of `/api/*`, drop `'unsafe-inline'` from `next.config.ts` entirely.
+- `slack_log.webhook_url_hash` is sha256(URL) not hmac(URL) — there's no per-tenant secret, so a determined attacker with read access to slack_log and a known webhook URL can confirm a match. Acceptable because the URL itself is what's sensitive (anyone holding it can post), and we still don't store the URL itself. Upgrade to HMAC with a server-side key if `slack_log` ever leaks via a future RLS bug.
+- `src/lib/slack.ts` uses `as any` for the `slack_log` table reference because supabase types haven't been regenerated since migration `_017`. Same `as any` cast pattern used in the cron route for `notification_preferences` slack_* column reads. Run `bunx supabase gen types typescript --project-id ...` to regenerate and remove these casts when convenient.
+
+Stale local branches superseded by `ca7f229` and safe to delete after user review:
+- `workstream/f-stripe-truth-mrr`
+- `workstream/e-analytics-foundation`
+- `workstream/e-call-site-wires`
+- `workstream/h-ops-polish`
+- `workstream/h1-impersonation`
+
+(Use `git branch -d <name>` per branch; `-D` would also work since all are merged-in-content via the bundle commit, but `-d` is safer if any branch has work not represented in `ca7f229`. The user should confirm before deletion.)
+
+---
+
 ## 2026-05-18 — Audit remediation pass on WS-2.x feature expansion
 
 What: Multi-agent audit surfaced CRITICAL/HIGH/MEDIUM findings against the uncommitted feature set (staff credentials, audit binders, COI, projects, locations, BAA/PHI, integrations, SMS notifications, filings). User said "fix all of them"; remediation landed.

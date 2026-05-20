@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import NotificationPreferencesForm from "@/components/settings/NotificationPreferencesForm";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { Body } from "@/components/doctrine/Typography";
+import { settings } from "@/lib/ui-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -21,44 +25,26 @@ export default async function NotificationsSettingsPage() {
   const smsConfigured = Boolean(process.env.TWILIO_ACCOUNT_SID);
 
   return (
-    <div className="flex flex-col gap-5 max-w-[720px]">
+    <PageShell width="narrow">
       <Breadcrumb
         items={[
           { label: "Settings", href: "/settings" },
           { label: "Notifications" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-NTF</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(30px, 4vw, 44px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Notifications
-        </h1>
-        <p
-          className="mt-3 max-w-[640px]"
-          style={{ fontFamily: "var(--font-index)", fontSize: 15 }}
-        >
-          Choose how deadline reminders reach you. Email is the default;
-          SMS adds field-worker coverage if you&rsquo;re away from a desk.
-        </p>
-      </header>
+      <PageHeader
+        title={settings.notifications.title}
+        description={settings.notifications.description}
+      />
 
       {!smsConfigured ? (
-        <div className="border-2 border-[var(--color-ground)] px-4 py-2.5">
-          <div className="t-utility mb-1">SMS not configured on this deployment</div>
-          <p style={{ fontFamily: "var(--font-index)", fontSize: 14 }}>
-            Your operator hasn&rsquo;t connected a Twilio account yet, so the
-            SMS option below is informational. Email reminders continue to
-            work as usual.
-          </p>
+        <div className="border-2 border-[var(--color-ground)] px-4 py-3">
+          <p className="t-utility mb-1">SMS not available on this deployment</p>
+          <Body>
+            Your operator hasn&apos;t connected a Twilio account yet, so the SMS
+            option below is informational. Email reminders continue to work as
+            usual.
+          </Body>
         </div>
       ) : null}
 
@@ -66,6 +52,6 @@ export default async function NotificationsSettingsPage() {
         initial={prefs}
         smsConfigured={smsConfigured}
       />
-    </div>
+    </PageShell>
   );
 }

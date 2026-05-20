@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReminderEmail } from "@/lib/email";
 import { isSmsConfigured, sendSms } from "@/lib/sms";
+import { sendSlack } from "@/lib/slack";
 import { track } from "@/lib/analytics";
 import { computeRiskWeightedScore, computeAutoStatus } from "@/lib/deadline-utils";
 import { getAppUrl } from "@/lib/app-url";
@@ -399,6 +400,125 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // WS-G.Slack — Slack fan-out alongside email/SMS. Webhook-URL flow, no
+  // OAuth needed. Threshold + quiet hours follow the same shape as SMS so
+  // the user's existing preference mental model carries over.
+  let slackSent = 0;
+  let slackErrors = 0;
+  {
+    const slackOwnerIds = [
+      ...new Set(
+        deadlines
+          .map((d) => {
+            const biz = Array.isArray(d.businesses) ? d.businesses[0] : d.businesses;
+            return biz?.owner_id;
+          })
+          .filter(Boolean) as string[]
+      ),
+    ];
+
+    if (slackOwnerIds.length > 0) {
+      // Cast: slack_* columns landed in 20260518000017 and types haven't
+      // been regenerated. Select shape is structurally safe per the migration.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prefsTable = supabase.from("notification_preferences") as any;
+      const slackPrefRows = await prefsTable
+        .select(
+          "user_id, slack_enabled, slack_webhook_url, slack_severity_threshold, quiet_hours_start, quiet_hours_end"
+        )
+        .in("user_id", slackOwnerIds);
+
+      type SlackPref = {
+        user_id: string;
+        slack_enabled: boolean;
+        slack_webhook_url: string | null;
+        slack_severity_threshold:
+          | "critical" | "high" | "medium" | "low" | "info";
+        quiet_hours_start: string | null;
+        quiet_hours_end: string | null;
+      };
+      const slackPrefByOwner = new Map<string, SlackPref>();
+      for (const p of ((slackPrefRows as { data: SlackPref[] | null }).data ?? [])) {
+        slackPrefByOwner.set(p.user_id, p);
+      }
+
+      for (const deadline of deadlines) {
+        const business = Array.isArray(deadline.businesses)
+          ? deadline.businesses[0]
+          : deadline.businesses;
+        if (!business) continue;
+        const isEligible =
+          business.billing_status === "active" ||
+          business.billing_status === "trialing";
+        if (!isEligible) continue;
+
+        const target = targetDates.find((t) => t.dateStr === deadline.due_date);
+        if (!target) continue;
+        if (target.type !== "7_day" && target.type !== "1_day") continue;
+
+        const prefs = slackPrefByOwner.get(business.owner_id);
+        if (!prefs) continue;
+        if (!prefs.slack_enabled) continue;
+        if (!prefs.slack_webhook_url) continue;
+
+        const sevRank =
+          SEVERITY_RANK[deadline.severity_tier ?? "medium"] ?? 0;
+        const thresholdRank =
+          SEVERITY_RANK[prefs.slack_severity_threshold ?? "high"] ?? 3;
+        if (sevRank < thresholdRank) continue;
+
+        if (
+          inQuietHours(
+            now,
+            prefs.quiet_hours_start,
+            prefs.quiet_hours_end
+          )
+        ) {
+          continue;
+        }
+
+        if (sentSet.has(`${deadline.id}:slack-${target.type}`)) continue;
+
+        const days =
+          REMINDER_WINDOWS.find((w) => w.type === target.type)?.days ?? 0;
+        const sev = deadline.severity_tier ?? "medium";
+        const text = `OperatorOS — "${deadline.name}" due in ${days} day${days === 1 ? "" : "s"} (${deadline.due_date}) · ${sev}`;
+
+        const result = await sendSlack({
+          webhookUrl: prefs.slack_webhook_url,
+          text,
+          userId: business.owner_id,
+          businessId: deadline.business_id,
+          kind: "reminder",
+        });
+
+        if (result.ok) {
+          slackSent++;
+          await supabase.from("reminder_log").insert({
+            deadline_id: deadline.id,
+            business_id: deadline.business_id,
+            reminder_type: `slack-${target.type}` as ReminderType,
+            recipient_email: "slack:webhook",
+            status: "sent",
+          });
+          void track({
+            distinctId: deadline.business_id,
+            event: "reminder_sent",
+            properties: {
+              channel: "slack",
+              severity: sev,
+              days_until_due: days,
+              reminder_type: target.type,
+            },
+            groups: { business: deadline.business_id },
+          });
+        } else {
+          slackErrors++;
+        }
+      }
+    }
+  }
+
   await snapshotComplianceScores(supabase);
 
   // Daily housekeeping: refresh the rule_confidence materialised view (kept
@@ -416,6 +536,8 @@ export async function GET(req: NextRequest) {
     errors,
     sms_sent: smsSent,
     sms_errors: smsErrors,
+    slack_sent: slackSent,
+    slack_errors: slackErrors,
     timestamp: nowIso,
   });
 }

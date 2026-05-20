@@ -19,10 +19,20 @@ import {
   formatCents,
 } from "@/lib/deadline-utils";
 import { LinkButton } from "@/components/doctrine/Button";
+import { PageEmptyState } from "@/components/doctrine/PageEmptyState";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
 import { StampChip } from "@/components/doctrine/StampChip";
 import { KpiCard } from "@/components/doctrine/KpiCard";
 import StateCoverageBanner from "@/components/dashboard/StateCoverageBanner";
 import { EXPLICITLY_HANDLED_STATES } from "@/lib/regulatory-graph";
+import { SectionBlock } from "@/components/doctrine/SectionBlock";
+import {
+  actions as actionLabels,
+  dashboard,
+  deadlineStatusGroup,
+} from "@/lib/ui-copy";
 
 type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
   regulatory_rule_id?: string | null;
@@ -30,12 +40,7 @@ type Deadline = Database["public"]["Tables"]["deadlines"]["Row"] & {
 
 type StatusKey = "overdue" | "in_progress" | "upcoming" | "compliant";
 
-const STATUS_LABEL: Record<StatusKey, string> = {
-  overdue: "Overdue · action required",
-  in_progress: "Due within 30 days",
-  upcoming: "Upcoming",
-  compliant: "Compliant · this year",
-};
+const STATUS_LABEL: Record<StatusKey, string> = deadlineStatusGroup;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -108,45 +113,27 @@ export default async function DashboardPage() {
     (business.plan_tier === "business" || business.plan_tier === "accountant");
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header — compact: title + meta inline with actions */}
-      <header className="flex items-end justify-between flex-wrap gap-3 pb-3 border-b-4 border-[var(--color-ground)]">
-        <div>
-          <div className="t-utility mb-1">
-            Final destination ·{" "}
-            <span className="text-[var(--color-mark)]">
-              PA-{business.id.slice(0, 6).toUpperCase()}
-            </span>{" "}
-            · {deadlines.length} on file
-          </div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-              color: "var(--color-ground)",
-            }}
-          >
-            {business.name}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <a
-            href="/api/export/pdf"
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost btn-sm"
-          >
-            ↓ Export PDF
-          </a>
-          <LinkButton href="/deadlines/new" variant="mark" size="sm">
-            + File deadline
-          </LinkButton>
-        </div>
-      </header>
+    <PageShell>
+      <PageHeader
+        code={`${deadlines.length} deadline${deadlines.length === 1 ? "" : "s"} tracked`}
+        title={business.name}
+        description={dashboard.description}
+        actions={
+          <>
+            <a
+              href="/api/export/pdf"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost btn-sm"
+            >
+              {actionLabels.exportPdf}
+            </a>
+            <LinkButton href="/deadlines/new" variant="mark" size="sm">
+              {actionLabels.addDeadline}
+            </LinkButton>
+          </>
+        }
+      />
 
       {/* State-coverage transparency banner — only when the user's primary
           state isn't in the deeply-curated set (WS-0.4). */}
@@ -162,40 +149,42 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard
           tone={overdue.length > 0 ? "mark" : "field"}
-          label="Overdue"
+          label={dashboard.kpi.overdue}
           value={overdue.length}
-          sub={overdue.length > 0 ? "Action required" : "All clear"}
+          sub={overdue.length > 0 ? "Needs attention now" : "None overdue"}
         />
-        <KpiCard tone="field" label="Due soon" value={inProgress.length} sub="≤ 30 days" />
-        <KpiCard tone="field" label="Upcoming" value={upcoming.length} sub="Next 6 months" />
         <KpiCard
           tone="field"
-          label="Score"
+          label={dashboard.kpi.dueSoon}
+          value={inProgress.length}
+          sub="Due in the next 30 days"
+        />
+        <KpiCard
+          tone="field"
+          label={dashboard.kpi.upcoming}
+          value={upcoming.length}
+          sub="Beyond 30 days"
+        />
+        <KpiCard
+          tone={complianceScore < 80 ? "mark" : "field"}
+          label={dashboard.kpi.score}
           value={complianceScore}
           suffix="/100"
           sub={
-            exposureCents > 0 ? `${formatCents(exposureCents)} exposure` : "On target"
+            exposureCents > 0
+              ? `${formatCents(exposureCents)} estimated exposure`
+              : "No estimated penalty exposure"
           }
         />
       </div>
 
       {/* Next actions — anchor for daily operator use. Severity-weighted. */}
       {actions.length > 0 ? (
-        <section className="border-2 border-[var(--color-ground)]">
-          <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-4 py-2 flex items-center justify-between flex-wrap gap-2">
-            <span
-              className="t-utility"
-              style={{ color: "var(--color-field)" }}
-            >
-              Next {actions.length} action{actions.length === 1 ? "" : "s"}
-            </span>
-            <span
-              className="t-utility"
-              style={{ color: "var(--color-field)" }}
-            >
-              Severity × urgency
-            </span>
-          </div>
+        <PageSection
+          title={`Do these next (${actions.length})`}
+          tone="mark"
+          subtitle="Highest-risk and most urgent deadlines first"
+        >
           <ol className="bg-[var(--color-field)]">
             {actions.map((a, i) => (
               <li
@@ -239,68 +228,84 @@ export default async function DashboardPage() {
                     href={a.id ? `/deadlines/${a.id}/edit` : "/deadlines"}
                     className="t-utility shrink-0 text-[var(--color-mark)] hover:underline"
                   >
-                    Log →
+                    {actionLabels.updateDeadline}
                   </Link>
                 </div>
               </li>
             ))}
           </ol>
-        </section>
+        </PageSection>
       ) : null}
 
-      {/* Trend + insights — denser 2-col split; peer benchmark sits below.
-          Share tools moved further down so the page anchor stays on
-          actionable signals. */}
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-3">
-        <ComplianceScoreChart history={history} currentScore={complianceScore} />
-        <ProactiveInsights />
-      </div>
-
-      {/* Peer benchmark */}
-      <PeerBenchmarkBar peer={peer} />
-
-      {/* Share / accountant tools */}
-      <div className="grid sm:grid-cols-2 gap-3">
-        <ShareLink canShare={isPremium} />
-        <AccountantInvite canInvite={isPremium} />
-      </div>
-
-      {/* Deadline groups */}
       {deadlines.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="flex flex-col gap-4">
-          {overdue.length > 0 && (
-            <DeadlineGroup
-              statusKey="overdue"
-              deadlines={overdue}
-              confidenceMap={confidenceMap}
-            />
-          )}
-          {inProgress.length > 0 && (
-            <DeadlineGroup
-              statusKey="in_progress"
-              deadlines={inProgress}
-              confidenceMap={confidenceMap}
-            />
-          )}
-          {upcoming.length > 0 && (
-            <DeadlineGroup
-              statusKey="upcoming"
-              deadlines={upcoming}
-              confidenceMap={confidenceMap}
-            />
-          )}
-          {compliant.length > 0 && (
-            <DeadlineGroup
-              statusKey="compliant"
-              deadlines={compliant}
-              confidenceMap={confidenceMap}
-            />
-          )}
-        </div>
+        <SectionBlock
+          title={dashboard.sections.deadlines.title}
+          description={dashboard.sections.deadlines.description}
+          action={
+            <Link
+              href="/deadlines"
+              className="t-utility text-[var(--color-mark)] no-underline hover:underline"
+            >
+              {actionLabels.viewAllDeadlines}
+            </Link>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            {overdue.length > 0 && (
+              <DeadlineGroup
+                statusKey="overdue"
+                deadlines={overdue}
+                confidenceMap={confidenceMap}
+              />
+            )}
+            {inProgress.length > 0 && (
+              <DeadlineGroup
+                statusKey="in_progress"
+                deadlines={inProgress}
+                confidenceMap={confidenceMap}
+              />
+            )}
+            {upcoming.length > 0 && (
+              <DeadlineGroup
+                statusKey="upcoming"
+                deadlines={upcoming}
+                confidenceMap={confidenceMap}
+              />
+            )}
+            {compliant.length > 0 && (
+              <DeadlineGroup
+                statusKey="compliant"
+                deadlines={compliant}
+                confidenceMap={confidenceMap}
+              />
+            )}
+          </div>
+        </SectionBlock>
       )}
-    </div>
+
+      <SectionBlock
+        title={dashboard.sections.insights.title}
+        description={dashboard.sections.insights.description}
+      >
+        <div className="grid lg:grid-cols-[1.4fr_1fr] gap-3">
+          <ComplianceScoreChart history={history} currentScore={complianceScore} />
+          <ProactiveInsights />
+        </div>
+      </SectionBlock>
+
+      <SectionBlock
+        title={dashboard.sections.sharing.title}
+        description={dashboard.sections.sharing.description}
+      >
+        <PeerBenchmarkBar peer={peer} />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <ShareLink canShare={isPremium} />
+          <AccountantInvite canInvite={isPremium} />
+        </div>
+      </SectionBlock>
+    </PageShell>
   );
 }
 
@@ -315,25 +320,11 @@ function DeadlineGroup({
 }) {
   const overdue = statusKey === "overdue";
   return (
-    <section className="border-2 border-[var(--color-ground)]">
-      <header
-        className={`flex items-center justify-between px-4 py-2 ${
-          overdue ? "bg-[var(--color-mark)]" : "panel-ink"
-        }`}
-      >
-        <span
-          className="t-utility"
-          style={{ color: "var(--color-field)" }}
-        >
-          {STATUS_LABEL[statusKey]}
-        </span>
-        <span
-          className="t-utility tabular-nums"
-          style={{ color: "var(--color-field)" }}
-        >
-          {String(deadlines.length).padStart(2, "0")}
-        </span>
-      </header>
+    <PageSection
+      title={STATUS_LABEL[statusKey]}
+      count={deadlines.length}
+      tone={overdue ? "mark" : "default"}
+    >
       <ul className="bg-[var(--color-field)]">
         {deadlines.map((d, i) => {
           const confidence = d.regulatory_rule_id
@@ -383,36 +374,21 @@ function DeadlineGroup({
           );
         })}
       </ul>
-    </section>
+    </PageSection>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="border-2 border-[var(--color-ground)] p-10 flex flex-col gap-4 items-start">
-      <StampChip tone="field">Empty manifest</StampChip>
-      <h2
-        style={{
-          fontFamily: "var(--font-destination)",
-          fontWeight: 800,
-          fontSize: 38,
-          lineHeight: 1.05,
-          letterSpacing: "-0.015em",
-          textTransform: "uppercase",
-        }}
-      >
-        No deadlines on file.
-      </h2>
-      <p
-        className="max-w-[480px] text-[15px]"
-        style={{ fontFamily: "var(--font-index)" }}
-      >
-        Add your first compliance deadline to start tracking. Or revisit
-        onboarding to pre-populate from your industry and state.
-      </p>
-      <LinkButton href="/deadlines/new" variant="mark">
-        + File first deadline
-      </LinkButton>
-    </div>
+    <PageEmptyState
+      chip={<StampChip tone="field">Get started</StampChip>}
+      title="No deadlines yet"
+      description="Add your first deadline to start tracking — or finish onboarding to pre-fill obligations for your industry and state."
+      actions={
+        <LinkButton href="/deadlines/new" variant="mark">
+          {actionLabels.addFirstDeadline}
+        </LinkButton>
+      }
+    />
   );
 }

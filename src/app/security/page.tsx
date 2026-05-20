@@ -97,7 +97,7 @@ export default function SecurityPage() {
 
       <main className="flex-1">
         {/* HERO */}
-        <section className="px-6 py-20 sm:py-24 border-b-2 border-[var(--color-ground)]">
+        <section className="px-6 py-12 sm:py-14 border-b-2 border-[var(--color-ground)]">
           <div className="max-w-3xl mx-auto">
             <Utility className="text-[var(--color-mark)] mb-4 block">
               Security
@@ -121,10 +121,10 @@ export default function SecurityPage() {
         </section>
 
         {/* STORAGE */}
-        <section className="px-6 py-20">
+        <section className="px-6 py-12">
           <div className="max-w-4xl mx-auto">
             <H2 className="mb-3">How your data is stored.</H2>
-            <Body className="text-[var(--color-ground)]  max-w-2xl mb-10">
+            <Body className="text-[var(--color-ground)]  max-w-2xl mb-6">
               Six facts about where your data lives, how it&apos;s encrypted,
               and what we never touch.
             </Body>
@@ -152,7 +152,7 @@ export default function SecurityPage() {
         </section>
 
         {/* AUDITS */}
-        <section className="px-6 py-20 bg-[var(--color-field)] border-y-2 border-[var(--color-ground)]">
+        <section className="px-6 py-12 bg-[var(--color-field)] border-y-2 border-[var(--color-ground)]">
           <div className="max-w-3xl mx-auto">
             <H2 className="mb-4">What audits we have today.</H2>
             <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] p-6 sm:p-8">
@@ -174,10 +174,10 @@ export default function SecurityPage() {
         </section>
 
         {/* THREAT MODEL */}
-        <section className="px-6 py-20">
+        <section className="px-6 py-12">
           <div className="max-w-4xl mx-auto">
             <H2 className="mb-3">Threat model — by surface.</H2>
-            <Body className="text-[var(--color-ground)]  max-w-2xl mb-10">
+            <Body className="text-[var(--color-ground)]  max-w-2xl mb-6">
               The full per-route version lives in our repo at{" "}
               <code className="text-[var(--color-mark)]">
                 docs/security/threat-models.md
@@ -222,7 +222,7 @@ export default function SecurityPage() {
         </section>
 
         {/* DISCLOSURE */}
-        <section className="px-6 py-20 bg-[var(--color-ground)] text-[var(--color-field)]">
+        <section className="px-6 py-12 bg-[var(--color-ground)] text-[var(--color-field)]">
           <div className="max-w-3xl mx-auto">
             <Utility className="text-[var(--color-mark)] mb-4 block">
               Responsible disclosure
@@ -259,11 +259,11 @@ export default function SecurityPage() {
         {/* Sub-processors — required by WS-2.2 BAA scaffolds. Every vendor
             that may touch customer data is listed here with their role and
             BAA status (where HIPAA applies). */}
-        <section id="sub-processors" className="px-6 py-16 sm:py-20 border-b-2 border-[var(--color-ground)]">
+        <section id="sub-processors" className="px-6 py-10 sm:py-12 border-b-2 border-[var(--color-ground)]">
           <div className="max-w-[1080px] mx-auto">
             <Utility className="mb-3">Sub-processors</Utility>
             <H2 className="mb-6">Who else touches your data</H2>
-            <Body className="mb-8 max-w-[680px]">
+            <Body className="mb-5 max-w-[680px]">
               The third-party services we use to operate OperatorOS. Where
               applicable for healthcare customers, each is required to sign a
               Business Associate Agreement (HIPAA &sect;164.504(e)).

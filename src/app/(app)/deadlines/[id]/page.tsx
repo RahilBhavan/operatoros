@@ -119,7 +119,7 @@ export default async function DeadlineDetailPage({
         <Link href="/deadlines" className="t-link">
           ← Deadlines
         </Link>
-        {" · "}Detail · PA-DL-{idCode}
+        {" · "}Detail
       </div>
 
       <div className="grid lg:grid-cols-[1.3fr_1fr] gap-5 items-start">
@@ -134,7 +134,7 @@ export default async function DeadlineDetailPage({
             </span>
           </div>
 
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-5">
             <PanAmTag {...panAmPropsForDeadline(deadline)} scale={1} shadow />
           </div>
 
@@ -157,7 +157,7 @@ export default async function DeadlineDetailPage({
           ) : null}
 
           <div
-            className={`mt-8 mb-6 ${
+            className={`mt-5 mb-6 ${
               isOverdue ? "rule-stamp rule-mark" : "rule-stamp"
             }`}
             style={{
@@ -213,7 +213,7 @@ export default async function DeadlineDetailPage({
           ) : null}
 
           {/* Documents */}
-          <div className="mt-8">
+          <div className="mt-5">
             <DocumentUpload
               deadlineId={deadline.id}
               businessId={business.id}

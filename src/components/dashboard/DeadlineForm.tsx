@@ -145,11 +145,8 @@ export default function DeadlineForm({ businessId, existing }: Props) {
       {/* FORM header strip */}
       <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between">
         <Utility className="!text-[var(--color-field)] ">
-          {isEdit ? "FORM · EDIT DEADLINE" : "FORM · NEW DEADLINE"}
+          {isEdit ? "Edit deadline" : "New deadline"}
         </Utility>
-        <Index className="!text-[var(--color-field)] !text-[13px]">
-          PA-DL-{isEdit ? "EDIT" : "NEW"}
-        </Index>
       </div>
 
       <div className="px-5 py-6 flex flex-col gap-5">

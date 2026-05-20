@@ -29,8 +29,14 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-[var(--color-field)] text-[var(--color-ground)] flex flex-col">
+      <a href="#main-content" className="sr-only">
+        Skip to main content
+      </a>
       <AppNav userEmail={user.email ?? ""} />
-      <main className="flex-1 max-w-[1240px] w-full mx-auto px-6 py-6">
+      <main
+        id="main-content"
+        className="flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-4 sm:py-6"
+      >
         {children}
       </main>
       <InstallPrompt />

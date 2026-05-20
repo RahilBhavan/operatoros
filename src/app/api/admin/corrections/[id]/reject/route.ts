@@ -3,6 +3,7 @@ import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCorrectionStatusEmail } from "@/lib/email";
 import { dbError } from "@/lib/api/respond";
+import { writeAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -70,20 +71,13 @@ export async function POST(
     return dbError("admin:corrections/reject", error);
   }
 
-  const { error: auditError } = await admin.from("audit_events").insert({
+  await writeAuditEvent(admin, {
     business_id: null,
     actor_user_id: auth.user.id,
     event_type: "platform.correction_rejected",
     target_id: id,
     metadata: { review_note: reviewNote },
   });
-  if (auditError) {
-    console.error("audit_insert_failed", {
-      event_type: "platform.correction_rejected",
-      target_id: id,
-      error: auditError.message,
-    });
-  }
 
   // Refresh confidence so rejected_count bumps reflect immediately.
   const refreshRpc = admin.rpc.bind(admin) as unknown as (

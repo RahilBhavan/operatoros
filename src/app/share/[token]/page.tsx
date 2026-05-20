@@ -79,7 +79,7 @@ export default async function SharePage({
     <div className="min-h-screen bg-[var(--color-field)]">
       <PublicNav caption="Shared view · Read-only" />
 
-      <main className="max-w-[1100px] mx-auto px-6 py-10">
+      <main className="max-w-[1100px] mx-auto px-6 py-8">
         {/* Hero luggage tag */}
         <TagCard
           variant="ground"
@@ -130,7 +130,7 @@ export default async function SharePage({
 
         {/* SECTION 01 — SCORE */}
         <SectionHeader index="01" title="RISK-WEIGHTED SCORE" sort="A" />
-        <section className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] mb-10">
+        <section className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-[var(--color-ground)]">
             <div className="px-6 py-6">
               <Utility className=" mb-3">SCORE</Utility>
@@ -208,14 +208,14 @@ export default async function SharePage({
         )}
 
         {rows.length === 0 && (
-          <section className="border-2 border-[var(--color-ground)] py-16 px-6 text-center mb-10">
+          <section className="border-2 border-[var(--color-ground)] py-10 px-6 text-center mb-6">
             <Index className="!text-[48px]  block mb-3">000</Index>
             <H2>No deadlines to display.</H2>
           </section>
         )}
 
         {/* Footer */}
-        <footer className="border-t-2 border-[var(--color-ground)] pt-6 mt-12">
+        <footer className="border-t-2 border-[var(--color-ground)] pt-6 mt-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <Utility className="">GENERATED</Utility>
@@ -271,7 +271,7 @@ function SectionHeader({
   mark?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between mt-10 mb-3 gap-3 flex-wrap">
+    <div className="flex items-center justify-between mt-6 mb-3 gap-3 flex-wrap">
       <div className="flex items-baseline gap-3">
         <Index
           className={`!text-[19px] ${
@@ -338,7 +338,7 @@ function DeadlineTable({
   const overdue = statusKey === "overdue";
   return (
     <section
-      className={`border-2 mb-8 ${
+      className={`border-2 mb-5 ${
         overdue
           ? "border-[var(--color-mark)]"
           : "border-[var(--color-ground)]"

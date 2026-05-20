@@ -1,9 +1,29 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { ListRow } from "@/components/doctrine/ListRow";
+import { PageEmptyState } from "@/components/doctrine/PageEmptyState";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
+
+type BinderRow = {
+  id: string;
+  name: string;
+  agency: string | null;
+  inspection_date: string | null;
+  status: string;
+  locked_at: string | null;
+  created_at: string;
+};
+
+function binderStatusLabel(status: string): string {
+  if (status === "locked") return "Locked";
+  if (status === "expired") return "Expired";
+  return "Draft";
+}
 
 export default async function AuditPrepIndex() {
   const supabase = await createClient();
@@ -25,102 +45,73 @@ export default async function AuditPrepIndex() {
     .eq("business_id", business.id)
     .order("created_at", { ascending: false });
 
-  return (
-    <div className="flex flex-col gap-5">
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <div className="t-utility mb-2">PA-AUD</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            Audit prep
-          </h1>
-          <p
-            className="mt-3 max-w-[640px]"
-            style={{ fontFamily: "var(--font-index)", fontSize: 15 }}
-          >
-            Build a date-locked binder for an inbound surveyor, inspector, or
-            insurance auditor. Once locked, the snapshot is immutable — exactly
-            what the agency saw on the day of the visit.
-          </p>
-        </div>
-        <LinkButton href="/audit-prep/new" variant="mark">
-          + Start a binder
-        </LinkButton>
-      </header>
+  const binderRows = (binders ?? []) as BinderRow[];
 
-      {(binders ?? []).length === 0 ? (
-        <div className="border-2 border-[var(--color-ground)] p-10">
-          <h2
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 800,
-              fontSize: 32,
-              textTransform: "uppercase",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            No binders yet.
-          </h2>
-          <p
-            className="mt-3 max-w-[480px]"
-            style={{ fontFamily: "var(--font-index)" }}
-          >
-            Start one before your next survey window. We&rsquo;ll pull the
-            relevant deadlines and documents, then mint a surveyor-facing
-            share URL.
-          </p>
-        </div>
+  return (
+    <PageShell>
+      <PageHeader
+        code={`${binderRows.length} binder${binderRows.length === 1 ? "" : "s"}`}
+        title="Audit prep"
+        description="Build a date-locked binder for an inbound surveyor, inspector, or insurance auditor. Once locked, the snapshot is immutable — exactly what the agency saw on the day of the visit."
+        actions={
+          <LinkButton href="/audit-prep/new" variant="mark">
+            + Start a binder
+          </LinkButton>
+        }
+      />
+
+      {binderRows.length === 0 ? (
+        <PageEmptyState
+          title="No binders yet"
+          description="Start one before your next survey window. We'll pull the relevant deadlines and documents, then mint a surveyor-facing share URL."
+          actions={
+            <LinkButton href="/audit-prep/new" variant="mark">
+              + Start a binder
+            </LinkButton>
+          }
+        />
       ) : (
-        <section className="border-2 border-[var(--color-ground)]">
+        <PageSection title="Binders" count={binderRows.length}>
           <ul className="bg-[var(--color-field)]">
-            {(binders ?? []).map((b, i) => (
-              <li
-                key={b.id}
-                className={
-                  i === (binders ?? []).length - 1
-                    ? ""
-                    : "border-b border-[var(--color-ground)]"
-                }
-              >
-                <Link
-                  href={`/audit-prep/${b.id}`}
-                  className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+            {binderRows.map((b, i) => {
+              const secondary = [
+                b.agency ?? "Unspecified agency",
+                b.inspection_date ? `Inspection ${b.inspection_date}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              const label = binderStatusLabel(b.status);
+              const isLocked = b.status === "locked";
+
+              return (
+                <li
+                  key={b.id}
+                  className={
+                    i === binderRows.length - 1
+                      ? ""
+                      : "border-b border-[var(--color-ground)]"
+                  }
                 >
-                  <div>
-                    <div
-                      className="font-bold text-[15px]"
-                      style={{ fontFamily: "var(--font-index)" }}
-                    >
-                      {b.name}
-                    </div>
-                    <div className="t-utility mt-1">
-                      {b.agency ?? "Unspecified agency"}
-                      {b.inspection_date
-                        ? ` · inspection ${b.inspection_date}`
-                        : ""}
-                    </div>
-                  </div>
-                  <div className="t-utility shrink-0">
-                    {b.status === "locked"
-                      ? "LOCKED"
-                      : b.status === "expired"
-                      ? "Expired"
-                      : "Draft"}
-                  </div>
-                </Link>
-              </li>
-            ))}
+                  <ListRow
+                    href={`/audit-prep/${b.id}`}
+                    primary={b.name}
+                    secondary={secondary}
+                    trailing={
+                      <span
+                        className={
+                          isLocked ? "text-[var(--color-mark)]" : undefined
+                        }
+                      >
+                        {label}
+                      </span>
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
-        </section>
+        </PageSection>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -4,7 +4,7 @@ import { StampChip } from "@/components/doctrine/StampChip";
 export default function AdminNotFound() {
   return (
     <div className="flex flex-col items-start gap-6 py-10">
-      <StampChip tone="mark">Not on the admin manifest · 404</StampChip>
+      <StampChip tone="mark">Admin page not found · 404</StampChip>
       <h1
         style={{
           fontFamily: "var(--font-destination)",

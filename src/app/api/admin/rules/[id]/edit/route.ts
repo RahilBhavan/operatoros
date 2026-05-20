@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidateRulesCache } from "@/lib/regulatory-graph";
 import { dbError } from "@/lib/api/respond";
 import { validateProposedChanges } from "@/lib/corrections";
+import { writeAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -80,23 +81,13 @@ export async function POST(
     return dbError("admin:rules/edit", error);
   }
 
-  // Audit. Service-role for the insert so a failure to log doesn't roll back
-  // the user-visible action (which the RPC already committed).
-  const { error: auditError } = await admin.from("audit_events").insert({
+  await writeAuditEvent(admin, {
     business_id: null,
     actor_user_id: auth.user.id,
     event_type: "platform.rule_versioned",
     target_id: newRuleId,
     metadata: { from_rule_id: id, changes: validation.value },
   });
-  if (auditError) {
-    console.error("audit_insert_failed", {
-      event_type: "platform.rule_versioned",
-      from_rule_id: id,
-      new_rule_id: newRuleId,
-      error: auditError.message,
-    });
-  }
 
   // The edit is now the new canonical head; bust the in-process cache so
   // the next onboarding read sees v+1 immediately (otherwise cached

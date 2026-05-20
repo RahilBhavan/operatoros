@@ -4,13 +4,27 @@ import {
   getSupabasePublicConfig,
   isSupabasePublicConfigured,
 } from "@/lib/supabase/config";
+import { buildCsp, generateNonce } from "@/lib/security/csp";
 
 const PROTECTED = ["/dashboard", "/deadlines", "/billing", "/onboarding", "/settings"];
 const AUTH_ONLY = ["/sign-in", "/sign-up"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = NextResponse.next({ request });
+
+  // Generate a fresh nonce per request. We propagate it on the inbound headers
+  // so Next.js auto-nonces its built-in <script> tags, and we set CSP on the
+  // outbound response so the browser enforces it.
+  const nonce = generateNonce();
+  const cspMode = process.env.NODE_ENV === "production" ? "prod" : "dev";
+  const csp = buildCsp(nonce, cspMode);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  const nextOpts = { request: { headers: requestHeaders } };
+  let response = NextResponse.next(nextOpts);
+  response.headers.set("Content-Security-Policy", csp);
 
   if (!isSupabasePublicConfigured()) {
     return response;
@@ -27,7 +41,8 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({ request });
+          response = NextResponse.next(nextOpts);
+          response.headers.set("Content-Security-Policy", csp);
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

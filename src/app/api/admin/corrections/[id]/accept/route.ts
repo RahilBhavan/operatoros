@@ -3,6 +3,7 @@ import { requirePlatformAdminForRoute } from "@/lib/security/admin-route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCorrectionStatusEmail } from "@/lib/email";
 import { dbError } from "@/lib/api/respond";
+import { writeAuditEvent } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -57,22 +58,13 @@ export async function POST(
     return dbError("admin:corrections/accept", error);
   }
 
-  // Audit — same shape the verify/edit routes use. The accept RPC has
-  // already committed; audit failure shouldn't roll back the user action.
-  const { error: auditError } = await admin.from("audit_events").insert({
+  await writeAuditEvent(admin, {
     business_id: null,
     actor_user_id: auth.user.id,
     event_type: "platform.correction_accepted",
     target_id: id,
     metadata: { new_rule_id: newRuleId },
   });
-  if (auditError) {
-    console.error("audit_insert_failed", {
-      event_type: "platform.correction_accepted",
-      target_id: id,
-      error: auditError.message,
-    });
-  }
 
   // Best-effort refresh of the materialized view. Service-role only.
   const refreshRpc = admin.rpc.bind(admin) as unknown as (

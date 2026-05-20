@@ -28,12 +28,7 @@ export default function ComplianceScoreChart({
           >
             Score trend · 90 days
           </span>
-          <span
-            className="t-utility"
-            style={{ color: "var(--color-field)" }}
-          >
-            PA-SCR
-          </span>
+          <span className="t-caption text-[var(--color-field)]/80">90-day window</span>
         </div>
         <div className="bg-[var(--color-field)] px-4 py-3">
           <p

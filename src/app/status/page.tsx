@@ -9,6 +9,7 @@ import {
 } from "@/components/doctrine/Typography";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
 import { MarketingFooter } from "@/components/marketing/MarketingFooter";
+import { StampChip } from "@/components/doctrine/StampChip";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -190,11 +191,18 @@ export default async function StatusPage() {
     <div className="flex flex-col min-h-screen bg-[var(--color-field)]">
       <MarketingNav />
 
-      <main className="flex-1 px-6 py-20">
+      <main className="flex-1 px-6 py-12">
         <div className="max-w-3xl mx-auto">
-          <Utility className="text-[var(--color-mark)] mb-4 block">
-            Status
-          </Utility>
+          <div className="flex items-center gap-3 mb-4">
+            <Utility className="text-[var(--color-mark)]">
+              Status
+            </Utility>
+            {headlineState === "ok" ? (
+              <StampChip tone="field">Live</StampChip>
+            ) : (
+              <StampChip tone="mark">Investigating</StampChip>
+            )}
+          </div>
           <Display
             as="h1"
             className="!text-[38px] sm:!text-[60px] !leading-[1.05] mb-5"
@@ -202,7 +210,7 @@ export default async function StatusPage() {
             All systems{" "}
             <span className="text-[var(--color-mark)]">{headlineWord}</span>.
           </Display>
-          <Body className="!text-[19px] text-[var(--color-ground)]  leading-relaxed mb-10">
+          <Body className="!text-[19px] text-[var(--color-ground)]  leading-relaxed mb-6">
             Live signal — checks run on every page load with a 3-second timeout
             per dependency. We&apos;ll cut over to a third-party status provider
             (BetterStack / Statuspage) before general availability and replace
@@ -210,7 +218,7 @@ export default async function StatusPage() {
           </Body>
 
           {/* Component list */}
-          <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] divide-y-2 divide-[var(--color-ground)] mb-12">
+          <div className="border-2 border-[var(--color-ground)] bg-[var(--color-field)] divide-y-2 divide-[var(--color-ground)] mb-8">
             {checks.map((c) => (
               <div
                 key={c.label}
@@ -251,7 +259,7 @@ export default async function StatusPage() {
           </div>
 
           {/* Subscribe */}
-          <section className="mt-14 border-t-2 border-[var(--color-ground)] pt-10">
+          <section className="mt-8 border-t-2 border-[var(--color-ground)] pt-6">
             <H2 className="mb-3">Get notified of incidents.</H2>
             <Body className="text-[var(--color-ground)]  leading-relaxed mb-5">
               Until the third-party status feed is live, we&apos;ll email

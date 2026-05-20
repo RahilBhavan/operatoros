@@ -3,7 +3,12 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { Body } from "@/components/doctrine/Typography";
 import { computeRiskWeightedScore, formatDueDate } from "@/lib/deadline-utils";
+import { nav } from "@/lib/ui-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -41,121 +46,86 @@ export default async function LocationDetail({
     .eq("location_id", id)
     .order("due_date", { ascending: true });
 
+  const deadlineRows = deadlines ?? [];
   const score = computeRiskWeightedScore(
-    (deadlines ?? []) as Parameters<typeof computeRiskWeightedScore>[0]
+    deadlineRows as Parameters<typeof computeRiskWeightedScore>[0],
   );
 
+  const title = location.name ?? `${location.city ?? "Primary"} location`;
+  const meta = [
+    [location.city ?? "—", location.state].join(", "),
+    location.address ?? null,
+    location.zip ?? null,
+    `Compliance score ${score}/100`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="flex flex-col gap-5">
+    <PageShell>
       <Breadcrumb
         items={[
           { label: "Locations", href: "/locations" },
-          { label: location.name ?? `${location.city ?? "Primary"} location` },
+          { label: title },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <div className="t-utility mb-2">PA-LOC · {id.slice(0, 6).toUpperCase()}</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            {location.name ?? `${location.city ?? "Primary"} location`}
-          </h1>
-          <div className="t-utility mt-3">
-            {location.city ?? "—"}, {location.state}
-            {location.address ? ` · ${location.address}` : ""}
-            {location.zip ? ` · ${location.zip}` : ""}
-          </div>
-        </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <div
-            className="font-bold tabular-nums"
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontSize: 56,
-              lineHeight: 1,
-              color: "var(--color-mark)",
-            }}
-          >
-            {score}
-            <span style={{ fontSize: 18, marginLeft: 4 }}>/100</span>
-          </div>
-          <LinkButton href={`/locations/${id}/edit`} variant="ghost" size="sm">
-            Edit →
-          </LinkButton>
-        </div>
-      </header>
 
-      <section className="border-2 border-[var(--color-ground)]">
-        <div className="panel-ink px-4 py-2 flex items-center justify-between">
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            Per-location deadlines
-          </span>
-          <span className="t-utility" style={{ color: "var(--color-field)" }}>
-            {String((deadlines ?? []).length).padStart(2, "0")}
-          </span>
-        </div>
-        {(deadlines ?? []).length === 0 ? (
-          <div className="bg-[var(--color-field)] px-5 py-6">
-            <p style={{ fontFamily: "var(--font-index)" }}>
-              No deadlines are scoped to this location yet. Existing deadlines
-              can be reassigned from the Deadlines page.
-            </p>
-          </div>
+      <PageHeader
+        title={title}
+        meta={meta}
+        actions={
+          <LinkButton href={`/locations/${id}/edit`} variant="ghost" size="sm">
+            {nav.edit}
+          </LinkButton>
+        }
+      />
+
+      <PageSection
+        title="Deadlines at this location"
+        count={deadlineRows.length}
+        subtitle="Only obligations assigned to this site appear here"
+      >
+        {deadlineRows.length === 0 ? (
+          <Body className="bg-[var(--color-field)] px-5 py-6">
+            No deadlines are assigned to this location yet. Reassign deadlines from
+            the main deadlines list if needed.
+          </Body>
         ) : (
           <ul className="bg-[var(--color-field)]">
-            {(deadlines ?? []).map((d, i) => (
+            {deadlineRows.map((d, i) => (
               <li
                 key={d.id}
                 className={
-                  i === (deadlines ?? []).length - 1
+                  i === deadlineRows.length - 1
                     ? ""
                     : "border-b border-[var(--color-ground)]"
                 }
               >
                 <Link
                   href={`/deadlines/${d.id}`}
-                  className="grid grid-cols-[1fr_auto] gap-4 px-4 py-2.5 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
+                  className="grid grid-cols-[1fr_auto] gap-4 px-4 py-3 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)] group"
                 >
-                  <div>
-                    <div
-                      className="font-bold text-[15px]"
-                      style={{ fontFamily: "var(--font-index)" }}
-                    >
+                  <div className="min-w-0">
+                    <Body className="font-bold group-hover:text-[var(--color-field)]">
                       {d.name}
-                    </div>
-                    <div className="t-utility mt-1">
-                      {d.governing_agency ?? "—"} · {d.status}
-                    </div>
+                    </Body>
+                    <p className="t-utility mt-1 group-hover:text-[var(--color-field)]">
+                      {d.governing_agency ?? "—"} · {d.status.replace(/_/g, " ")}
+                    </p>
                   </div>
-                  <div
-                    className="font-bold text-[15px]"
-                    style={{
-                      fontFamily: "var(--font-index)",
-                      color: "var(--color-mark)",
-                    }}
-                  >
+                  <Body className="font-bold tabular-nums text-[var(--color-mark)] group-hover:text-[var(--color-field)] shrink-0">
                     {formatDueDate(d.due_date)}
-                  </div>
+                  </Body>
                 </Link>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </PageSection>
 
-      <div>
-        <LinkButton href="/locations" variant="ghost">
-          ← Back to locations
-        </LinkButton>
-      </div>
-    </div>
+      <LinkButton href="/locations" variant="ghost">
+        {nav.backToLocations}
+      </LinkButton>
+    </PageShell>
   );
 }

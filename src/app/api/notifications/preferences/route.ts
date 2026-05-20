@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/respond";
+import { isSlackWebhookUrl } from "@/lib/slack";
 
 export const runtime = "nodejs";
 
@@ -61,6 +62,37 @@ export async function POST(req: NextRequest) {
   const ip =
     fwd?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? null;
 
+  // WS-G.Slack — webhook-URL flow. If enabling Slack the URL must be a
+  // canonical hooks.slack.com URL; we reject anything else server-side
+  // even though the DB CHECK is the second line of defense.
+  const slackEnabled = Boolean(body.slack_enabled);
+  const slackWebhookRaw =
+    typeof body.slack_webhook_url === "string" && body.slack_webhook_url.length > 0
+      ? body.slack_webhook_url
+      : null;
+  if (slackEnabled && !slackWebhookRaw) {
+    return NextResponse.json(
+      { error: "Slack webhook URL required to enable Slack" },
+      { status: 400 }
+    );
+  }
+  if (slackWebhookRaw && !isSlackWebhookUrl(slackWebhookRaw)) {
+    return NextResponse.json(
+      { error: "Slack webhook URL must start with https://hooks.slack.com/services/" },
+      { status: 400 }
+    );
+  }
+  const slackSeverity =
+    typeof body.slack_severity_threshold === "string" &&
+    VALID_SEVERITY.has(body.slack_severity_threshold)
+      ? (body.slack_severity_threshold as
+          | "critical"
+          | "high"
+          | "medium"
+          | "low"
+          | "info")
+      : "high";
+
   const upsertRow = {
     user_id: user.id,
     email_enabled: Boolean(body.email_enabled ?? true),
@@ -77,10 +109,16 @@ export async function POST(req: NextRequest) {
         : null,
     tcpa_opted_in_at: smsEnabled ? new Date().toISOString() : null,
     tcpa_opt_in_ip: smsEnabled ? ip : null,
+    // WS-G.Slack columns — supabase types haven't been regenerated, but
+    // the keys are accepted by the upsert; cast at write time.
+    slack_enabled: slackEnabled,
+    slack_webhook_url: slackWebhookRaw,
+    slack_severity_threshold: slackSeverity,
+    slack_connected_at: slackEnabled ? new Date().toISOString() : null,
   };
 
-  const { error } = await supabase
-    .from("notification_preferences")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from("notification_preferences") as any)
     .upsert(upsertRow, { onConflict: "user_id" });
 
   if (error) {

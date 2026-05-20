@@ -1,13 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeadlineForm from "@/components/dashboard/DeadlineForm";
-import {
-  H1,
-  Caption,
-  Utility,
-  Index,
-  LinkButton,
-} from "@/components/doctrine";
+import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { LinkButton } from "@/components/doctrine/Button";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export default async function NewDeadlinePage() {
   const supabase = await createClient();
@@ -26,23 +23,24 @@ export default async function NewDeadlinePage() {
   if (!business) redirect("/onboarding");
 
   return (
-    <div className="max-w-2xl">
-      <header className="flex items-end justify-between border-b-4 border-[var(--color-ground)] pb-3 mb-5 flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-3">
-            <Index className="!text-[15px]">PA-DL-NEW</Index>
-            <Utility className="">REGISTRY · INTAKE</Utility>
-          </div>
-          <H1>Add deadline.</H1>
-          <Caption className="!mt-2">
-            File a compliance deadline for tracking and reminders.
-          </Caption>
-        </div>
-        <LinkButton href="/deadlines" variant="ghost">
-          ← All deadlines
-        </LinkButton>
-      </header>
+    <PageShell width="narrow">
+      <Breadcrumb
+        items={[
+          { label: "Deadlines", href: "/deadlines" },
+          { label: "Add deadline" },
+        ]}
+      />
+      <PageHeader
+        title="Add deadline"
+        description="Track a compliance due date and get reminders."
+        size="compact"
+        actions={
+          <LinkButton href="/deadlines" variant="ghost">
+            ← All deadlines
+          </LinkButton>
+        }
+      />
       <DeadlineForm businessId={business.id} />
-    </div>
+    </PageShell>
   );
 }

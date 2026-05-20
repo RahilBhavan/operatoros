@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 import AcceptBaaForm from "@/components/settings/AcceptBaaForm";
+import { settings } from "@/lib/ui-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -37,36 +40,17 @@ export default async function BaaPage() {
   const isHealthcare = HEALTHCARE_NAICS.has(business.industry_slug ?? "");
 
   return (
-    <div className="flex flex-col gap-5 max-w-[720px]">
+    <PageShell width="narrow">
       <Breadcrumb
         items={[
           { label: "Settings", href: "/settings" },
           { label: "BAA" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-BAA</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(30px, 4vw, 44px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Business Associate Agreement
-        </h1>
-        <p
-          className="mt-3 max-w-[640px]"
-          style={{ fontFamily: "var(--font-index)", fontSize: 15 }}
-        >
-          Required for healthcare-vertical customers who will store
-          PHI-adjacent documents in OperatorOS. Sign once per business; we
-          countersign automatically and email you the executed copy.
-        </p>
-      </header>
+      <PageHeader
+        title={settings.baa.title}
+        description={settings.baa.description}
+      />
 
       {!isHealthcare ? (
         <div className="border-2 border-[var(--color-ground)] px-4 py-2.5">
@@ -181,6 +165,6 @@ text before enabling acceptance flow for live customers.`}
           ← Back to settings
         </LinkButton>
       </div>
-    </div>
+    </PageShell>
   );
 }

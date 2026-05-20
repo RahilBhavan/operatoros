@@ -11,9 +11,9 @@ export default function NotFound() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center px-6 py-16">
+      <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="max-w-[680px] mx-auto w-full">
-          <StampChip tone="mark">Not on the manifest · 404</StampChip>
+          <StampChip tone="mark">Page not found · 404</StampChip>
           <h1
             className="mt-6"
             style={{

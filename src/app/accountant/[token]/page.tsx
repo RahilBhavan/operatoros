@@ -213,7 +213,7 @@ export default async function AccountantPortalPage({
         <div className="border-2 border-[var(--color-ground)] mb-10">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between gap-2 flex-wrap">
             <Utility className="!text-[var(--color-field)]">
-              CLIENT MANIFEST
+              CLIENT
             </Utility>
             <Index className="!text-[var(--color-field)] !text-[12px] ">
               PA-{businessCode}

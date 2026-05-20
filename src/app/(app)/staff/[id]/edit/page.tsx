@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EditStaffForm from "@/components/staff/EditStaffForm";
 import { Breadcrumb } from "@/components/doctrine/Breadcrumb";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function EditStaffPage({
   if (!staff) notFound();
 
   return (
-    <div className="max-w-[680px] flex flex-col gap-5">
+    <PageShell width="narrow">
       <Breadcrumb
         items={[
           { label: "Staff", href: "/staff" },
@@ -41,22 +43,11 @@ export default async function EditStaffPage({
           { label: "Edit" },
         ]}
       />
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-STAF · EDIT · {id.slice(0, 6).toUpperCase()}</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: "clamp(28px, 4vw, 40px)",
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Edit staff member
-        </h1>
-      </header>
-
+      <PageHeader
+        title="Edit staff member"
+        description={`Update details for ${staff.full_name}.`}
+        size="compact"
+      />
       <EditStaffForm
         initial={{
           id: staff.id,
@@ -67,6 +58,6 @@ export default async function EditStaffPage({
           hire_date: staff.hire_date ?? "",
         }}
       />
-    </div>
+    </PageShell>
   );
 }

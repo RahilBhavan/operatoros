@@ -4,14 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 import { PLANS } from "@/lib/stripe";
 import BillingActions from "@/components/dashboard/BillingActions";
 import {
-  H1,
   H2,
+  Body,
   Caption,
   Utility,
   Index,
   TagCard,
 } from "@/components/doctrine";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
+import { billing as billingCopy } from "@/lib/ui-copy";
 import { shouldSuggestLite } from "@/lib/entitlements";
+import { loadBillingUsage } from "@/lib/billing/usage";
+import { validateStripeConfig } from "@/lib/billing/env";
 
 const PLAN_CODES: Record<string, { code: string; sort: string }> = {
   business: { code: "B-079", sort: "A" },
@@ -27,13 +33,25 @@ export default async function BillingPage() {
 
   if (!user) redirect("/sign-in");
 
-  const { data: business } = await supabase
-    .from("businesses")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: businessRaw } = await (supabase.from("businesses") as any)
     .select(
-      "id, plan_tier, billing_status, trial_ends_at, stripe_customer_id, industry_slug, employee_count"
+      "id, plan_tier, billing_status, trial_ends_at, stripe_customer_id, industry_slug, employee_count, intended_plan"
     )
     .eq("owner_id", user.id)
     .single();
+  const business = businessRaw as
+    | {
+        id: string;
+        plan_tier: string;
+        billing_status: string;
+        trial_ends_at: string | null;
+        stripe_customer_id: string | null;
+        industry_slug: string | null;
+        employee_count: number | null;
+        intended_plan: "business" | "accountant" | null;
+      }
+    | null;
 
   if (!business) redirect("/onboarding");
 
@@ -46,20 +64,68 @@ export default async function BillingPage() {
     business.employee_count
   );
 
+  const usage = await loadBillingUsage(supabase, business.id, business.plan_tier);
+  const stripeEnv = validateStripeConfig();
+
   return (
-    <div>
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 mb-5">
-        <div className="flex items-center gap-3 mb-3">
-          <Index className="!text-[15px]">PA-BILL</Index>
-          <Utility className="">BILLING / SUBSCRIPTION</Utility>
+    <PageShell width="narrow">
+      <PageHeader
+        title={billingCopy.title}
+        description={billingCopy.description}
+        actions={
+          business.stripe_customer_id ? (
+            <Link
+              href="/billing/invoices"
+              className="t-utility hover:text-[var(--color-mark)]"
+            >
+              View invoices →
+            </Link>
+          ) : null
+        }
+      />
+
+      {/* Stripe-not-configured banner — silently 500ing the checkout call is
+          the worst failure mode. Surface it loudly so the founder knows
+          what's missing instead of users seeing a dead button. */}
+      {!stripeEnv.ready ? (
+        <div className="border-2 border-[var(--color-mark)] bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-4 mb-5">
+          <Utility className="!text-[var(--color-field)] !mb-2">
+            STRIPE NOT CONFIGURED — CHECKOUT WILL FAIL
+          </Utility>
+          <Body className="!text-[var(--color-field)] !text-[14px] !mb-2">
+            {stripeEnv.mode === "missing"
+              ? "STRIPE_SECRET_KEY is empty or missing."
+              : `Mode is ${stripeEnv.mode.toUpperCase()}, but some required vars are still missing.`}
+          </Body>
+          <ul className="flex flex-col gap-1 mb-2">
+            {stripeEnv.issues.map((issue) => (
+              <li
+                key={issue}
+                className="text-[13px]"
+                style={{
+                  fontFamily: "var(--font-index)",
+                  color: "var(--color-field)",
+                }}
+              >
+                → {issue}
+              </li>
+            ))}
+          </ul>
+          <a
+            href="https://github.com/RahilBhavan/operatoros/blob/main/docs/billing/SETUP.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="t-utility !text-[12px] underline"
+            style={{ color: "var(--color-field)" }}
+          >
+            Setup checklist (docs/billing/SETUP.md) →
+          </a>
         </div>
-        <H1>Billing.</H1>
-        <Caption className="!mt-2">Manage your subscription and plan.</Caption>
-      </header>
+      ) : null}
 
       {/* Current plan */}
       {isActive && business.plan_tier !== "free" && (
-        <div className="border-2 border-[var(--color-mark)] mb-10">
+        <div className="border-2 border-[var(--color-mark)] mb-5">
           <div className="bg-[var(--color-mark)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
             <Utility className="!text-[var(--color-field)]">
               CURRENT PLAN · {business.billing_status === "trialing" ? "TRIAL" : "ACTIVE"}
@@ -90,11 +156,40 @@ export default async function BillingPage() {
         </div>
       )}
 
+      {/* Usage tile — what counts against this plan's limits. */}
+      {isActive && business.plan_tier !== "free" ? (
+        <PageSection title="USAGE · THIS PLAN" className="mb-5">
+          <div className="bg-[var(--color-field)] px-4 py-4 grid sm:grid-cols-3 gap-3">
+            <UsageCell
+              label="Team members"
+              used={usage.teamMembers.used}
+              max={usage.teamMembers.max}
+              suffix=""
+              href="/settings/team"
+            />
+            <UsageCell
+              label="Documents tracked"
+              used={usage.documents}
+              max={null}
+              suffix=""
+              href="/deadlines"
+            />
+            <UsageCell
+              label="Deadlines"
+              used={usage.deadlines}
+              max={null}
+              suffix=""
+              href="/deadlines"
+            />
+          </div>
+        </PageSection>
+      ) : null}
+
       {/* WS-1.5 — Lite suggestion for thin-compliance NAICS + small headcount.
           Lite tier is not yet purchasable (no Stripe price ID); the suggestion
           links to the homepage waitlist so we can notify on launch. */}
       {liteSuggested && business.plan_tier !== "accountant" ? (
-        <div className="border-2 border-[var(--color-ground)] mb-10">
+        <div className="border-2 border-[var(--color-ground)] mb-5">
           <div className="bg-[var(--color-ground)] text-[var(--color-field)] px-5 py-3 flex items-center justify-between flex-wrap gap-2">
             <Utility className="!text-[var(--color-field)]">
               SUGGESTED · LITE TIER · COMING SOON
@@ -121,10 +216,12 @@ export default async function BillingPage() {
       ) : null}
 
       {/* Plan cards */}
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
+      <div className="grid md:grid-cols-2 gap-6 mb-5">
         {(Object.entries(PLANS) as [keyof typeof PLANS, (typeof PLANS)[keyof typeof PLANS]][]).map(
           ([key, plan]) => {
             const isCurrent = business.plan_tier === key && isActive;
+            const isIntended =
+              !isActive && business.intended_plan === key && !isCurrent;
             const codes = PLAN_CODES[key] ?? { code: key.toUpperCase(), sort: "C" };
             const variant = key === "business" ? "ground" : "mark";
 
@@ -133,7 +230,7 @@ export default async function BillingPage() {
                 key={key}
                 variant={variant}
                 topCode={codes.code}
-                topRight={`PA-${key.slice(0, 3).toUpperCase()}`}
+                topRight={key.toUpperCase()}
                 tabLabel={codes.sort}
                 destination={`$${plan.amount}`}
                 subtitle={plan.name.toUpperCase()}
@@ -156,13 +253,20 @@ export default async function BillingPage() {
                     CURRENT PLAN
                   </div>
                 ) : (
-                  <BillingActions
-                    plan={key}
-                    hasCustomer={!!business.stripe_customer_id}
-                    isSubscribed={isActive && business.plan_tier !== "free"}
-                    buttonLabel={isActive ? "Switch plan →" : "Start free trial →"}
-                    highlighted={key === "business"}
-                  />
+                  <>
+                    {isIntended ? (
+                      <Caption className="!text-[12px] !text-[var(--color-mark)] !font-bold !mb-2 text-center">
+                        You picked this during onboarding →
+                      </Caption>
+                    ) : null}
+                    <BillingActions
+                      plan={key}
+                      hasCustomer={!!business.stripe_customer_id}
+                      isSubscribed={isActive && business.plan_tier !== "free"}
+                      buttonLabel={isActive ? "Switch plan →" : "Start free trial →"}
+                      highlighted={isIntended || (!business.intended_plan && key === "business")}
+                    />
+                  </>
                 )}
               </TagCard>
             );
@@ -173,6 +277,50 @@ export default async function BillingPage() {
       <Caption className=" text-center !text-[12px]">
         14-day free trial · No credit card required to start · Cancel anytime
       </Caption>
-    </div>
+    </PageShell>
+  );
+}
+
+function UsageCell({
+  label,
+  used,
+  max,
+  suffix,
+  href,
+}: {
+  label: string;
+  used: number;
+  max: number | null;
+  suffix: string;
+  href: string;
+}) {
+  const over = max != null && used > max;
+  const near = max != null && !over && used >= Math.ceil(max * 0.8);
+  const accent = over
+    ? "var(--color-mark)"
+    : near
+      ? "var(--color-mark)"
+      : "var(--color-ground)";
+  return (
+    <Link
+      href={href}
+      className="border-2 border-[var(--color-ground)] px-3 py-3 hover:border-[var(--color-mark)] transition-colors flex flex-col gap-1"
+    >
+      <Utility className="!text-[11px]">{label}</Utility>
+      <div className="flex items-baseline gap-1">
+        <span className="t-h1 tabular-nums" style={{ color: accent }}>
+          {used}
+        </span>
+        {max != null ? (
+          <span className="t-caption !text-[14px]">/ {max}</span>
+        ) : null}
+        {suffix ? <span className="t-caption !text-[12px]">{suffix}</span> : null}
+      </div>
+      {over ? (
+        <Body className="!text-[12px] !text-[var(--color-mark)] !font-bold">
+          Over plan limit — upgrade below.
+        </Body>
+      ) : null}
+    </Link>
   );
 }

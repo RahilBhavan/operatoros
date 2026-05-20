@@ -1,7 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/doctrine/Button";
+import { ListRow } from "@/components/doctrine/ListRow";
+import { PageEmptyState } from "@/components/doctrine/PageEmptyState";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageSection } from "@/components/doctrine/PageSection";
+import { PageShell } from "@/components/doctrine/PageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +30,26 @@ function statusDot(expires: string | null): "ok" | "soon" | "expired" | "n/a" {
   if (ms < 0) return "expired";
   if (ms < 30 * 86400 * 1000) return "soon";
   return "ok";
+}
+
+function credentialSummary(creds: CredentialRow[]): {
+  label: string;
+  urgent: boolean;
+} {
+  const expired = creds.filter(
+    (c) => statusDot(c.expires_date) === "expired",
+  ).length;
+  const soon = creds.filter((c) => statusDot(c.expires_date) === "soon").length;
+  if (expired > 0) {
+    return {
+      label: `${expired} expired`,
+      urgent: true,
+    };
+  }
+  if (soon > 0) {
+    return { label: `${soon} expiring ≤30d`, urgent: false };
+  }
+  return { label: "All current", urgent: false };
 }
 
 export default async function StaffIndex() {
@@ -61,128 +85,76 @@ export default async function StaffIndex() {
     credsByStaff.set(c.staff_member_id, arr);
   }
 
-  return (
-    <div className="flex flex-col gap-5">
-      <header className="border-b-4 border-[var(--color-ground)] pb-3 flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <div className="t-utility mb-2">PA-STAF</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 900,
-              fontSize: "clamp(30px, 4vw, 44px)",
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-            }}
-          >
-            Staff &amp; credentials
-          </h1>
-          <p
-            className="mt-3 max-w-[640px]"
-            style={{ fontFamily: "var(--font-index)", fontSize: 15 }}
-          >
-            Track per-person credentials — CPR, OSHA 10/30, food handler, state
-            board licenses, CE hours — alongside entity-level deadlines.
-            Reminders fire on the same schedule.
-          </p>
-        </div>
-        <LinkButton href="/staff/new" variant="mark">
-          + Add staff member
-        </LinkButton>
-      </header>
+  const staffRows = (staff ?? []) as StaffRow[];
 
-      {(staff ?? []).length === 0 ? (
-        <div className="border-2 border-[var(--color-ground)] p-10">
-          <h2
-            style={{
-              fontFamily: "var(--font-destination)",
-              fontWeight: 800,
-              fontSize: 32,
-              textTransform: "uppercase",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            No staff on file.
-          </h2>
-          <p
-            className="mt-3 max-w-[480px]"
-            style={{ fontFamily: "var(--font-index)" }}
-          >
-            Add caregivers, technicians, drivers, or practitioners whose
-            credentials renew on a cycle.
-          </p>
-          <div className="mt-5">
+  return (
+    <PageShell>
+      <PageHeader
+        code={`${staffRows.length} active staff member${staffRows.length === 1 ? "" : "s"}`}
+        title="Staff & credentials"
+        description="Track per-person credentials — CPR, OSHA 10/30, food handler, state board licenses, CE hours — alongside entity-level deadlines. Reminders follow the same schedule."
+        actions={
+          <LinkButton href="/staff/new" variant="mark">
+            + Add staff member
+          </LinkButton>
+        }
+      />
+
+      {staffRows.length === 0 ? (
+        <PageEmptyState
+          title="No staff on file"
+          description="Add caregivers, technicians, drivers, or practitioners whose credentials renew on a cycle."
+          actions={
             <LinkButton href="/staff/new" variant="mark">
               + Add first staff member
             </LinkButton>
-          </div>
-        </div>
+          }
+        />
       ) : (
-        <section className="border-2 border-[var(--color-ground)]">
-          <div className="panel-ink px-4 py-2 flex items-center justify-between">
-            <span className="t-utility" style={{ color: "var(--color-field)" }}>
-              Roster · active
-            </span>
-            <span className="t-utility" style={{ color: "var(--color-field)" }}>
-              {String((staff ?? []).length).padStart(2, "0")}
-            </span>
-          </div>
+        <PageSection title="Active roster" count={staffRows.length}>
           <ul className="bg-[var(--color-field)]">
-            {((staff ?? []) as StaffRow[]).map((s, i) => {
+            {staffRows.map((s, i) => {
               const creds = credsByStaff.get(s.id) ?? [];
-              const expired = creds.filter(
-                (c) => statusDot(c.expires_date) === "expired"
-              ).length;
-              const soon = creds.filter(
-                (c) => statusDot(c.expires_date) === "soon"
-              ).length;
+              const summary = credentialSummary(creds);
+              const secondary = [
+                s.role ?? "—",
+                s.employment_type ?? null,
+                creds.length > 0
+                  ? `${creds.length} credential${creds.length === 1 ? "" : "s"}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+
               return (
                 <li
                   key={s.id}
                   className={
-                    i === (staff ?? []).length - 1
+                    i === staffRows.length - 1
                       ? ""
                       : "border-b border-[var(--color-ground)]"
                   }
                 >
-                  <Link
+                  <ListRow
                     href={`/staff/${s.id}`}
-                    className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 no-underline hover:bg-[var(--color-ground)] hover:text-[var(--color-field)]"
-                  >
-                    <div>
-                      <div
-                        className="font-bold text-[15px]"
-                        style={{ fontFamily: "var(--font-index)" }}
+                    primary={s.full_name}
+                    secondary={secondary}
+                    trailing={
+                      <span
+                        className={
+                          summary.urgent ? "text-[var(--color-mark)]" : undefined
+                        }
                       >
-                        {s.full_name}
-                      </div>
-                      <div className="t-utility mt-1">
-                        {s.role ?? "—"}
-                        {s.employment_type ? ` · ${s.employment_type}` : ""}
-                        {creds.length > 0
-                          ? ` · ${creds.length} credential${creds.length === 1 ? "" : "s"}`
-                          : ""}
-                      </div>
-                    </div>
-                    <div className="t-utility shrink-0">
-                      {expired > 0 ? (
-                        <span className="text-[var(--color-mark)]">
-                          {expired} expired
-                        </span>
-                      ) : soon > 0 ? (
-                        <span>{soon} expiring ≤30d</span>
-                      ) : (
-                        "All current"
-                      )}
-                    </div>
-                  </Link>
+                        {summary.label}
+                      </span>
+                    }
+                  />
                 </li>
               );
             })}
           </ul>
-        </section>
+        </PageSection>
       )}
-    </div>
+    </PageShell>
   );
 }

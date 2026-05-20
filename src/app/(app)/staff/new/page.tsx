@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/doctrine/Button";
+import { PageHeader } from "@/components/doctrine/PageHeader";
+import { PageShell } from "@/components/doctrine/PageShell";
 import { FormField } from "@/components/doctrine/FormField";
 
 export default function NewStaffPage() {
@@ -53,22 +55,8 @@ export default function NewStaffPage() {
   }
 
   return (
-    <div className="max-w-[680px] flex flex-col gap-6">
-      <header className="border-b-4 border-[var(--color-ground)] pb-3">
-        <div className="t-utility mb-2">PA-STAF / NEW</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-destination)",
-            fontWeight: 900,
-            fontSize: 44,
-            lineHeight: 1,
-            letterSpacing: "-0.02em",
-            textTransform: "uppercase",
-          }}
-        >
-          Add staff member
-        </h1>
-      </header>
+    <PageShell width="narrow">
+      <PageHeader title="New staff member" size="compact" />
 
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <FormField label="Full name" htmlFor="full_name">
@@ -149,6 +137,6 @@ export default function NewStaffPage() {
           </Button>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }

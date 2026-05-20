@@ -28,7 +28,7 @@ export default function AppLoading() {
           className="inline-block w-3 h-3 bg-[var(--color-mark)] motion-safe:animate-pulse"
         />
         <span className="t-utility text-[var(--color-ground)]">
-          Routing · loading manifest
+          Loading
         </span>
       </div>
     </div>

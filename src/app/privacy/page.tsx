@@ -36,7 +36,7 @@ export default function PrivacyPage() {
     <div className="flex flex-col min-h-screen bg-[var(--color-field)]">
       <MarketingNav />
 
-      <main className="flex-1 px-6 py-16">
+      <main className="flex-1 px-6 py-10">
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-12">
           <article className="max-w-[760px]">
             <div className="flex items-center gap-3 mb-4">
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
               advance.
             </Caption>
 
-            <div className="border-2 border-[var(--color-mark)] px-5 py-4 my-8">
+            <div className="border-2 border-[var(--color-mark)] px-5 py-4 my-5">
               <Utility className="text-[var(--color-mark)] mb-2">
                 NOTICE · DRAFT
               </Utility>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             </div>
 
             <details
-              className="lg:hidden border-2 border-[var(--color-ground)] mb-8"
+              className="lg:hidden border-2 border-[var(--color-ground)] mb-5"
               open
             >
               <summary className="cursor-pointer list-none px-4 py-3 bg-[var(--color-ground)] text-[var(--color-field)] flex justify-between items-center">
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
               </ul>
             </details>
 
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-6">
               <Section n="01" id="collect" title="What we collect">
                 <ul className="flex flex-col gap-2">
                   <Bullet>

@@ -25,6 +25,8 @@ export interface Entitlements {
   storageCapMib: number;
   /** Can invite team members. */
   teamInvites: boolean;
+  /** Maximum active team members (incl. owner). Surfaced in /billing usage. */
+  teamMemberMax: number;
   /** Marketing-facing label for UI. */
   label: string;
 }
@@ -36,6 +38,7 @@ const MATRIX: Record<PlanTier, Entitlements> = {
     shareLink: false,
     storageCapMib: 100,
     teamInvites: false,
+    teamMemberMax: 1,
     label: "Free trial",
   },
   lite: {
@@ -44,6 +47,7 @@ const MATRIX: Record<PlanTier, Entitlements> = {
     shareLink: false,
     storageCapMib: 1024,
     teamInvites: false,
+    teamMemberMax: 1,
     label: "Lite",
   },
   business: {
@@ -52,6 +56,7 @@ const MATRIX: Record<PlanTier, Entitlements> = {
     shareLink: true,
     storageCapMib: 10 * 1024,
     teamInvites: true,
+    teamMemberMax: 5,
     label: "Business",
   },
   accountant: {
@@ -60,6 +65,7 @@ const MATRIX: Record<PlanTier, Entitlements> = {
     shareLink: true,
     storageCapMib: 50 * 1024,
     teamInvites: true,
+    teamMemberMax: 25,
     label: "Accountant",
   },
 };

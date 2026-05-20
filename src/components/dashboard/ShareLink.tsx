@@ -110,12 +110,7 @@ export default function ShareLink({ canShare }: Props) {
         >
           Share link
         </span>
-        <span
-          className="t-utility"
-          style={{ color: "var(--color-field)" }}
-        >
-          PA-SHR
-        </span>
+        <span className="t-caption text-[var(--color-field)]/80">Read-only</span>
       </div>
 
       <div className="bg-[var(--color-field)] px-4 py-4 flex-1 flex flex-col gap-3">

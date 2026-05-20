@@ -16,6 +16,7 @@ import type {
   EmployeeRange,
   EntityType,
   Industry,
+  IntendedPlan,
   OnboardingData,
 } from "@/types/onboarding";
 
@@ -96,6 +97,16 @@ function validate(input: unknown): OnboardingData | { error: string } {
     return { error: "Invalid contractor selection." };
   }
 
+  const intendedPlan = raw.intendedPlan;
+  if (
+    intendedPlan !== null &&
+    intendedPlan !== undefined &&
+    intendedPlan !== "business" &&
+    intendedPlan !== "accountant"
+  ) {
+    return { error: "Invalid plan selection." };
+  }
+
   return {
     businessName,
     industry: (industry as Industry | null) ?? null,
@@ -103,6 +114,7 @@ function validate(input: unknown): OnboardingData | { error: string } {
     entityType: (entityType as EntityType | null) ?? null,
     employeeRange: (employeeRange as EmployeeRange | null) ?? null,
     hiresContractors: (hiresContractors as boolean | null) ?? null,
+    intendedPlan: (intendedPlan as IntendedPlan | null) ?? null,
   };
 }
 
@@ -164,6 +176,25 @@ export async function completeOnboarding(
       return { ok: false, error: "Sign in again to finish onboarding." };
     }
     return { ok: false, error: "Could not save your onboarding. Try again." };
+  }
+
+  // Persist intended plan separately from the RPC (the RPC predates the
+  // intended_plan column; widening it requires a function migration). This
+  // is intent, not entitlement — plan_tier stays 'free' until Stripe webhook
+  // flips it after subscription creation.
+  if (data.intendedPlan) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from("businesses") as any)
+        .update({ intended_plan: data.intendedPlan })
+        .eq("id", String(businessId));
+    } catch (err) {
+      // Non-fatal — the user can still pick a plan on /billing.
+      console.warn("[onboarding] intended_plan persist skipped", {
+        business_id: String(businessId),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   let attributedToAccountantId: string | null = null;

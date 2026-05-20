@@ -27,12 +27,7 @@ export default function PeerBenchmarkBar({ peer }: { peer: PeerResult }) {
           >
             Peer benchmark · cohort
           </span>
-          <span
-            className="t-utility"
-            style={{ color: "var(--color-field)" }}
-          >
-            PA-PEER
-          </span>
+          <span className="t-caption text-[var(--color-field)]/80">Anonymous cohort</span>
         </div>
         <div className="bg-[var(--color-field)] px-4 py-3">
           <p
