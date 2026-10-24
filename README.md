@@ -94,11 +94,11 @@ Rule entries cite the responsible agency and a source URL in `src/lib/regulatory
 - Not legal, tax or accounting advice. Confirm every deadline with your accountant or the responsible agency. The terms page marks its legal text as a draft pending legal review.
 - Independent portfolio project. Not affiliated with the IRS, any state agency, Anthropic, Stripe or Supabase.
 - The AI features were not exercised for this README because no API key was available; only the code paths were read. Unit tests cover the scoring, rule and security logic.
-- The landing page stat "9–20" starter deadlines for a 16–30 employee business is counted from the rule set across 9 states (`src/__tests__/lib/starter-deadline-range.test.ts`). An earlier "47 obligations" figure was removed because the code does not support it. Other landing-page figures (penalty examples, pricing) are not reproduced by tests.
+- The landing page stat "10–20" starter deadlines for a completed profile of a 16–30 employee business is counted from the rule set across all 51 jurisdictions, 10 industries and 6 entity types (blank answers can lower it to 7) (`src/__tests__/lib/starter-deadline-range.test.ts`). An earlier "47 obligations" figure was removed because the code does not support it. Other landing-page figures (penalty examples, pricing) are not reproduced by tests.
 - Counts of customers, revenue or accountant adoption do not exist in this repository. Statements about accountant distribution in older docs are strategy, not results.
 - Nothing is filed on a user's behalf. Filing-provider integrations need third-party keys and were not tested.
 - `npm audit` reports 0 vulnerabilities on 2026-10-24. Vitest stays on 4.1.12 because Vitest 5 requires Node 22.12 or newer.
-- In a local production build (`next build && next start`) Firefox blocked the page's scripts under the strict Content-Security-Policy nonce, so the static landing page did not hydrate. Not investigated or fixed here; check the live site.
+- The Content-Security-Policy bug was confirmed in production at https://operatoros-sigma.vercel.app: the nonce was set only on the response and the pages were prerendered, so the browser blocked every script on `/`, `/sign-in` and `/sign-up`, React never hydrated and sign-in could not work. It is fixed on this branch (nonce-bearing CSP on the request headers, all routes rendered per request) and is pending deploy; the live site still has the bug until then. The live deployment also lacks the Supabase environment variables (its health endpoint reports `supabase.public=false`), so sign-in would fail there even after the fix.
 
 ## License
 

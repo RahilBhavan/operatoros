@@ -3,17 +3,24 @@ import { buildStarterDeadlines } from "@/lib/seed-deadlines";
 import type { EntityType, Industry } from "@/types/onboarding";
 
 // The landing page (src/app/page.tsx, stat P-02) says the rule set seeds
-// 9-20 starter deadlines for a 16-30 employee business. If rules change,
+// 10-20 starter deadlines for a 16-30 employee business with a completed profile (blank answers can
+// lower it to 7). If rules change,
 // update that copy together with these bounds.
 const INDUSTRIES: Industry[] = [
   "restaurant", "construction", "healthcare", "retail", "personal_services",
   "business_services", "manufacturing", "transportation", "fitness", "other",
 ];
 const ENTITIES: EntityType[] = ["llc", "s_corp", "c_corp", "sole_proprietor", "partnership", "nonprofit"];
-const STATES = ["CA", "TX", "NY", "DE", "FL", "IL", "PA", "GA", "WY"];
+const STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
+  "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME",
+  "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH",
+  "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI",
+  "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+];
 
 describe("starter deadlines for a 16-30 employee business", () => {
-  it("seeds between 9 and 20 deadlines across every state, industry, entity and contractor combination tested", () => {
+  it("seeds between 10 and 20 deadlines across every one of the 51 jurisdictions, industry, entity and contractor combination tested", () => {
     const counts: number[] = [];
     for (const state of STATES)
       for (const industry of INDUSTRIES)
@@ -27,7 +34,8 @@ describe("starter deadlines for a 16-30 employee business", () => {
               ).length
             );
     expect(counts).toHaveLength(STATES.length * INDUSTRIES.length * ENTITIES.length * 2);
-    expect(Math.min(...counts)).toBeGreaterThanOrEqual(9);
-    expect(Math.max(...counts)).toBeLessThanOrEqual(20);
+    expect(STATES).toHaveLength(51);
+    expect(Math.min(...counts)).toBe(10);
+    expect(Math.max(...counts)).toBe(20);
   });
 });

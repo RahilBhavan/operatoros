@@ -80,10 +80,10 @@ const PAIN_STATS = [
   },
   {
     code: "P-02",
-    stat: "9–20",
+    stat: "10–20",
     label:
-      "Starter deadlines OperatorOS seeds for a 16–30 employee business, depending on state, industry and entity type. Counted from the rule set, not from a survey.",
-    source: "Rule set in regulatory-graph.ts · 9 states tested · 8 curated + template fallback",
+      "Starter deadlines OperatorOS seeds for a completed profile of a 16–30 employee business, depending on state, industry and entity type. Counted from the rule set, not from a survey.",
+    source: "Rule set in regulatory-graph.ts · all 51 jurisdictions tested · 8 curated + template fallback",
   },
   {
     code: "P-03",

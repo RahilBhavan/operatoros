@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Slab, Atkinson_Hyperlegible } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { ToastProvider } from "@/components/doctrine/Toast";
@@ -85,11 +86,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+// Render every route per request so Next can apply the CSP nonce from the
+// proxy to its scripts (see src/lib/security/csp.ts). Static HTML cannot carry
+// a per-request nonce, and under 'strict-dynamic' un-nonced scripts are blocked.
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
   return (
     <html
       lang="en"

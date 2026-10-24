@@ -1,8 +1,16 @@
 // Per-request nonce-based Content-Security-Policy.
 //
-// The middleware (`src/proxy.ts`) generates a fresh nonce per request, attaches
-// it to the inbound request as `x-nonce` so Next.js auto-nonces its built-in
-// hydration scripts, and sets `Content-Security-Policy` on the response.
+// The proxy (`src/proxy.ts`) generates a fresh nonce per request and sets the
+// same `Content-Security-Policy` value on BOTH the forwarded request headers
+// and the response. Next.js parses the nonce out of the request's CSP header
+// (`'nonce-...'` in script-src) and applies it to its framework and hydration
+// scripts; the response header is what the browser enforces. Setting only
+// `x-nonce` or only the response header leaves Next's scripts un-nonced, and
+// `'strict-dynamic'` then makes the browser block them.
+//
+// A nonce only works if the HTML is rendered per request. Pages that are
+// prerendered at build time cannot carry one, so the root layout calls
+// `connection()` to opt every route into dynamic rendering.
 //
 // `'strict-dynamic'` lets a nonced script load further scripts (Next's chunk
 // loader uses this pattern), so we don't need to nonce every dynamically
