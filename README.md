@@ -1,6 +1,12 @@
 # OperatorOS: a compliance deadline tracker for small businesses
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Live:** https://operatoros-sigma.vercel.app
+
+![OperatorOS landing page at 1440 px wide: headline "Never get blindsided by a compliance failure again" beside an IRS Form 941 deadline tag dated Oct 31, 2026.](docs/images/landing-1440.png)
+
+*Landing page from a production build run locally with placeholder Supabase values, captured 2026-10-24 in Firefox.*
 
 A Next.js and Supabase app that seeds the federal and state compliance deadlines a small business (1–50 employees) is likely to face from its industry, state, entity type and employee count, then tracks a compliance score, sends reminders and gives accountants a portfolio view. It is a demo-stage solo project. Its deadline content is informational, not legal, tax or accounting advice.
 
@@ -37,7 +43,7 @@ Offline check, no keys or accounts needed:
 npm ci
 npm run type-check
 npm run lint
-npm test          # 375 tests in 37 files passed on 2026-10-24
+npm test          # 376 tests in 38 files passed on 2026-10-24
 npm run build     # compiled without any environment variables set
 ```
 
@@ -87,13 +93,14 @@ Rule entries cite the responsible agency and a source URL in `src/lib/regulatory
 - Not legal, tax or accounting advice. Confirm every deadline with your accountant or the responsible agency. The terms page marks its legal text as a draft pending legal review.
 - Independent portfolio project. Not affiliated with the IRS, any state agency, Anthropic, Stripe or Supabase.
 - The AI features were not exercised for this README because no API key was available; only the code paths were read. Unit tests cover the scoring, rule and security logic.
-- Marketing figures on the landing page (for example "47 obligations" for a 25-employee multi-state business) are not reproduced by a test in this repository.
+- The landing page stat "9–20" starter deadlines for a 16–30 employee business is counted from the rule set across 9 states (`src/__tests__/lib/starter-deadline-range.test.ts`). An earlier "47 obligations" figure was removed because the code does not support it. Other landing-page figures (penalty examples, pricing) are not reproduced by tests.
 - Counts of customers, revenue or accountant adoption do not exist in this repository. Statements about accountant distribution in older docs are strategy, not results.
 - Nothing is filed on a user's behalf. Filing-provider integrations need third-party keys and were not tested.
-- The dependency audit still reports 3 moderate advisories in the dev-only vitest chain.
+- `npm audit` reports 0 vulnerabilities on 2026-10-24. Vitest stays on 4.1.12 because Vitest 5 requires Node 22.12 or newer.
+- In a local production build (`next build && next start`) Firefox blocked the page's scripts under the strict Content-Security-Policy nonce, so the static landing page did not hydrate. Not investigated or fixed here; check the live site.
 
 ## License
 
-No license file yet.
+MIT, see [LICENSE](LICENSE).
 
 Part of [Rahil Bhavan's projects](https://github.com/RahilBhavan).
