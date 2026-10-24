@@ -2,14 +2,14 @@
 
 ## GitHub Actions
 
-- **`.github/workflows/security.yml`**: Semgrep (TS/JS/SQL rulesets), `bun audit` (advisory; install via `oven-sh/setup-bun`).
+- **`.github/workflows/security.yml`**: Semgrep (TypeScript and JavaScript rulesets), `npm audit` (advisory, `continue-on-error`), and a unit-tests job (type-check, lint, build, `npm test`).
 - **`.github/workflows/codeql.yml`**: CodeQL for `javascript-typescript` on push/PR to default branches.
 
 ## Local / release checks
 
 ```bash
-bun run security:deps   # dependency audit
-bun run security:sast   # Semgrep (requires semgrep CLI installed)
+npm run security:deps   # dependency audit
+npm run security:sast   # Semgrep (requires semgrep CLI installed)
 ```
 
 ## Supabase
