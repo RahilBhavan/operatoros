@@ -110,7 +110,6 @@ export default async function DeadlineDetailPage({
   const isOverdue = deadline.status === "overdue";
   const isUrgent = isOverdue || deadline.status === "in_progress";
   const penalty = formatPenalty(deadline.penalty_estimate_cents);
-  const idCode = deadline.id.slice(0, 8).toUpperCase();
 
   return (
     <div className="flex flex-col gap-5">
