@@ -127,7 +127,12 @@ Create a storage bucket named `documents` (private, RLS enforced).
 
 ### 5. Stripe Webhook
 
-Point to `https://yourdomain.com/api/billing/webhook` with:
+Add an endpoint at the path below, using your deployed domain, and send these events:
+
+```
+https://<your-domain>/api/billing/webhook
+```
+
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
