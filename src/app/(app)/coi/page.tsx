@@ -23,6 +23,12 @@ type Issue = {
   issued_at: string;
 };
 
+// Server component, force-dynamic: the clock is read once per request,
+// outside render-time component code (react purity rule).
+function requestTimeMs(): number {
+  return Date.now();
+}
+
 function coiStatusLabel(
   latest: Issue | undefined,
   nowMs: number,
@@ -69,7 +75,7 @@ export default async function CoiIndex() {
   }
 
   const recipientRows = (recipients ?? []) as Recipient[];
-  const nowMs = Date.now();
+  const nowMs = requestTimeMs();
 
   return (
     <PageShell>

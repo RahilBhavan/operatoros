@@ -17,7 +17,7 @@ describe("DeadlineFilters", () => {
     render(<DeadlineFilters />);
     expect(screen.getByRole("button", { name: /^all$/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /overdue/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /due ≤ 30d/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /due ≤ 30 days/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /upcoming/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /compliant/i })).toBeDefined();
   });
