@@ -74,6 +74,7 @@ Also create a private Supabase Storage bucket named `documents`, and point a Str
 - `docs/` security notes, runbooks, roadmap and historical planning
 - `scripts/` Stripe subscription backfill
 - `.agents/skills/` design-assistant files used while building (not part of the app)
+- `AGENTS.md`, `CLAUDE.md`: agent workflow files used while building (not part of the app)
 
 ## Documentation
 
