@@ -12,15 +12,17 @@ const AUTH_ONLY = ["/sign-in", "/sign-up"];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Generate a fresh nonce per request. We propagate it on the inbound headers
-  // so Next.js auto-nonces its built-in <script> tags, and we set CSP on the
-  // outbound response so the browser enforces it.
+  // Generate a fresh nonce per request. Next.js reads the nonce from the
+  // *request's* Content-Security-Policy header (not from a custom header) and
+  // applies it to its own <script> tags, so the CSP must be set on the request
+  // headers as well as on the response the browser enforces.
   const nonce = generateNonce();
   const cspMode = process.env.NODE_ENV === "production" ? "prod" : "dev";
   const csp = buildCsp(nonce, cspMode);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
 
   const nextOpts = { request: { headers: requestHeaders } };
   let response = NextResponse.next(nextOpts);

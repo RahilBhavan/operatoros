@@ -80,10 +80,10 @@ const PAIN_STATS = [
   },
   {
     code: "P-02",
-    stat: "47",
+    stat: "10–20",
     label:
-      "Median annual compliance obligations OperatorOS pre-populates for a 25-employee, multi-state business.",
-    source: "Federal taxonomy + 8 states deep · 43 template-fallback",
+      "Starter deadlines OperatorOS seeds for a completed profile of a 16–30 employee business, depending on state, industry and entity type. Counted from the rule set, not from a survey.",
+    source: "Rule set in regulatory-graph.ts · all 51 jurisdictions tested · 8 curated + template fallback",
   },
   {
     code: "P-03",
