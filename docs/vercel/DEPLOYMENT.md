@@ -50,7 +50,7 @@ View page source on `/` and confirm `<html … data-app="operatoros-compliance">
 | Build Command | `npm run build` |
 | Output Directory | **(empty — do not set `.next` or `out`)** |
 | Install Command | `npm install` |
-| Node.js Version | **20.x** |
+| Node.js Version | **22.x** |
 
 **Wrong Output Directory** (e.g. `.next`) is the usual cause of “the link downloads bytes instead of showing the website”: Vercel serves build artifacts as raw files instead of running the Next.js router.
 

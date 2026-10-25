@@ -35,7 +35,7 @@ Next.js 16 App Router pages and API routes in `src/app/`, Supabase (Postgres, Au
 
 ## Run it
 
-Prerequisites: Node.js 20 and npm. The lockfile is `package-lock.json`.
+Prerequisites: Node.js 22.12 or newer (Node 20 reached end of life on 2026-04-30) and npm. The lockfile is `package-lock.json`.
 
 Offline check, no keys or accounts needed:
 
@@ -97,7 +97,7 @@ Rule entries cite the responsible agency and a source URL in `src/lib/regulatory
 - The landing page stat "10–20" starter deadlines for a completed profile of a 16–30 employee business is counted from the rule set across all 51 jurisdictions, 10 industries and 6 entity types (blank answers can lower it to 7) (`src/__tests__/lib/starter-deadline-range.test.ts`). An earlier "47 obligations" figure was removed because the code does not support it. Other landing-page figures (penalty examples, pricing) are not reproduced by tests.
 - Counts of customers, revenue or accountant adoption do not exist in this repository. Statements about accountant distribution in older docs are strategy, not results.
 - Nothing is filed on a user's behalf. Filing-provider integrations need third-party keys and were not tested.
-- `npm audit` reports 0 vulnerabilities on 2026-10-24. Vitest stays on 4.1.12 because Vitest 5 requires Node 22.12 or newer.
+- `npm audit` reports 0 vulnerabilities on 2026-10-24. The baseline is Node 22 because Node 20 is end of life and Vitest 5 requires Node 22.12 or newer.
 - The Content-Security-Policy bug was confirmed in production at https://operatoros-sigma.vercel.app: the nonce was set only on the response and the pages were prerendered, so the browser blocked every script on `/`, `/sign-in` and `/sign-up`, React never hydrated and sign-in could not work. It is fixed on this branch (nonce-bearing CSP on the request headers, all routes rendered per request) and is pending deploy; the live site still has the bug until then. The live deployment also lacks the Supabase environment variables (its health endpoint reports `supabase.public=false`), so sign-in would fail there even after the fix.
 
 ## License
