@@ -63,7 +63,7 @@ npm run dev                  # http://localhost:3000
 | Email reminders | `RESEND_API_KEY`, `EMAIL_FROM` |
 | Cron endpoints | `CRON_SECRET` |
 
-Also create a private Supabase Storage bucket named `documents`, and point a Stripe webhook at `https://<your-domain>/api/billing/webhook`. See `docs/billing/SETUP.md`. Optional integrations (Twilio SMS, PostHog, QuickBooks, filing providers) are listed in `.env.example`. End-to-end tests use Playwright (`npm run test:e2e`) and need a configured environment; they were not run for this README.
+Also create a private Supabase Storage bucket named `documents`, and point a Stripe webhook at the `/api/billing/webhook` path of your deployed domain. See `docs/billing/SETUP.md`. Optional integrations (Twilio SMS, PostHog, QuickBooks, filing providers) are listed in `.env.example`. End-to-end tests use Playwright (`npm run test:e2e`) and need a configured environment; they were not run for this README.
 
 ## Repository layout
 
