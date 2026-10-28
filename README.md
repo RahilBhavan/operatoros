@@ -1,5 +1,6 @@
 # OperatorOS: a compliance deadline tracker for small businesses
 
+[![CI](https://github.com/RahilBhavan/operatoros/actions/workflows/ci.yml/badge.svg)](https://github.com/RahilBhavan/operatoros/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Live:** https://operatoros-sigma.vercel.app
@@ -43,7 +44,7 @@ Offline check, no keys or accounts needed:
 npm ci
 npm run type-check
 npm run lint
-npm test          # 376 tests in 38 files passed on 2026-10-24
+npm test          # 378 tests in 39 files passed on 2026-10-28
 npm run build     # compiled without any environment variables set
 ```
 
